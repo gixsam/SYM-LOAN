@@ -15,7 +15,7 @@
       "approval_ceiling": 100000,
       "status": "ACTIVE",
       "created_at": "2026-09-18T10:00:00.000Z",
-      "last_login_at": "2026-09-18T18:02:28.880Z"
+      "last_login_at": "2026-09-18T18:20:22.976Z"
     },
     {
       "id": "stf_loanofficer_01",
@@ -41,7 +41,7 @@
       "approval_ceiling": 25000,
       "status": "ACTIVE",
       "created_at": "2026-09-18T10:30:00.000Z",
-      "last_login_at": "2026-09-18T18:02:29.117Z"
+      "last_login_at": "2026-09-18T18:20:23.139Z"
     },
     {
       "id": "stf_compliance_01",
@@ -115,6 +115,57 @@
       "approval_ceiling": 0,
       "status": "ACTIVE",
       "created_at": "2026-09-18T12:00:00.000Z",
+      "last_login_at": null
+    },
+    {
+      "id": "stf_1789755623010_pt5l",
+      "username": "test_officer_1789755623008",
+      "display_name": "Test Junior Officer",
+      "email": "test_officer_1789755623008@symloan.com",
+      "phone": "",
+      "role": "LOAN_OFFICER",
+      "password_hash": "d66cad871c87b749cdea0ce087fa885bcfc46d716f95c273af8ebc8a3cd65b9e",
+      "password_salt": "5dc41c5378700a6fd5fcf036c8ee4cf0",
+      "permissions": [
+        "loans:read",
+        "loans:view",
+        "loans:review",
+        "loans:approve",
+        "loans:decline",
+        "loans:decision",
+        "loans:disburse",
+        "clients:read",
+        "credit:read",
+        "audit:read"
+      ],
+      "approval_ceiling": 5000,
+      "status": "SUSPENDED",
+      "created_at": "2026-09-18T18:20:23.010Z",
+      "last_login_at": null
+    },
+    {
+      "id": "stf_1789755623165_fhdb",
+      "username": "http_officer_1789755623163",
+      "display_name": "HTTP Provisioned Analyst",
+      "email": "http_officer_1789755623163@symloan.com",
+      "phone": "",
+      "role": "COMPLIANCE_OFFICER",
+      "password_hash": "232982131410ac15206aa49dce87d362cc5573dc5b779a3ee168d9985a9be843",
+      "password_salt": "c6e26f6f8d2140950e4c33dc7256a873",
+      "permissions": [
+        "kyc:read",
+        "kyc:verify",
+        "kyc:reject",
+        "fraud:read",
+        "fraud:resolve",
+        "credit:read",
+        "credit:override",
+        "audit:read",
+        "audit:verify"
+      ],
+      "approval_ceiling": 30000,
+      "status": "ACTIVE",
+      "created_at": "2026-09-18T18:20:23.165Z",
       "last_login_at": null
     }
   ],

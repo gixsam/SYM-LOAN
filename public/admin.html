@@ -26,7 +26,7 @@
       <!-- Left side: Hamburger + Official Brand Logo (Space-Saving) -->
       <div class="flex items-center space-x-2 sm:space-x-3 min-w-0">
         <!-- Hamburger Menu Button -->
-        <button id="hamburgerBtn" title="Open Navigation Menu" class="p-2 sm:p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-amber-400 border border-white/10 text-sm sm:text-base transition flex-shrink-0 flex items-center justify-center cursor-pointer">
+        <button id="hamburgerBtn" onclick="openDrawer()" title="Open Navigation Menu" class="p-2 sm:p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-amber-400 border border-white/10 text-sm sm:text-base transition flex-shrink-0 flex items-center justify-center cursor-pointer">
           <i class="fas fa-bars"></i>
         </button>
 
@@ -53,7 +53,7 @@
       <div class="flex items-center space-x-1 sm:space-x-2 flex-shrink-0 relative">
         <!-- Notification Bell Icon -->
         <div class="relative">
-          <button type="button" id="adminNotificationBellBtn" title="Executive Notifications" class="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-amber-400 transition cursor-pointer border border-white/10 flex items-center justify-center">
+          <button type="button" id="adminNotificationBellBtn" onclick="toggleNotificationDropdown(event)" title="Executive Notifications" class="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-amber-400 transition cursor-pointer border border-white/10 flex items-center justify-center">
             <i class="fas fa-bell text-sm sm:text-base"></i>
             <span id="adminNotifBadge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-black items-center justify-center animate-pulse shadow-lg ring-2 ring-[#070b14]">0</span>
           </button>
@@ -88,12 +88,12 @@
         </div>
 
         <!-- Direct Settings Launcher Button -->
-        <button type="button" id="openSettingsModalBtn" title="Platform Settings" class="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-amber-400 transition cursor-pointer border border-white/10 flex items-center justify-center">
+        <button type="button" id="openSettingsModalBtn" onclick="openSettingsModal()" title="Platform Settings" class="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-amber-400 transition cursor-pointer border border-white/10 flex items-center justify-center">
           <i class="fas fa-cog text-sm sm:text-base"></i>
         </button>
 
         <!-- 3-Option Admin Login Button -->
-        <button type="button" id="openAdminLoginBtn" class="px-2.5 sm:px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-black text-xs flex items-center transition shadow-lg shadow-amber-500/20 cursor-pointer">
+        <button type="button" id="openAdminLoginBtn" onclick="openLoginModal()" class="px-2.5 sm:px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-black text-xs flex items-center transition shadow-lg shadow-amber-500/20 cursor-pointer">
           <i class="fas fa-key sm:mr-1.5"></i>
           <span class="hidden sm:inline">Admin Login</span>
         </button>
@@ -124,7 +124,7 @@
             <div class="text-xs font-bold text-white">Section Menu</div>
           </div>
         </div>
-        <button id="closeDrawerBtn" class="text-slate-400 hover:text-white text-lg p-1 cursor-pointer">
+        <button id="closeDrawerBtn" onclick="closeDrawer()" class="text-slate-400 hover:text-white text-lg p-1 cursor-pointer">
           <i class="fas fa-times"></i>
         </button>
       </div>
@@ -134,7 +134,7 @@
           <i class="fas fa-tachometer-alt text-amber-400 w-5"></i>
           <span>Dashboard Overview</span>
         </a>
-        <button type="button" id="drawerOpenSettingsBtn" class="w-full text-left flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-amber-300 hover:text-white hover:bg-white/5 transition cursor-pointer">
+        <button type="button" id="drawerOpenSettingsBtn" onclick="closeDrawer(); openSettingsModal();" class="w-full text-left flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-amber-300 hover:text-white hover:bg-white/5 transition cursor-pointer">
           <i class="fas fa-cog text-amber-400 w-5"></i>
           <span>⚙️ Settings (Limits, Password, Logos)</span>
         </button>
@@ -1143,16 +1143,16 @@
 
         <!-- Suite Tab Navigation -->
         <div class="flex items-center space-x-1 bg-black/60 p-1 rounded-xl border border-white/10">
-          <button type="button" id="tabBtnNotepad" class="suite-tab-btn active px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center cursor-pointer bg-amber-500 text-black shadow">
+          <button type="button" id="tabBtnNotepad" onclick="switchSuiteTab('notes')" class="suite-tab-btn active px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center cursor-pointer bg-amber-500 text-black shadow">
             <i class="fas fa-sticky-note mr-1.5"></i> Keep Notes
           </button>
-          <button type="button" id="tabBtnCalendar" class="suite-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center cursor-pointer text-slate-300 hover:text-white">
+          <button type="button" id="tabBtnCalendar" onclick="switchSuiteTab('calendar')" class="suite-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center cursor-pointer text-slate-300 hover:text-white">
             <i class="fas fa-calendar-alt mr-1.5 text-cyan-400"></i> Calendar
           </button>
-          <button type="button" id="tabBtnClock" class="suite-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center cursor-pointer text-slate-300 hover:text-white">
+          <button type="button" id="tabBtnClock" onclick="switchSuiteTab('clock')" class="suite-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center cursor-pointer text-slate-300 hover:text-white">
             <i class="fas fa-stopwatch mr-1.5 text-indigo-400"></i> Clock & Alarm
           </button>
-          <button type="button" id="tabBtnMaps" class="suite-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center cursor-pointer text-slate-300 hover:text-white">
+          <button type="button" id="tabBtnMaps" onclick="switchSuiteTab('maps')" class="suite-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center cursor-pointer text-slate-300 hover:text-white">
             <i class="fas fa-map-marked-alt mr-1.5 text-emerald-400"></i> Maps & Routes
           </button>
         </div>
@@ -1655,22 +1655,22 @@
             <p class="text-[11px] text-slate-400">Choose one of 3 secure login methods</p>
           </div>
         </div>
-        <button id="closeAdminLoginModalBtn" class="text-slate-400 hover:text-white text-lg p-1.5 rounded-lg hover:bg-white/5 transition cursor-pointer">
+        <button id="closeAdminLoginModalBtn" onclick="closeLoginModal()" class="text-slate-400 hover:text-white text-lg p-1.5 rounded-lg hover:bg-white/5 transition cursor-pointer">
           <i class="fas fa-times"></i>
         </button>
       </div>
 
       <!-- 3 Navigation Tabs -->
       <div class="grid grid-cols-3 gap-1 bg-black/50 p-1 rounded-xl border border-white/10 text-xs font-bold">
-        <button type="button" id="tabBtnPassword" class="login-tab-btn active py-2 px-2 rounded-lg text-center transition flex items-center justify-center space-x-1 cursor-pointer">
+        <button type="button" id="tabBtnPassword" onclick="switchLoginTab('password')" class="login-tab-btn active py-2 px-2 rounded-lg text-center transition flex items-center justify-center space-x-1 cursor-pointer">
           <i class="fas fa-key text-xs"></i>
           <span class="truncate">Password</span>
         </button>
-        <button type="button" id="tabBtnTelegram" class="login-tab-btn py-2 px-2 rounded-lg text-center transition flex items-center justify-center space-x-1 cursor-pointer">
+        <button type="button" id="tabBtnTelegram" onclick="switchLoginTab('telegram')" class="login-tab-btn py-2 px-2 rounded-lg text-center transition flex items-center justify-center space-x-1 cursor-pointer">
           <i class="fab fa-telegram-plane text-xs"></i>
           <span class="truncate">Telegram</span>
         </button>
-        <button type="button" id="tabBtnEmail" class="login-tab-btn py-2 px-2 rounded-lg text-center transition flex items-center justify-center space-x-1 cursor-pointer">
+        <button type="button" id="tabBtnEmail" onclick="switchLoginTab('email')" class="login-tab-btn py-2 px-2 rounded-lg text-center transition flex items-center justify-center space-x-1 cursor-pointer">
           <i class="fas fa-envelope text-xs"></i>
           <span class="truncate">Email</span>
         </button>
@@ -1914,26 +1914,26 @@
             <p class="text-xs text-slate-400">Configure loan limits, credentials, 2FA channels, and platform branding</p>
           </div>
         </div>
-        <button id="closeSettingsModalBtn" class="text-slate-400 hover:text-white text-xl p-1.5 rounded-lg hover:bg-white/5 transition cursor-pointer">
+        <button id="closeSettingsModalBtn" onclick="closeSettingsModal()" class="text-slate-400 hover:text-white text-xl p-1.5 rounded-lg hover:bg-white/5 transition cursor-pointer">
           <i class="fas fa-times"></i>
         </button>
       </div>
 
       <!-- Settings Tabs Header -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-black/50 p-1.5 rounded-xl border border-white/10 text-xs font-bold">
-        <button type="button" id="settingsTabBtnLimits" class="settings-tab-btn active py-2 px-2.5 rounded-lg text-center transition flex items-center justify-center space-x-1.5 cursor-pointer">
+        <button type="button" id="settingsTabBtnLimits" onclick="switchSettingsTab('limits')" class="settings-tab-btn active py-2 px-2.5 rounded-lg text-center transition flex items-center justify-center space-x-1.5 cursor-pointer">
           <i class="fas fa-coins text-amber-400 text-xs"></i>
           <span class="truncate">Money & Date Limits</span>
         </button>
-        <button type="button" id="settingsTabBtnPassword" class="settings-tab-btn py-2 px-2.5 rounded-lg text-center transition flex items-center justify-center space-x-1.5 cursor-pointer">
+        <button type="button" id="settingsTabBtnPassword" onclick="switchSettingsTab('password')" class="settings-tab-btn py-2 px-2.5 rounded-lg text-center transition flex items-center justify-center space-x-1.5 cursor-pointer">
           <i class="fas fa-key text-sky-400 text-xs"></i>
           <span class="truncate">Change Password</span>
         </button>
-        <button type="button" id="settingsTabBtnLogin" class="settings-tab-btn py-2 px-2.5 rounded-lg text-center transition flex items-center justify-center space-x-1.5 cursor-pointer">
+        <button type="button" id="settingsTabBtnLogin" onclick="switchSettingsTab('login')" class="settings-tab-btn py-2 px-2.5 rounded-lg text-center transition flex items-center justify-center space-x-1.5 cursor-pointer">
           <i class="fas fa-shield-alt text-emerald-400 text-xs"></i>
           <span class="truncate">Log-in Option</span>
         </button>
-        <button type="button" id="settingsTabBtnLogos" class="settings-tab-btn py-2 px-2.5 rounded-lg text-center transition flex items-center justify-center space-x-1.5 cursor-pointer">
+        <button type="button" id="settingsTabBtnLogos" onclick="switchSettingsTab('logos')" class="settings-tab-btn py-2 px-2.5 rounded-lg text-center transition flex items-center justify-center space-x-1.5 cursor-pointer">
           <i class="fas fa-images text-indigo-400 text-xs"></i>
           <span class="truncate">App Logos</span>
         </button>

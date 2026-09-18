@@ -278,11 +278,11 @@ const DOM = {
   totalExpensesFooterAmount: document.getElementById('totalExpensesFooterAmount'),
 
   // Executive Operations Suite Elements (Step 6)
-  suiteTabBtnNotes: document.getElementById('suiteTabBtnNotes'),
-  suiteTabBtnCalendar: document.getElementById('suiteTabBtnCalendar'),
-  suiteTabBtnClock: document.getElementById('suiteTabBtnClock'),
-  suiteTabBtnMaps: document.getElementById('suiteTabBtnMaps'),
-  suiteTabContentNotes: document.getElementById('suiteTabContentNotes'),
+  suiteTabBtnNotes: document.getElementById('tabBtnNotepad') || document.getElementById('suiteTabBtnNotes'),
+  suiteTabBtnCalendar: document.getElementById('tabBtnCalendar') || document.getElementById('suiteTabBtnCalendar'),
+  suiteTabBtnClock: document.getElementById('tabBtnClock') || document.getElementById('suiteTabBtnClock'),
+  suiteTabBtnMaps: document.getElementById('tabBtnMaps') || document.getElementById('suiteTabBtnMaps'),
+  suiteTabContentNotes: document.getElementById('suiteTabContentNotepad') || document.getElementById('suiteTabContentNotes'),
   suiteTabContentCalendar: document.getElementById('suiteTabContentCalendar'),
   suiteTabContentClock: document.getElementById('suiteTabContentClock'),
   suiteTabContentMaps: document.getElementById('suiteTabContentMaps'),
@@ -322,6 +322,20 @@ const DOM = {
   termsModalOkBtn: document.getElementById('termsModalOkBtn'),
 };
 
+function refreshDOM() {
+  if (typeof document === 'undefined') return;
+  for (const key in DOM) {
+    if (!DOM[key]) {
+      DOM[key] = document.getElementById(key);
+    }
+  }
+  if (!DOM.suiteTabBtnNotes) DOM.suiteTabBtnNotes = document.getElementById('tabBtnNotepad') || document.getElementById('suiteTabBtnNotes');
+  if (!DOM.suiteTabBtnCalendar) DOM.suiteTabBtnCalendar = document.getElementById('tabBtnCalendar') || document.getElementById('suiteTabBtnCalendar');
+  if (!DOM.suiteTabBtnClock) DOM.suiteTabBtnClock = document.getElementById('tabBtnClock') || document.getElementById('suiteTabBtnClock');
+  if (!DOM.suiteTabBtnMaps) DOM.suiteTabBtnMaps = document.getElementById('tabBtnMaps') || document.getElementById('suiteTabBtnMaps');
+  if (!DOM.suiteTabContentNotes) DOM.suiteTabContentNotes = document.getElementById('suiteTabContentNotepad') || document.getElementById('suiteTabContentNotes');
+}
+
 let KYC_CACHE = [];
 let ACTIVE_INSPECT_KYC = null;
 let EXPENSES_CACHE = [];
@@ -333,14 +347,17 @@ let ACTIVE_ALARM_INTERVAL = null;
 let ACTIVE_ALARM_OBJ = null;
 
 function initAdmin() {
+  refreshDOM();
   if (DOM.adminKeyInput) DOM.adminKeyInput.value = ADMIN_KEY;
-  initLiveClockTicker();
-  initTermsPolicyModal();
-  setupEvents();
-  loadAllData();
-  fetchNotifications();
+  try { initLiveClockTicker(); } catch (e) { console.warn('[Clock] Init error:', e); }
+  try { initTermsPolicyModal(); } catch (e) { console.warn('[TermsModal] Init error:', e); }
+  try { setupEvents(); } catch (e) { console.warn('[Events] Setup error:', e); }
+  loadAllData().catch(e => console.warn('[Data] Load error:', e));
+  try { fetchNotifications(); } catch (e) { console.warn('[Notifs] Fetch error:', e); }
   // Auto-polling for notifications every 15 seconds
-  setInterval(fetchNotifications, 15000);
+  setInterval(() => {
+    try { fetchNotifications(); } catch (e) {}
+  }, 15000);
 }
 
 function getHeaders() {
@@ -358,29 +375,38 @@ function getHeaders() {
 // ─── Load All Data ────────────────────────────────────────────────────────────
 async function loadAllData() {
   try {
-    await fetchSettings();
-    await fetchClients();
-    await fetchKycList();
-    await fetchLoans();
-    await fetchRepayments();
-    await fetchHistoricalLedgers();
-    await fetchMasterSpreadsheet();
-    await fetchUpcomingRepaymentsAnalytics();
-    await fetchExpenses();
-    await fetchCollectionsMatrix();
-    await fetchReminderLogs();
-    await fetchCreditMatrix();
-    await fetchFraudAlerts();
-    await fetchStaffMembers();
-    await fetchAuditLogs();
-    await fetchSuiteNotes();
-    await fetchSuiteEvents();
-    await fetchSuiteAlarms();
-    DOM.authStatusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center';
-    DOM.authStatusBadge.innerHTML = '<i class="fas fa-shield-alt mr-1.5"></i> Authenticated';
+    const tasks = [
+      fetchSettings(),
+      fetchClients(),
+      fetchKycList(),
+      fetchLoans(),
+      fetchRepayments(),
+      fetchHistoricalLedgers(),
+      fetchMasterSpreadsheet(),
+      fetchUpcomingRepaymentsAnalytics(),
+      fetchExpenses(),
+      fetchCollectionsMatrix(),
+      fetchReminderLogs(),
+      fetchCreditMatrix(),
+      fetchFraudAlerts(),
+      fetchStaffMembers(),
+      fetchAuditLogs(),
+      fetchSuiteNotes(),
+      fetchSuiteEvents(),
+      fetchSuiteAlarms(),
+    ];
+    await Promise.allSettled(tasks);
+    const badge = DOM.authStatusBadge || document.getElementById('authStatusBadge');
+    if (badge) {
+      badge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center';
+      badge.innerHTML = '<i class="fas fa-shield-alt mr-1.5"></i> Authenticated';
+    }
   } catch (err) {
-    DOM.authStatusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center';
-    DOM.authStatusBadge.innerHTML = '<i class="fas fa-lock mr-1.5"></i> Invalid Key';
+    const badge = DOM.authStatusBadge || document.getElementById('authStatusBadge');
+    if (badge) {
+      badge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center';
+      badge.innerHTML = '<i class="fas fa-lock mr-1.5"></i> Invalid Key';
+    }
   }
 }
 
@@ -1869,8 +1895,8 @@ async function submitKycDecision(decision, reason) {
 
 // ─── Setup Event Listeners ────────────────────────────────────────────────────
 function setupEvents() {
-  DOM.adminKeyInput.addEventListener('change', () => {
-    ADMIN_KEY = DOM.adminKeyInput.value.trim();
+  (DOM.adminKeyInput || document.getElementById('adminKeyInput'))?.addEventListener('change', () => {
+    ADMIN_KEY = (DOM.adminKeyInput || document.getElementById('adminKeyInput')).value.trim();
     sessionStorage.setItem('sep_admin_key', ADMIN_KEY);
     localStorage.setItem('sep_admin_key', ADMIN_KEY);
     loadAllData();
@@ -1889,7 +1915,7 @@ function setupEvents() {
   document.getElementById('openClientPortalBtn')?.addEventListener('click', handleClientPortalNav);
   document.getElementById('drawerOpenClientPortalBtn')?.addEventListener('click', handleClientPortalNav);
 
-  DOM.refreshLoansBtn.addEventListener('click', () => {
+  (DOM.refreshLoansBtn || document.getElementById('refreshLoansBtn'))?.addEventListener('click', () => {
     fetchLoans();
     fetchClients();
     fetchHistoricalLedgers();
@@ -1970,12 +1996,12 @@ function setupEvents() {
     sendManualReminder();
   });
 
-  DOM.closeModalBtn.addEventListener('click', () => {
-    DOM.disburseModal.classList.add('hidden');
+  (DOM.closeModalBtn || document.getElementById('closeModalBtn'))?.addEventListener('click', () => {
+    (DOM.disburseModal || document.getElementById('disburseModal'))?.classList.add('hidden');
   });
 
-  DOM.closeReceiptModalBtn.addEventListener('click', () => {
-    DOM.receiptModal.classList.add('hidden');
+  (DOM.closeReceiptModalBtn || document.getElementById('closeReceiptModalBtn'))?.addEventListener('click', () => {
+    (DOM.receiptModal || document.getElementById('receiptModal'))?.classList.add('hidden');
   });
 
   // Method selector click
@@ -1986,25 +2012,27 @@ function setupEvents() {
   });
 
   // Disbursement Form Submit (Multipart/Form-Data)
-  DOM.disbursementForm.addEventListener('submit', async (e) => {
+  (DOM.disbursementForm || document.getElementById('disbursementForm'))?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!ACTIVE_DISBURSE_LOAN) return;
 
-    const payout_method = document.querySelector('input[name="payout_method"]:checked').value;
-    const destination_number = DOM.modalMfsNumber.value.trim();
-    const trx_id = DOM.modalTrxId.value.trim();
+    const payout_method = document.querySelector('input[name="payout_method"]:checked')?.value || 'CASH';
+    const destination_number = DOM.modalMfsNumber?.value.trim() || '';
+    const trx_id = DOM.modalTrxId?.value.trim() || '';
     const fee_handling = document.querySelector('input[name="fee_handling"]:checked')?.value || 'INCLUDED';
-    const admin_note = DOM.modalAdminNote.value.trim();
-    const receiptFile = DOM.modalReceiptFile.files[0];
+    const admin_note = DOM.modalAdminNote?.value.trim() || '';
+    const receiptFile = DOM.modalReceiptFile?.files?.[0];
 
     if ((payout_method === 'BKASH' || payout_method === 'NAGAD') && !trx_id) {
       alert('Please provide the MFS Transaction ID (TrxID) for verification.');
-      DOM.modalTrxId.focus();
+      DOM.modalTrxId?.focus();
       return;
     }
 
-    DOM.confirmDisburseBtn.disabled = true;
-    DOM.confirmDisburseBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing Disbursement...';
+    if (DOM.confirmDisburseBtn) {
+      DOM.confirmDisburseBtn.disabled = true;
+      DOM.confirmDisburseBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing Disbursement...';
+    }
 
     try {
       const formData = new FormData();
@@ -2028,26 +2056,30 @@ function setupEvents() {
       if (!res.ok || !json.success) throw new Error(json.message);
 
       alert(`✅ Loan disbursed successfully via ${payout_method}!`);
-      DOM.disburseModal.classList.add('hidden');
+      (DOM.disburseModal || document.getElementById('disburseModal'))?.classList.add('hidden');
       await fetchLoans();
     } catch (err) {
       alert(`Disbursement Error: ${err.message}`);
     } finally {
-      DOM.confirmDisburseBtn.disabled = false;
-      DOM.confirmDisburseBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Confirm Approval & Disburse';
+      if (DOM.confirmDisburseBtn) {
+        DOM.confirmDisburseBtn.disabled = false;
+        DOM.confirmDisburseBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Confirm Approval & Disburse';
+      }
     }
   });
 
   // Google Keep Note Importer
-  DOM.importNoteBtn.addEventListener('click', async () => {
-    const raw_text = DOM.rawNoteInput.value.trim();
+  (DOM.importNoteBtn || document.getElementById('importNoteBtn'))?.addEventListener('click', async () => {
+    const raw_text = DOM.rawNoteInput?.value.trim();
     if (!raw_text) {
       alert('Please paste some note lines to import.');
       return;
     }
 
-    DOM.importNoteBtn.disabled = true;
-    DOM.importNoteBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Parsing...';
+    if (DOM.importNoteBtn) {
+      DOM.importNoteBtn.disabled = true;
+      DOM.importNoteBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Parsing...';
+    }
 
     try {
       const res = await fetch('/api/admin/historical-ledgers/import-note', {
@@ -2059,13 +2091,15 @@ function setupEvents() {
       if (!res.ok || !json.success) throw new Error(json.message);
 
       alert(json.message);
-      DOM.rawNoteInput.value = '';
+      if (DOM.rawNoteInput) DOM.rawNoteInput.value = '';
       await fetchHistoricalLedgers();
     } catch (err) {
       alert(`Import error: ${err.message}`);
     } finally {
-      DOM.importNoteBtn.disabled = false;
-      DOM.importNoteBtn.innerHTML = '<i class="fas fa-magic mr-1.5"></i> Parse & Import to Ledger';
+      if (DOM.importNoteBtn) {
+        DOM.importNoteBtn.disabled = false;
+        DOM.importNoteBtn.innerHTML = '<i class="fas fa-magic mr-1.5"></i> Parse & Import to Ledger';
+      }
     }
   });
 
@@ -2178,136 +2212,139 @@ function setupEvents() {
   });
 
   // ─── Hamburger Drawer Events ───
-  if (DOM.hamburgerBtn) {
-    DOM.hamburgerBtn.addEventListener('click', () => {
-      DOM.adminDrawer?.classList.remove('-translate-x-full');
-      DOM.drawerBackdrop?.classList.remove('hidden');
-    });
-  }
+  const openDrawer = () => {
+    (DOM.adminDrawer || document.getElementById('adminDrawer'))?.classList.remove('-translate-x-full');
+    (DOM.drawerBackdrop || document.getElementById('drawerBackdrop'))?.classList.remove('hidden');
+  };
+  window.openDrawer = openDrawer;
 
   const closeDrawer = () => {
-    DOM.adminDrawer?.classList.add('-translate-x-full');
-    DOM.drawerBackdrop?.classList.add('hidden');
+    (DOM.adminDrawer || document.getElementById('adminDrawer'))?.classList.add('-translate-x-full');
+    (DOM.drawerBackdrop || document.getElementById('drawerBackdrop'))?.classList.add('hidden');
   };
+  window.closeDrawer = closeDrawer;
 
-  if (DOM.closeDrawerBtn) DOM.closeDrawerBtn.addEventListener('click', closeDrawer);
-  if (DOM.drawerBackdrop) DOM.drawerBackdrop.addEventListener('click', closeDrawer);
+  (DOM.hamburgerBtn || document.getElementById('hamburgerBtn'))?.addEventListener('click', openDrawer);
+  (DOM.closeDrawerBtn || document.getElementById('closeDrawerBtn'))?.addEventListener('click', closeDrawer);
+  (DOM.drawerBackdrop || document.getElementById('drawerBackdrop'))?.addEventListener('click', closeDrawer);
   document.querySelectorAll('.drawer-link').forEach(link => {
     link.addEventListener('click', closeDrawer);
   });
 
   // ─── Adjust Cash Events ───
-  if (DOM.closeAdjustCashModalBtn) {
-    DOM.closeAdjustCashModalBtn.addEventListener('click', () => {
-      DOM.adjustCashModal?.classList.add('hidden');
-    });
-  }
+  (DOM.closeAdjustCashModalBtn || document.getElementById('closeAdjustCashModalBtn'))?.addEventListener('click', () => {
+    (DOM.adjustCashModal || document.getElementById('adjustCashModal'))?.classList.add('hidden');
+  });
 
-  if (DOM.adjustAmount) {
-    DOM.adjustAmount.addEventListener('input', updateProjectedNewBalance);
-  }
+  (DOM.adjustAmount || document.getElementById('adjustAmount'))?.addEventListener('input', updateProjectedNewBalance);
 
   document.querySelectorAll('input[name="adjustType"]').forEach(r => {
     r.addEventListener('change', updateProjectedNewBalance);
   });
 
-  if (DOM.adjustCashForm) {
-    DOM.adjustCashForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!ACTIVE_ADJUST_RECORD) return;
+  (DOM.adjustCashForm || document.getElementById('adjustCashForm'))?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!ACTIVE_ADJUST_RECORD) return;
 
-      const type = document.querySelector('input[name="adjustType"]:checked')?.value || 'ADD';
-      const amount = parseFloat(DOM.adjustAmount.value);
-      const memo = DOM.adjustMemo.value.trim();
+    const type = document.querySelector('input[name="adjustType"]:checked')?.value || 'ADD';
+    const amount = parseFloat(DOM.adjustAmount?.value || 0);
+    const memo = DOM.adjustMemo?.value.trim() || '';
 
+    if (DOM.submitAdjustBtn) {
       DOM.submitAdjustBtn.disabled = true;
       DOM.submitAdjustBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Saving...';
+    }
 
-      try {
-        const res = await fetch(`/api/admin/historical-ledgers/${ACTIVE_ADJUST_RECORD.id}/adjust-cash`, {
-          method: 'POST',
-          headers: { ...getHeaders(), 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type, amount, memo }),
-        });
-        const json = await res.json();
-        if (!res.ok || !json.success) throw new Error(json.message);
+    try {
+      const res = await fetch(`/api/admin/historical-ledgers/${ACTIVE_ADJUST_RECORD.id}/adjust-cash`, {
+        method: 'POST',
+        headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, amount, memo }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message);
 
-        alert(`✅ Cash customized successfully! New balance: ৳${parseFloat(json.ledger.historical_balance).toLocaleString()}`);
-        DOM.adjustCashModal?.classList.add('hidden');
-        await fetchHistoricalLedgers();
-        await fetchMasterSpreadsheet();
-      } catch (err) {
-        alert(`Adjustment Error: ${err.message}`);
-      } finally {
+      alert(`✅ Cash customized successfully! New balance: ৳${parseFloat(json.ledger.historical_balance).toLocaleString()}`);
+      (DOM.adjustCashModal || document.getElementById('adjustCashModal'))?.classList.add('hidden');
+      await fetchHistoricalLedgers();
+      await fetchMasterSpreadsheet();
+    } catch (err) {
+      alert(`Adjustment Error: ${err.message}`);
+    } finally {
+      if (DOM.submitAdjustBtn) {
         DOM.submitAdjustBtn.disabled = false;
         DOM.submitAdjustBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Save Cash Adjustment';
       }
-    });
-  }
+    }
+  });
 
   // ─── Spreadsheet Search & Export ───
-  if (DOM.spreadsheetSearch) {
-    DOM.spreadsheetSearch.addEventListener('input', (e) => {
-      const q = e.target.value.toLowerCase().trim();
-      if (!q) {
-        renderSpreadsheetTable(SPREADSHEET_CACHE);
-      } else {
-        const filtered = SPREADSHEET_CACHE.filter(r => 
-          (r.name && r.name.toLowerCase().includes(q)) || 
-          (r.phone_number && r.phone_number.includes(q)) ||
-          (r.status && r.status.toLowerCase().includes(q))
-        );
-        renderSpreadsheetTable(filtered);
-      }
-    });
-  }
+  (DOM.spreadsheetSearch || document.getElementById('spreadsheetSearch'))?.addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase().trim();
+    if (!q) {
+      renderSpreadsheetTable(SPREADSHEET_CACHE);
+    } else {
+      const filtered = SPREADSHEET_CACHE.filter(r => 
+        (r.name && r.name.toLowerCase().includes(q)) || 
+        (r.phone_number && r.phone_number.includes(q)) ||
+        (r.status && r.status.toLowerCase().includes(q))
+      );
+      renderSpreadsheetTable(filtered);
+    }
+  });
 
-  if (DOM.downloadSpreadsheetCsvBtn) {
-    DOM.downloadSpreadsheetCsvBtn.addEventListener('click', downloadSpreadsheetCsv);
-  }
-
-  if (DOM.downloadSpreadsheetXlsxBtn) {
-    DOM.downloadSpreadsheetXlsxBtn.addEventListener('click', downloadSpreadsheetXlsx);
-  }
+  (DOM.downloadSpreadsheetCsvBtn || document.getElementById('downloadSpreadsheetCsvBtn'))?.addEventListener('click', downloadSpreadsheetCsv);
+  (DOM.downloadSpreadsheetXlsxBtn || document.getElementById('downloadSpreadsheetXlsxBtn'))?.addEventListener('click', downloadSpreadsheetXlsx);
 
   // ─── 3-Option Admin Login Modal & Tab Switching ────────────────────────────
+  function switchLoginTab(tab) {
+    const tabs = [
+      DOM.tabBtnPassword || document.getElementById('tabBtnPassword'),
+      DOM.tabBtnTelegram || document.getElementById('tabBtnTelegram'),
+      DOM.tabBtnEmail || document.getElementById('tabBtnEmail'),
+    ];
+    const panes = [
+      DOM.tabContentPassword || document.getElementById('tabContentPassword'),
+      DOM.tabContentTelegram || document.getElementById('tabContentTelegram'),
+      DOM.tabContentEmail || document.getElementById('tabContentEmail'),
+    ];
+    tabs.forEach(b => b?.classList.remove('active'));
+    panes.forEach(c => c?.classList.add('hidden'));
+
+    if (tab === 'password') {
+      (DOM.tabBtnPassword || document.getElementById('tabBtnPassword'))?.classList.add('active');
+      (DOM.tabContentPassword || document.getElementById('tabContentPassword'))?.classList.remove('hidden');
+      (DOM.modalAdminPasswordInput || document.getElementById('modalAdminPasswordInput'))?.focus();
+    } else if (tab === 'telegram') {
+      (DOM.tabBtnTelegram || document.getElementById('tabBtnTelegram'))?.classList.add('active');
+      (DOM.tabContentTelegram || document.getElementById('tabContentTelegram'))?.classList.remove('hidden');
+    } else if (tab === 'email') {
+      (DOM.tabBtnEmail || document.getElementById('tabBtnEmail'))?.classList.add('active');
+      (DOM.tabContentEmail || document.getElementById('tabContentEmail'))?.classList.remove('hidden');
+    }
+  }
+  window.switchLoginTab = switchLoginTab;
+
   const openLoginModal = () => {
-    DOM.adminLoginModal?.classList.remove('hidden');
-    // Default to password tab
+    (DOM.adminLoginModal || document.getElementById('adminLoginModal'))?.classList.remove('hidden');
     switchLoginTab('password');
   };
+  window.openLoginModal = openLoginModal;
 
   const closeLoginModal = () => {
-    clearInterval(telegramOtpTimer);
-    clearInterval(emailOtpTimer);
-    DOM.adminLoginModal?.classList.add('hidden');
+    if (typeof telegramOtpTimer !== 'undefined') clearInterval(telegramOtpTimer);
+    if (typeof emailOtpTimer !== 'undefined') clearInterval(emailOtpTimer);
+    (DOM.adminLoginModal || document.getElementById('adminLoginModal'))?.classList.add('hidden');
   };
+  window.closeLoginModal = closeLoginModal;
 
-  if (DOM.openAdminLoginBtn) DOM.openAdminLoginBtn.addEventListener('click', openLoginModal);
-  if (DOM.drawerOpenLoginBtn) DOM.drawerOpenLoginBtn.addEventListener('click', () => {
+  (DOM.openAdminLoginBtn || document.getElementById('openAdminLoginBtn'))?.addEventListener('click', openLoginModal);
+  (DOM.drawerOpenLoginBtn || document.getElementById('drawerOpenLoginBtn'))?.addEventListener('click', () => {
     closeDrawer();
     openLoginModal();
   });
-  if (DOM.triggerAdminLoginModalBtn) DOM.triggerAdminLoginModalBtn.addEventListener('click', openLoginModal);
-  if (DOM.closeAdminLoginModalBtn) DOM.closeAdminLoginModalBtn.addEventListener('click', closeLoginModal);
-
-  function switchLoginTab(tab) {
-    // Reset tabs
-    [DOM.tabBtnPassword, DOM.tabBtnTelegram, DOM.tabBtnEmail].forEach(b => b?.classList.remove('active'));
-    [DOM.tabContentPassword, DOM.tabContentTelegram, DOM.tabContentEmail].forEach(c => c?.classList.add('hidden'));
-
-    if (tab === 'password') {
-      DOM.tabBtnPassword?.classList.add('active');
-      DOM.tabContentPassword?.classList.remove('hidden');
-      DOM.modalAdminPasswordInput?.focus();
-    } else if (tab === 'telegram') {
-      DOM.tabBtnTelegram?.classList.add('active');
-      DOM.tabContentTelegram?.classList.remove('hidden');
-    } else if (tab === 'email') {
-      DOM.tabBtnEmail?.classList.add('active');
-      DOM.tabContentEmail?.classList.remove('hidden');
-    }
-  }
+  (DOM.triggerAdminLoginModalBtn || document.getElementById('triggerAdminLoginModalBtn'))?.addEventListener('click', openLoginModal);
+  (DOM.closeAdminLoginModalBtn || document.getElementById('closeAdminLoginModalBtn'))?.addEventListener('click', closeLoginModal);
 
   if (DOM.tabBtnPassword) DOM.tabBtnPassword.addEventListener('click', () => switchLoginTab('password'));
   if (DOM.tabBtnTelegram) DOM.tabBtnTelegram.addEventListener('click', () => switchLoginTab('telegram'));
@@ -2600,22 +2637,29 @@ function setupEvents() {
   }
 
   // ─── Notification Bell & Dropdown Tray Events ────────────────────────────
-  DOM.adminNotificationBellBtn?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    DOM.notificationDropdown?.classList.toggle('hidden');
-  });
+  // ─── Notification Bell & Dropdown Tray Events ────────────────────────────
+  const toggleNotificationDropdown = (e) => {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    const dd = DOM.notificationDropdown || document.getElementById('notificationDropdown');
+    dd?.classList.toggle('hidden');
+  };
+  window.toggleNotificationDropdown = toggleNotificationDropdown;
+
+  (DOM.adminNotificationBellBtn || document.getElementById('adminNotificationBellBtn'))?.addEventListener('click', toggleNotificationDropdown);
 
   document.addEventListener('click', (e) => {
-    if (DOM.notificationDropdown && !DOM.notificationDropdown.contains(e.target) && !DOM.adminNotificationBellBtn?.contains(e.target)) {
-      DOM.notificationDropdown.classList.add('hidden');
+    const dd = DOM.notificationDropdown || document.getElementById('notificationDropdown');
+    const bell = DOM.adminNotificationBellBtn || document.getElementById('adminNotificationBellBtn');
+    if (dd && !dd.contains(e.target) && !bell?.contains(e.target)) {
+      dd.classList.add('hidden');
     }
   });
 
-  DOM.refreshNotifsBtn?.addEventListener('click', () => {
+  (DOM.refreshNotifsBtn || document.getElementById('refreshNotifsBtn'))?.addEventListener('click', () => {
     fetchNotifications();
   });
 
-  DOM.enablePushNotifsBtn?.addEventListener('click', async () => {
+  (DOM.enablePushNotifsBtn || document.getElementById('enablePushNotifsBtn'))?.addEventListener('click', async () => {
     if (!('Notification' in window)) {
       alert('This browser does not support desktop notifications.');
       return;
@@ -2636,50 +2680,63 @@ function setupEvents() {
 
   // ─── Executive Settings Modal & Tabs ─────────────────────────────────────
   function switchSettingsTab(tabName) {
-    [DOM.settingsTabBtnLimits, DOM.settingsTabBtnPassword, DOM.settingsTabBtnLogin, DOM.settingsTabBtnLogos].forEach(b => {
-      b?.classList.remove('active');
-    });
-    [DOM.settingsPaneLimits, DOM.settingsPanePassword, DOM.settingsPaneLogin, DOM.settingsPaneLogos].forEach(p => {
-      p?.classList.add('hidden');
-    });
+    const tabBtns = [
+      DOM.settingsTabBtnLimits || document.getElementById('settingsTabBtnLimits'),
+      DOM.settingsTabBtnPassword || document.getElementById('settingsTabBtnPassword'),
+      DOM.settingsTabBtnLogin || document.getElementById('settingsTabBtnLogin'),
+      DOM.settingsTabBtnLogos || document.getElementById('settingsTabBtnLogos'),
+    ];
+    const tabPanes = [
+      DOM.settingsPaneLimits || document.getElementById('settingsPaneLimits'),
+      DOM.settingsPanePassword || document.getElementById('settingsPanePassword'),
+      DOM.settingsPaneLogin || document.getElementById('settingsPaneLogin'),
+      DOM.settingsPaneLogos || document.getElementById('settingsPaneLogos'),
+    ];
+    tabBtns.forEach(b => b?.classList.remove('active'));
+    tabPanes.forEach(p => p?.classList.add('hidden'));
 
     if (tabName === 'limits') {
-      DOM.settingsTabBtnLimits?.classList.add('active');
-      DOM.settingsPaneLimits?.classList.remove('hidden');
+      (DOM.settingsTabBtnLimits || document.getElementById('settingsTabBtnLimits'))?.classList.add('active');
+      (DOM.settingsPaneLimits || document.getElementById('settingsPaneLimits'))?.classList.remove('hidden');
     } else if (tabName === 'password') {
-      DOM.settingsTabBtnPassword?.classList.add('active');
-      DOM.settingsPanePassword?.classList.remove('hidden');
+      (DOM.settingsTabBtnPassword || document.getElementById('settingsTabBtnPassword'))?.classList.add('active');
+      (DOM.settingsPanePassword || document.getElementById('settingsPanePassword'))?.classList.remove('hidden');
     } else if (tabName === 'login') {
-      DOM.settingsTabBtnLogin?.classList.add('active');
-      DOM.settingsPaneLogin?.classList.remove('hidden');
+      (DOM.settingsTabBtnLogin || document.getElementById('settingsTabBtnLogin'))?.classList.add('active');
+      (DOM.settingsPaneLogin || document.getElementById('settingsPaneLogin'))?.classList.remove('hidden');
     } else if (tabName === 'logos') {
-      DOM.settingsTabBtnLogos?.classList.add('active');
-      DOM.settingsPaneLogos?.classList.remove('hidden');
+      (DOM.settingsTabBtnLogos || document.getElementById('settingsTabBtnLogos'))?.classList.add('active');
+      (DOM.settingsPaneLogos || document.getElementById('settingsPaneLogos'))?.classList.remove('hidden');
     }
   }
-
-  DOM.settingsTabBtnLimits?.addEventListener('click', () => switchSettingsTab('limits'));
-  DOM.settingsTabBtnPassword?.addEventListener('click', () => switchSettingsTab('password'));
-  DOM.settingsTabBtnLogin?.addEventListener('click', () => switchSettingsTab('login'));
-  DOM.settingsTabBtnLogos?.addEventListener('click', () => switchSettingsTab('logos'));
+  window.switchSettingsTab = switchSettingsTab;
 
   const openSettingsModal = () => {
-    DOM.adminSettingsModal?.classList.remove('hidden');
+    const modal = DOM.adminSettingsModal || document.getElementById('adminSettingsModal');
+    modal?.classList.remove('hidden');
     switchSettingsTab('limits');
   };
+  window.openSettingsModal = openSettingsModal;
 
   const closeSettingsModal = () => {
-    DOM.adminSettingsModal?.classList.add('hidden');
+    const modal = DOM.adminSettingsModal || document.getElementById('adminSettingsModal');
+    modal?.classList.add('hidden');
   };
+  window.closeSettingsModal = closeSettingsModal;
 
-  DOM.openSettingsModalBtn?.addEventListener('click', openSettingsModal);
-  DOM.drawerOpenSettingsBtn?.addEventListener('click', () => {
+  (DOM.settingsTabBtnLimits || document.getElementById('settingsTabBtnLimits'))?.addEventListener('click', () => switchSettingsTab('limits'));
+  (DOM.settingsTabBtnPassword || document.getElementById('settingsTabBtnPassword'))?.addEventListener('click', () => switchSettingsTab('password'));
+  (DOM.settingsTabBtnLogin || document.getElementById('settingsTabBtnLogin'))?.addEventListener('click', () => switchSettingsTab('login'));
+  (DOM.settingsTabBtnLogos || document.getElementById('settingsTabBtnLogos'))?.addEventListener('click', () => switchSettingsTab('logos'));
+
+  (DOM.openSettingsModalBtn || document.getElementById('openSettingsModalBtn'))?.addEventListener('click', openSettingsModal);
+  (DOM.drawerOpenSettingsBtn || document.getElementById('drawerOpenSettingsBtn'))?.addEventListener('click', () => {
     closeDrawer();
     openSettingsModal();
   });
-  DOM.closeSettingsModalBtn?.addEventListener('click', closeSettingsModal);
-  DOM.adminSettingsModal?.addEventListener('click', (e) => {
-    if (e.target === DOM.adminSettingsModal) closeSettingsModal();
+  (DOM.closeSettingsModalBtn || document.getElementById('closeSettingsModalBtn'))?.addEventListener('click', closeSettingsModal);
+  (DOM.adminSettingsModal || document.getElementById('adminSettingsModal'))?.addEventListener('click', (e) => {
+    if (e.target === (DOM.adminSettingsModal || document.getElementById('adminSettingsModal'))) closeSettingsModal();
   });
 
   // ─── Dual Logo Management Form Handlers ──────────────────────────────────
@@ -2927,20 +2984,20 @@ function setupEvents() {
   DOM.filterExpenseCategory?.addEventListener('change', (e) => filterExpensesByCategory(e.target.value));
 
   // ─── Executive Operations Suite Listeners (Step 6) ────────────────────────
-  DOM.suiteTabBtnNotes?.addEventListener('click', () => switchSuiteTab('notes'));
-  DOM.suiteTabBtnCalendar?.addEventListener('click', () => switchSuiteTab('calendar'));
-  DOM.suiteTabBtnClock?.addEventListener('click', () => switchSuiteTab('clock'));
-  DOM.suiteTabBtnMaps?.addEventListener('click', () => switchSuiteTab('maps'));
+  (DOM.suiteTabBtnNotes || document.getElementById('tabBtnNotepad') || document.getElementById('suiteTabBtnNotes'))?.addEventListener('click', () => switchSuiteTab('notes'));
+  (DOM.suiteTabBtnCalendar || document.getElementById('tabBtnCalendar') || document.getElementById('suiteTabBtnCalendar'))?.addEventListener('click', () => switchSuiteTab('calendar'));
+  (DOM.suiteTabBtnClock || document.getElementById('tabBtnClock') || document.getElementById('suiteTabBtnClock'))?.addEventListener('click', () => switchSuiteTab('clock'));
+  (DOM.suiteTabBtnMaps || document.getElementById('tabBtnMaps') || document.getElementById('suiteTabBtnMaps'))?.addEventListener('click', () => switchSuiteTab('maps'));
 
-  DOM.saveSuiteNoteBtn?.addEventListener('click', saveSuiteNote);
-  DOM.saveSuiteEventBtn?.addEventListener('click', saveSuiteEvent);
-  DOM.saveSuiteAlarmBtn?.addEventListener('click', saveSuiteAlarm);
+  (DOM.saveSuiteNoteBtn || document.getElementById('saveSuiteNoteBtn'))?.addEventListener('click', saveSuiteNote);
+  (DOM.saveSuiteEventBtn || document.getElementById('saveSuiteEventBtn'))?.addEventListener('click', saveSuiteEvent);
+  (DOM.saveSuiteAlarmBtn || document.getElementById('saveSuiteAlarmBtn'))?.addEventListener('click', saveSuiteAlarm);
 
-  DOM.dismissAlarmBtn?.addEventListener('click', dismissAlarm);
-  DOM.snoozeAlarmBtn?.addEventListener('click', snoozeAlarm);
+  (DOM.dismissAlarmBtn || document.getElementById('dismissAlarmBtn'))?.addEventListener('click', dismissAlarm);
+  (DOM.snoozeAlarmBtn || document.getElementById('snoozeAlarmBtn'))?.addEventListener('click', snoozeAlarm);
 
-  DOM.updateMapRouteBtn?.addEventListener('click', updateMapRoute);
-  DOM.launchGoogleMapsBtn?.addEventListener('click', openGoogleMapsRoute);
+  (DOM.updateMapRouteBtn || document.getElementById('updateMapRouteBtn'))?.addEventListener('click', updateMapRoute);
+  (DOM.launchGoogleMapsBtn || document.getElementById('launchGoogleMapsBtn'))?.addEventListener('click', openGoogleMapsRoute);
 }
 
 // ─── Step 2 & 6: Real-time Live Clock & Web Audio Synthesizer ─────────────────
@@ -2957,12 +3014,16 @@ function initLiveClockTicker() {
     const dateStr = `${dd}/${mm}/${yy}`;
     const timeStr = `${hours}:${mins}:${secs}`;
 
-    if (DOM.liveDateText) DOM.liveDateText.textContent = dateStr;
-    if (DOM.liveTimeText) DOM.liveTimeText.textContent = timeStr;
+    const liveDateText = DOM.liveDateText || document.getElementById('liveDateText');
+    const liveTimeText = DOM.liveTimeText || document.getElementById('liveTimeText');
+    const bigLiveClock = DOM.bigLiveClockDisplay || document.getElementById('bigLiveClockDisplay');
+    const bigLiveDate = DOM.bigLiveDateDisplay || document.getElementById('bigLiveDateDisplay');
 
-    if (DOM.bigLiveClockDisplay) DOM.bigLiveClockDisplay.textContent = timeStr;
-    if (DOM.bigLiveDateDisplay) {
-      DOM.bigLiveDateDisplay.textContent = now.toLocaleDateString(undefined, {
+    if (liveDateText) liveDateText.textContent = dateStr;
+    if (liveTimeText) liveTimeText.textContent = timeStr;
+    if (bigLiveClock) bigLiveClock.textContent = timeStr;
+    if (bigLiveDate) {
+      bigLiveDate.textContent = now.toLocaleDateString(undefined, {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -2973,7 +3034,9 @@ function initLiveClockTicker() {
 
   updateClock();
   setInterval(updateClock, 1000);
-  setInterval(checkActiveAlarms, 10000);
+  if (typeof checkActiveAlarms === 'function') {
+    setInterval(checkActiveAlarms, 10000);
+  }
 }
 
 function playChimeSound() {
@@ -3243,21 +3306,27 @@ function exportExpensesXlsx() {
 
 // ─── Step 6: S.E.P. Executive Operations Suite ──────────────────────────────
 function switchSuiteTab(tab) {
-  const tabs = ['notes', 'calendar', 'clock', 'maps'];
+  const tabs = [
+    { key: 'notes', btnIds: ['tabBtnNotepad', 'suiteTabBtnNotes'], paneIds: ['suiteTabContentNotepad', 'suiteTabContentNotes'] },
+    { key: 'calendar', btnIds: ['tabBtnCalendar', 'suiteTabBtnCalendar'], paneIds: ['suiteTabContentCalendar'] },
+    { key: 'clock', btnIds: ['tabBtnClock', 'suiteTabBtnClock'], paneIds: ['suiteTabContentClock'] },
+    { key: 'maps', btnIds: ['tabBtnMaps', 'suiteTabBtnMaps'], paneIds: ['suiteTabContentMaps'] },
+  ];
   tabs.forEach(t => {
-    const btn = document.getElementById(`suiteTabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
-    const pane = document.getElementById(`suiteTabContent${t.charAt(0).toUpperCase() + t.slice(1)}`);
-    if (t === tab) {
-      btn?.classList.add('bg-white/10', 'text-white', 'border-white/20');
-      btn?.classList.remove('text-slate-400');
+    const btn = t.btnIds.map(id => document.getElementById(id)).find(el => !!el);
+    const pane = t.paneIds.map(id => document.getElementById(id)).find(el => !!el);
+    if (t.key === tab) {
+      btn?.classList.add('bg-amber-500', 'text-black', 'shadow', 'active');
+      btn?.classList.remove('text-slate-300', 'hover:text-white', 'bg-white/10');
       pane?.classList.remove('hidden');
     } else {
-      btn?.classList.remove('bg-white/10', 'text-white', 'border-white/20');
-      btn?.classList.add('text-slate-400');
+      btn?.classList.remove('bg-amber-500', 'text-black', 'shadow', 'active', 'bg-white/10');
+      btn?.classList.add('text-slate-300', 'hover:text-white');
       pane?.classList.add('hidden');
     }
   });
 }
+window.switchSuiteTab = switchSuiteTab;
 
 // Keep Notes
 async function fetchSuiteNotes() {
@@ -4576,7 +4645,29 @@ function initStaffAuditListeners() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  initCreditFraudListeners();
-  initStaffAuditListeners();
-});
+let _adminModulesInitialized = false;
+function initAllAdminModules() {
+  if (_adminModulesInitialized) return;
+  _adminModulesInitialized = true;
+  try {
+    initAdmin();
+  } catch (err) {
+    console.error('[Admin] Error in initAdmin:', err);
+  }
+  try {
+    initCreditFraudListeners();
+  } catch (err) {
+    console.error('[Admin] Error in initCreditFraudListeners:', err);
+  }
+  try {
+    initStaffAuditListeners();
+  } catch (err) {
+    console.error('[Admin] Error in initStaffAuditListeners:', err);
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAllAdminModules);
+} else {
+  initAllAdminModules();
+}
