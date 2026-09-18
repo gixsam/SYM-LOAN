@@ -14,11 +14,41 @@
 > **Telegram Bot:** `@money_loan_bot` (Live Token: `8846454332:AAGl0VAri-CNPRcDCAjJvsHOcA00BJo6hhI`)  
 > **Technology Stack:** Node.js, Express, Supabase (PostgreSQL), Multer, jsPDF, node-telegram-bot-api, node-cron, CORS, Helmet, dotenv, HTML5, Tailwind CSS, FontAwesome 6, Cloudflare Tunnel  
 > **Live Local Server:** `http://localhost:5000` (Client: `/`, Admin: `/admin`)  
-> **Last Synchronized:** 2026-09-18 12:30 Local Time  
+> **Last Synchronized:** 2026-09-18 12:47 Local Time  
 
 ---
 
 ## 🚀 Logged System Updates & Changelog
+
+### [Update-047] — Fixed +88 Country Prefix Badge, 11-Digit Input Masking & Telegram BotFather vs Business Settings Diagnostic (2026-09-18)
+**Type:** Frontend Input Sanitization, Country Code Prefix Architecture, Multi-Format Backend Phone Normalization, Telegram Bot Security Configuration  
+**Status:** ✅ COMPLETED, TESTED & DUAL-SYNCED ACROSS WORKPLACES  
+
+#### User Request & Objectives:
+1. **Fixed '+88' Country Prefix in Client Login:**
+   - In the Client Portal Login modal, make `+88` fixed and uneditable in the input.
+   - Client only needs to input the 11 digits of their mobile number (`01XXXXXXXXX`).
+2. **Telegram Bot Settings Photo Analysis:**
+   - Analyze user-uploaded screenshot of `@money_loan_bot` in `@BotFather` and guide user on resolving the "restricted access" error.
+
+#### Architecture & Implementation Details:
+1. **Fixed Country Prefix UI (`public/index.html`):**
+   - Wrapped `#phoneInput` in a sleek flex group with a dedicated, non-editable golden prefix badge (`+88`).
+   - Added attributes `maxlength="11"`, `inputmode="numeric"`, and placeholder `01XXXXXXXXX`.
+   - Added clear instruction text: *"Enter only the 11 digits of your phone (e.g. 017XXXXXXXX)"*.
+2. **Dynamic Client Input Sanitization (`public/js/app.js`):**
+   - Implemented `getClientPhoneData()` helper.
+   - Real-time `input` listener automatically removes non-digit characters and strips any accidentally pasted `+88` or `88` prefixes, keeping only the 11 digits in view.
+   - Validates that the number starts with `01` and has exactly 11 digits before submission.
+   - Automatically builds full E.164 string (`+8801XXXXXXXXX`) for OTP dispatch and profile lookups.
+3. **Backend Multi-Format Normalization (`src/routes/api.js`):**
+   - Implemented `buildPhoneSearchFilter(phone)` constructing dynamic Supabase OR queries covering all variations (`+8801...`, `8801...`, `01...`).
+   - Applied to `GET /api/clients/lookup/phone`, `POST /api/auth/request-otp`, and `POST /api/auth/verify-otp`, ensuring instant client resolution regardless of database format.
+4. **Telegram Bot Settings & Restriction Resolution Protocol:**
+   - Evaluated the `@BotFather` settings dashboard shown in the photo.
+   - Provided clear distinction between `@BotFather` settings (Group Privacy, Mini Apps) and Telegram Business Chatbot privacy settings (the actual root cause of *"The owner of this bot has restricted access"*).
+
+---
 
 ### [Update-046] — Executive Brand Logo Integration, Navbar Mobile Space Optimization & Unlimited File Size Logo Upload Engine (2026-09-18)
 **Type:** UI/UX Space Optimization, Branding Architecture, Unlimited Multer Upload Engine, Multi-Portal Dynamic Synchronization  

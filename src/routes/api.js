@@ -30,6 +30,20 @@ const { uploadAvatar } = require('../lib/uploader');
 
 const router = express.Router();
 
+// Helper to construct Supabase OR filter for phone number variants (+8801..., 8801..., 01...)
+function buildPhoneSearchFilter(phone) {
+  const cleanPhone = (phone || '').trim();
+  const digits = cleanPhone.replace(/\D/g, '');
+  const pE164 = '+' + (digits.startsWith('88') ? digits : '88' + digits);
+  const pNoPlus = digits.startsWith('88') ? digits : '88' + digits;
+  const pLocal = digits.startsWith('88') ? digits.substring(2) : (digits.startsWith('0') ? digits : '0' + digits);
+  const filterList = Array.from(new Set([pE164, pNoPlus, pLocal, cleanPhone]))
+    .filter(Boolean)
+    .map(p => `phone_number.eq.${p}`)
+    .join(',');
+  return { cleanPhone, pE164, pLocal, filterList };
+}
+
 // ─── Health Check ─────────────────────────────────────────────────────────────
 router.get('/health', (req, res) => {
   res.json({
@@ -81,14 +95,14 @@ router.get('/clients/lookup/phone', async (req, res) => {
   }
 
   // Normalize phone to search
-  const cleanPhone = phone.trim();
+  const { filterList } = buildPhoneSearchFilter(phone);
   const { data, error } = await supabaseAdmin
     .from('client_profiles')
     .select(`
       *,
       money_requests (id, amount, deadline_date, status, admin_note, created_at)
     `)
-    .or(`phone_number.eq.${cleanPhone},phone_number.eq.+${cleanPhone.replace(/^\+/, '')}`)
+    .or(filterList)
     .maybeSingle();
 
   if (error) return res.status(500).json({ success: false, message: error.message });
@@ -266,13 +280,13 @@ router.post('/auth/request-otp', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Phone number is required.' });
   }
 
-  const cleanPhone = phone_number.trim();
+  const { filterList } = buildPhoneSearchFilter(phone_number);
 
   // Find client
   const { data: client, error } = await supabaseAdmin
     .from('client_profiles')
     .select('*')
-    .or(`phone_number.eq.${cleanPhone},phone_number.eq.+${cleanPhone.replace(/^\+/, '')}`)
+    .or(filterList)
     .maybeSingle();
 
   if (error || !client) {
@@ -321,22 +335,27 @@ router.post('/auth/verify-otp', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Phone number and 6-digit OTP code are required.' });
   }
 
-  const cleanPhone = phone_number.trim();
-  const verifyRes = otpManager.verifyOtp(cleanPhone, code);
+  const { cleanPhone, filterList } = buildPhoneSearchFilter(phone_number);
 
-  if (!verifyRes.valid) {
-    return res.status(401).json({ success: false, message: verifyRes.message });
-  }
-
-  // Fetch verified profile
+  // Fetch client first
   const { data: client, error } = await supabaseAdmin
     .from('client_profiles')
     .select('*')
-    .or(`phone_number.eq.${cleanPhone},phone_number.eq.+${cleanPhone.replace(/^\+/, '')}`)
+    .or(filterList)
     .maybeSingle();
 
   if (error || !client) {
     return res.status(404).json({ success: false, message: 'Client profile not found.' });
+  }
+
+  // Verify against client.phone_number or cleanPhone
+  let verifyRes = otpManager.verifyOtp(client.phone_number, code);
+  if (!verifyRes.valid) {
+    verifyRes = otpManager.verifyOtp(cleanPhone, code);
+  }
+
+  if (!verifyRes.valid) {
+    return res.status(401).json({ success: false, message: verifyRes.message });
   }
 
   const limits = loanSettings.getLimitsForClient(client.id);

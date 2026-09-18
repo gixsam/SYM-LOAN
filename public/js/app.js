@@ -464,16 +464,62 @@ function setupEventListeners() {
   // Date change
   DOM.deadlineDate.addEventListener('change', updateCalculatedDuration);
 
-  // Phone lookup modal submit
+  // ─── Helper: Get Formatted 11-digit Phone with Fixed +88 Prefix ───
+  function getClientPhoneData() {
+    let raw = (DOM.phoneInput?.value || '').trim().replace(/\D/g, '');
+    if (raw.startsWith('88') && raw.length > 11) {
+      raw = raw.substring(2);
+    }
+    const fullPhone = raw ? '+88' + raw : '';
+    const isValid = raw.length === 11 && raw.startsWith('01');
+    return { raw, fullPhone, isValid };
+  }
+
+  // Restrict phone input strictly to 11 digits numeric
+  if (DOM.phoneInput) {
+    DOM.phoneInput.addEventListener('input', (e) => {
+      let digits = e.target.value.replace(/\D/g, '');
+      if (digits.startsWith('88') && digits.length > 11) {
+        digits = digits.substring(2);
+      }
+      if (digits.length > 11) {
+        digits = digits.slice(0, 11);
+      }
+      e.target.value = digits;
+      DOM.phoneError?.classList.add('hidden');
+    });
+  }
+
+  // Phone lookup modal submit (Quick Access)
   DOM.phoneSearchBtn.addEventListener('click', () => {
-    const phone = DOM.phoneInput.value.trim();
-    if (phone) lookupClientByPhone(phone);
+    const { raw, fullPhone, isValid } = getClientPhoneData();
+    if (!raw) {
+      DOM.phoneError.textContent = 'Please enter your 11-digit mobile number.';
+      DOM.phoneError.classList.remove('hidden');
+      return;
+    }
+    if (!isValid) {
+      DOM.phoneError.textContent = 'Invalid number. Must be 11 digits starting with 01 (e.g. 017XXXXXXXX).';
+      DOM.phoneError.classList.remove('hidden');
+      return;
+    }
+    lookupClientByPhone(fullPhone);
   });
 
   DOM.phoneInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
-      const phone = DOM.phoneInput.value.trim();
-      if (phone) lookupClientByPhone(phone);
+      const { raw, fullPhone, isValid } = getClientPhoneData();
+      if (!raw) {
+        DOM.phoneError.textContent = 'Please enter your 11-digit mobile number.';
+        DOM.phoneError.classList.remove('hidden');
+        return;
+      }
+      if (!isValid) {
+        DOM.phoneError.textContent = 'Invalid number. Must be 11 digits starting with 01 (e.g. 017XXXXXXXX).';
+        DOM.phoneError.classList.remove('hidden');
+        return;
+      }
+      lookupClientByPhone(fullPhone);
     }
   });
 
@@ -612,9 +658,14 @@ function setupEventListeners() {
   }
 
   async function requestClientOtp() {
-    const phone = DOM.phoneInput.value.trim();
-    if (!phone) {
-      DOM.phoneError.textContent = 'Please enter your phone number.';
+    const { raw, fullPhone, isValid } = getClientPhoneData();
+    if (!raw) {
+      DOM.phoneError.textContent = 'Please enter your 11-digit mobile number.';
+      DOM.phoneError.classList.remove('hidden');
+      return;
+    }
+    if (!isValid) {
+      DOM.phoneError.textContent = 'Invalid number. Must be 11 digits starting with 01 (e.g. 017XXXXXXXX).';
       DOM.phoneError.classList.remove('hidden');
       return;
     }
@@ -627,7 +678,7 @@ function setupEventListeners() {
       const res = await fetch('/api/auth/request-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ phone: fullPhone }),
       });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message);
@@ -665,7 +716,7 @@ function setupEventListeners() {
 
   if (DOM.verifyClientOtpBtn) {
     DOM.verifyClientOtpBtn.addEventListener('click', async () => {
-      const phone = DOM.phoneInput.value.trim();
+      const { fullPhone } = getClientPhoneData();
       const code = DOM.clientOtpInput.value.trim();
 
       if (!code || code.length < 6) {
@@ -682,7 +733,7 @@ function setupEventListeners() {
         const res = await fetch('/api/auth/verify-otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone, code }),
+          body: JSON.stringify({ phone: fullPhone, code }),
         });
         const json = await res.json();
         if (!res.ok || !json.success) throw new Error(json.message);
