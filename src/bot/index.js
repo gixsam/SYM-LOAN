@@ -3,25 +3,24 @@
  * src/bot/index.js
  * SYM EMPIRE PLATFORM (S.E.P.) — @money_loan_bot Core Engine
  *
- * Uses node-telegram-bot-api v1+ (Bot class with bot.api.* style)
+ * Built with node-telegram-bot-api v1+
  *
- * Bot responsibilities:
- *   1. /start             → Welcome + request phone share
- *   2. Contact share      → Extract phone number (cryptographic Telegram token)
- *                           and register/lookup client in Supabase
- *   3. /status            → Client loan & strike status
- *   4. /request <amount>  → Submit a loan request
- *   5. /help              → List commands
+ * Responsibilities:
+ *   1. /start            → Welcome banner + "📱 Share My Phone Number" keyboard button
+ *   2. Contact share     → Parse cryptographic phone share token, register/upsert in Supabase
+ *   3. /status           → View current loan status and account strikes
+ *   4. /request <amount> → Submit a new loan request
+ *   5. /help             → Full command guide
  */
 
-const { Bot, InlineKeyboardBuilder, ReplyKeyboardBuilder } = require('node-telegram-bot-api');
+const { Bot, ReplyKeyboardBuilder } = require('node-telegram-bot-api');
 const { supabaseAdmin } = require('../lib/supabase');
 require('dotenv').config();
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
-if (!BOT_TOKEN || BOT_TOKEN.endsWith('...')) {
-  console.warn('[Bot] WARNING: TELEGRAM_BOT_TOKEN is missing or incomplete. Bot will not start.');
+if (!BOT_TOKEN || BOT_TOKEN.includes('...')) {
+  console.warn('[Bot] WARNING: TELEGRAM_BOT_TOKEN is missing or incomplete in .env.');
   module.exports = { bot: null, startBot: () => {} };
   return;
 }
@@ -29,178 +28,207 @@ if (!BOT_TOKEN || BOT_TOKEN.endsWith('...')) {
 // ─── Bot Instantiation ────────────────────────────────────────────────────────
 const bot = new Bot(BOT_TOKEN);
 
+// Helper to sanitize HTML text
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 // ─── /start ───────────────────────────────────────────────────────────────────
 bot.command('start', async (ctx) => {
-  const chatId = ctx.message.chat.id;
-  const name   = ctx.message.from.first_name || 'User';
+  const name = ctx.message?.from?.first_name || 'User';
 
   const keyboard = new ReplyKeyboardBuilder()
-    .addButton({ text: '📱 Share My Phone Number', request_contact: true })
+    .requestContact('📱 Share My Phone Number')
     .build({ one_time_keyboard: true, resize_keyboard: true });
 
   await ctx.reply(
-    `👋 *Welcome to SYM LOAN*, ${name}\\!\n\n` +
-    `This is the official loan platform of *SYM EMPIRE PLATFORM \\(S\\.E\\.P\\.\\)*\\.\n\n` +
-    `To register or continue, please share your phone number using the button below\\. ` +
-    `Your number is required to verify your identity\\.`,
-    { parse_mode: 'MarkdownV2', reply_markup: keyboard }
+    `👋 <b>Welcome to SYM LOAN</b>, <b>${escapeHtml(name)}</b>!\n\n` +
+    `This is the official transaction platform of <b>SYM EMPIRE PLATFORM (S.E.P.)</b>.\n\n` +
+    `To verify your account and apply for loans, please share your phone number using the button below.\n\n` +
+    `🔒 <i>Your phone number is cryptographically verified via Telegram.</i>`,
+    {
+      parse_mode: 'HTML',
+      reply_markup: keyboard,
+    }
   );
 });
 
 // ─── /help ────────────────────────────────────────────────────────────────────
 bot.command('help', async (ctx) => {
   await ctx.reply(
-    `🤖 *@money\\_loan\\_bot — SYM LOAN Help*\n\n` +
-    `Available commands:\n` +
-    `  /start — Register or log in\n` +
-    `  /status — View your account \\& loans\n` +
-    `  /request \\<amount\\> — Apply for a loan\n` +
-    `  /help — Show this message\n\n` +
-    `📱 This service is *mobile\\-only*\\.\n` +
-    `🌐 Web: https://symloan\\.best\\-travel\\.ltd`,
-    { parse_mode: 'MarkdownV2' }
+    `🤖 <b>@money_loan_bot — Command Directory</b>\n\n` +
+    `• <b>/start</b> — Register or login with your phone number\n` +
+    `• <b>/status</b> — Check your profile, loans & strike count\n` +
+    `• <b>/request &lt;amount&gt;</b> — Submit a loan request (e.g. <code>/request 5000</code>)\n` +
+    `• <b>/help</b> — View this guidance directory\n\n` +
+    `📱 <i>SYM LOAN is restricted to verified mobile devices only.</i>\n` +
+    `🌐 <b>Portal:</b> <a href="https://symloan.best-travel.ltd">https://symloan.best-travel.ltd</a>`,
+    { parse_mode: 'HTML' }
   );
 });
 
 // ─── /status ──────────────────────────────────────────────────────────────────
 bot.command('status', async (ctx) => {
-  const chatId = ctx.message.chat.id;
+  const keyboard = new ReplyKeyboardBuilder()
+    .requestContact('📱 Share Phone to View Status')
+    .build({ one_time_keyboard: true, resize_keyboard: true });
 
   await ctx.reply(
-    '📋 To check your status, please share your phone number first:',
+    `📋 <b>Account Verification Required</b>\n\n` +
+    `Please tap the button below to share your phone number so we can retrieve your active loan records:`,
     {
-      reply_markup: new ReplyKeyboardBuilder()
-        .addButton({ text: '📱 Share Phone to Check Status', request_contact: true })
-        .build({ one_time_keyboard: true, resize_keyboard: true }),
+      parse_mode: 'HTML',
+      reply_markup: keyboard,
     }
   );
 });
 
 // ─── /request <amount> ────────────────────────────────────────────────────────
 bot.command('request', async (ctx) => {
-  const parts = ctx.message.text.trim().split(/\s+/);
-  const raw   = parts[1];
-  const amount = parseFloat(raw);
+  const rawAmount = (ctx.match || '').trim();
+  const amount = parseFloat(rawAmount);
 
-  if (!raw || isNaN(amount) || amount <= 0) {
+  if (!rawAmount || isNaN(amount) || amount <= 0) {
     return ctx.reply(
-      '⚠️ Invalid amount\\. Usage: `/request 5000`',
-      { parse_mode: 'MarkdownV2' }
+      `⚠️ <b>Invalid Amount</b>\n\nPlease specify the amount you want to request.\n\n` +
+      `<b>Example:</b> <code>/request 5000</code>`,
+      { parse_mode: 'HTML' }
     );
   }
 
+  // Store amount in context state
+  ctx.state.pendingAmount = amount;
+
+  const keyboard = new ReplyKeyboardBuilder()
+    .requestContact('📱 Share Phone to Confirm Request')
+    .build({ one_time_keyboard: true, resize_keyboard: true });
+
   await ctx.reply(
-    `📝 *Loan Request: ৳${amount}*\n\nTo complete this request, please share your phone number:`,
+    `📝 <b>Loan Application: ৳${amount}</b>\n\n` +
+    `To finalize this request, please share your verified phone number using the button below:`,
     {
-      parse_mode: 'MarkdownV2',
-      reply_markup: new ReplyKeyboardBuilder()
-        .addButton({ text: '📱 Share Phone to Confirm Request', request_contact: true })
-        .build({ one_time_keyboard: true, resize_keyboard: true }),
+      parse_mode: 'HTML',
+      reply_markup: keyboard,
     }
   );
 });
 
-// ─── Contact Share Handler — Phone Extraction Engine ─────────────────────────
-/**
- * When a user taps "Share My Phone Number", Telegram delivers a `contact`
- * message containing the cryptographic phone-sharing token (user_id + phone_number)
- * verified by Telegram's protocol. We extract the phone and upsert in Supabase.
- */
+// ─── Contact Share Handler — Cryptographic Phone Sharing Parser ───────────────
 bot.on('message', async (ctx) => {
   const msg = ctx.message;
-  if (!msg.contact) return; // only handle contact shares here
+  if (!msg || !msg.contact) return; // Only process contact shares
 
-  const chatId  = msg.chat.id;
   const contact = msg.contact;
+  const fromId = msg.from?.id;
 
-  // Telegram only sends contact.user_id when the user shares their own contact
-  if (msg.from.id !== contact.user_id) {
-    return bot.api.sendMessage(chatId,
-      '❌ Invalid contact\\. Please share *your own* phone number only\\.',
-      { parse_mode: 'MarkdownV2' }
+  // Security Verification: Ensure the user is sharing their OWN contact
+  if (contact.user_id && fromId && contact.user_id !== fromId) {
+    return ctx.reply(
+      `❌ <b>Verification Failed</b>\n\n` +
+      `You must share your <b>own</b> phone number directly from your Telegram client.`,
+      { parse_mode: 'HTML' }
     );
   }
 
-  const phoneRaw = contact.phone_number || '';
-  const phone    = phoneRaw.startsWith('+') ? phoneRaw : `+${phoneRaw}`;
+  const rawPhone = contact.phone_number || '';
+  const phone = rawPhone.startsWith('+') ? rawPhone : `+${rawPhone}`;
   const firstName = contact.first_name || '';
-  const lastName  = contact.last_name  || '';
-  const fullName  = `${firstName} ${lastName}`.trim();
+  const lastName = contact.last_name || '';
+  const fullName = `${firstName} ${lastName}`.trim() || msg.from?.username || `User_${fromId}`;
 
   const removeKeyboard = { remove_keyboard: true };
 
   try {
-    // Check if client already exists
-    const { data: existing } = await supabaseAdmin
+    // 1. Check if client already exists in Supabase
+    const { data: existing, error: fetchErr } = await supabaseAdmin
       .from('client_profiles')
-      .select('id, name, status, strikes_count')
+      .select('id, name, phone_number, status, strikes_count, created_at')
       .eq('phone_number', phone)
       .maybeSingle();
 
-    if (existing) {
-      const strikeText = existing.strikes_count > 0
-        ? `⚠️ Strikes: *${existing.strikes_count}*`
-        : '✅ No strikes on your account\\.';
+    if (fetchErr) throw fetchErr;
 
-      return bot.api.sendMessage(chatId,
-        `👋 Welcome back, *${escMd(existing.name)}*\\!\n\n` +
-        `📋 Status: \`${existing.status}\`\n` +
-        `${strikeText}\n\n` +
-        `Use /status to see your loans, or /request \\<amount\\> to apply\\.`,
-        { parse_mode: 'MarkdownV2', reply_markup: removeKeyboard }
+    if (existing) {
+      // Existing client — fetch their loans
+      const { data: loans } = await supabaseAdmin
+        .from('money_requests')
+        .select('id, amount, deadline_date, status, created_at')
+        .eq('client_id', existing.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      const strikeBadge = existing.strikes_count > 0
+        ? `⚠️ <b>Strikes:</b> ${existing.strikes_count} / 3`
+        : `✅ <b>Strikes:</b> 0 (Clean)`;
+
+      let loanText = '<i>No loan history on record.</i>';
+      if (loans && loans.length > 0) {
+        loanText = loans.map(l =>
+          `• <b>৳${l.amount}</b> | Due: <code>${l.deadline_date}</code> | [<b>${l.status}</b>]`
+        ).join('\n');
+      }
+
+      return ctx.reply(
+        `👋 <b>Welcome Back, ${escapeHtml(existing.name)}!</b>\n\n` +
+        `🆔 <b>Client ID:</b> <code>${existing.id}</code>\n` +
+        `📱 <b>Phone:</b> <code>${escapeHtml(existing.phone_number)}</code>\n` +
+        `🔘 <b>Status:</b> <code>${existing.status}</code>\n` +
+        `${strikeBadge}\n\n` +
+        `💰 <b>Recent Loans:</b>\n${loanText}\n\n` +
+        `To apply for a new loan, send: <code>/request &lt;amount&gt;</code>`,
+        { parse_mode: 'HTML', reply_markup: removeKeyboard }
       );
     }
 
-    // New client — register in Supabase
-    const { data: newProfile, error } = await supabaseAdmin
+    // 2. New client — insert into client_profiles
+    const { data: newProfile, error: insertErr } = await supabaseAdmin
       .from('client_profiles')
       .insert({
-        name:          fullName || `TG_${msg.from.id}`,
-        phone_number:  phone,
-        email:         '',
-        nid_url:       '',
-        status:        'ACTIVE',
+        name: fullName,
+        phone_number: phone,
+        email: `${fromId}@telegram.sep`,
+        nid_url: '',
+        status: 'ACTIVE',
         strikes_count: 0,
-        admin_note:    `Registered via @money_loan_bot on ${new Date().toISOString()}`,
+        admin_note: `Registered via @money_loan_bot on ${new Date().toISOString()}`,
       })
       .select()
       .single();
 
-    if (error) throw error;
+    if (insertErr) throw insertErr;
 
-    await bot.api.sendMessage(chatId,
-      `✅ *Registration Successful\\!*\n\n` +
-      `Welcome to SYM LOAN, *${escMd(newProfile.name)}*\\!\n\n` +
-      `📱 Phone: \`${escMd(phone)}\`\n` +
-      `🆔 Client ID: \`${newProfile.id}\`\n\n` +
-      `You can now use:\n` +
-      `  • /status — check your account\n` +
-      `  • /request \\<amount\\> — apply for a loan\n` +
-      `  • /help — see all commands\n\n` +
-      `An admin will review your profile shortly\\.`,
-      { parse_mode: 'MarkdownV2', reply_markup: removeKeyboard }
+    await ctx.reply(
+      `🎉 <b>Registration Complete!</b>\n\n` +
+      `Welcome to <b>SYM EMPIRE PLATFORM (S.E.P.)</b>, <b>${escapeHtml(newProfile.name)}</b>!\n\n` +
+      `🆔 <b>Client ID:</b> <code>${newProfile.id}</code>\n` +
+      `📱 <b>Verified Phone:</b> <code>${escapeHtml(phone)}</code>\n` +
+      `🔘 <b>Status:</b> <code>${newProfile.status}</code>\n\n` +
+      `You can now apply for loans using:\n` +
+      `👉 <code>/request 5000</code>\n\n` +
+      `Or check your account status anytime with <code>/status</code>.`,
+      { parse_mode: 'HTML', reply_markup: removeKeyboard }
     );
 
   } catch (err) {
-    console.error('[Bot] Contact handler error:', err.message);
-    bot.api.sendMessage(chatId,
-      '❌ Something went wrong while saving your profile\\. Please try again later\\.',
-      { parse_mode: 'MarkdownV2', reply_markup: removeKeyboard }
+    console.error('[Bot] Contact error:', err.message || err);
+    await ctx.reply(
+      `❌ <b>Service Temporarily Unavailable</b>\n\n` +
+      `Could not save your profile. Please try again shortly.`,
+      { parse_mode: 'HTML', reply_markup: removeKeyboard }
     );
   }
 });
 
-// ─── Error Handler ────────────────────────────────────────────────────────────
+// ─── Error Handling ───────────────────────────────────────────────────────────
 bot.catch((err) => {
-  console.error('[Bot] Error:', err.message || err);
+  console.error('[Bot] Unhandled error:', err.message || err);
 });
 
-// ─── Utility: Escape MarkdownV2 special chars ─────────────────────────────────
-function escMd(text) {
-  return String(text).replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
-}
-
-// ─── Start Function ───────────────────────────────────────────────────────────
+// ─── Start Polling Engine ─────────────────────────────────────────────────────
 function startBot() {
   bot.startPolling();
   console.log('[Bot] ✅ @money_loan_bot polling started.');

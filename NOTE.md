@@ -13,11 +13,36 @@
 > **Telegram Bot:** `@money_loan_bot` (Live Token: `8846454332:AAGl0VAri-CNPRcDCAjJvsHOcA00BJo6hhI`)  
 > **Technology Stack:** Node.js, Express, Supabase (PostgreSQL), node-telegram-bot-api, node-cron, CORS, Helmet, dotenv, HTML5, Tailwind CSS  
 > **Live Local Server:** `http://localhost:5000`  
-> **Last Synchronized:** 2026-09-18 09:30 Local Time  
+> **Last Synchronized:** 2026-09-18 09:32 Local Time  
 
 ---
 
 ## 🚀 Logged System Updates & Changelog
+
+### [Update-037] — Telegram Bot Telegram API v1+ Polling Calibration & UI Verification (2026-09-18)
+**Type:** Telegram Bot Bugfix, Interactive Keyboard Fix & HTML Entity Calibration  
+**Status:** ✅ COMPLETED & VERIFIED LIVE  
+
+#### User Feedback & Symptom:
+The user tested `@money_loan_bot` from their mobile Telegram client (`media_1789702187293.png`) and sent `/start` at 9:28 AM. The bot received the update on Telegram's servers but did not render the welcome message or contact button.
+
+#### Root Cause Analysis:
+1. Reviewing background server task logs revealed: `[Bot] Error: (intermediate value).addButton is not a function`.
+2. The modern `node-telegram-bot-api` v1+ library implements `.requestContact(label)` directly on `ReplyKeyboardBuilder` rather than `.addButton(...)`.
+3. In addition, MarkdownV2 character restrictions risk parser failures when encountering periods or symbols in usernames/names.
+
+#### Architectural Fix & Calibration:
+1. **Calibrated Keyboard Builder:**
+   * Rewrote the keyboard generation in `src/bot/index.js` using `new ReplyKeyboardBuilder().requestContact('📱 Share My Phone Number').build({ one_time_keyboard: true, resize_keyboard: true })`.
+   * Verified built JSON structure: `{"keyboard":[[{"text":"📱 Share My Phone Number","request_contact":true}]],"one_time_keyboard":true,"resize_keyboard":true}`.
+2. **HTML Parse Mode Upgrade:**
+   * Switched all bot replies from brittle `MarkdownV2` to robust `HTML` mode (`<b>`, `<code>`, `<i>`).
+   * Added `escapeHtml()` utility to sanitize user names, preventing any Telegram HTML entity parse errors.
+3. **Daemon Reboot & Verification:**
+   * Successfully rebooted server daemon (`task-270`).
+   * All 3 engines (Express HTTP server on port 5000, daily 13:00 BDT strike cron, and `@money_loan_bot` polling) are fully operational without errors.
+
+---
 
 ### [Update-036] — Full Backend Core Engine & Live Telegram Bot Activated (2026-09-18)
 **Type:** Core Backend Implementation, Security Gate & Automation  
@@ -92,7 +117,7 @@
 ## 🔮 Future Updating Plan & Technical Roadmap
 
 ### [Phase 3 / STEP 3] — High-Contrast Mobile Web Interface
-* **Design Language:** High-contrast mobile-first dashboard (Tailwind CSS, FontAwesome 6, emerald/indigo accents).
+* **Design Language:** Mobile-first responsive UI (Tailwind CSS, FontAwesome 6, high-contrast dark theme).
 * **Identity Verification Flow:** Mobile client authentication integrating Telegram phone sharing or quick OTP token.
 * **Client Dashboard:**
   * Active loan status card with overdue warning indicators and countdown timer.
