@@ -27,6 +27,8 @@ const smsService       = require('../lib/smsService');
 const collectionEngine = require('../lib/collectionEngine');
 const creditScoreEngine = require('../lib/creditScoreEngine');
 const fraudDetectionEngine = require('../lib/fraudDetectionEngine');
+const staffAuthEngine = require('../lib/staffAuthEngine');
+const auditTrailEngine = require('../lib/auditTrailEngine');
 
 const router = express.Router();
 
@@ -38,13 +40,37 @@ const ADMIN_AUTHORIZED_EMAILS = [
 ];
 
 function requireAdmin(req, res, next) {
+  let token = req.headers['x-staff-token'] || req.headers['authorization'];
+  if (token && token.startsWith('Bearer ')) {
+    token = token.slice(7).trim();
+  }
+  if (token) {
+    const payload = staffAuthEngine.verifyStaffToken(token);
+    if (payload) {
+      const liveMember = staffAuthEngine.getStaffById(payload.sub);
+      if (liveMember && liveMember.status === 'ACTIVE') {
+        req.staffUser = liveMember;
+        return next();
+      }
+    }
+  }
+
   const provided = req.headers['x-admin-key'] || req.query.admin_key || req.body?.admin_key;
   if (provided === ADMIN_SECRET) {
+    req.staffUser = {
+      id: 'stf_superadmin_01',
+      username: 'superadmin',
+      display_name: 'Executive Managing Director',
+      role: 'SUPER_ADMIN',
+      permissions: ['*'],
+      approval_ceiling: 100000
+    };
     return next();
   }
+
   return res.status(401).json({
     success: false,
-    message: 'Unauthorized: Invalid Admin Secret Key.',
+    message: 'Unauthorized: Invalid Admin Secret Key or Staff Session.',
   });
 }
 
@@ -574,6 +600,20 @@ router.post('/loans/:id/decision', requireAdmin, uploadReceipt.single('receipt_i
 
   if (updateErr) return res.status(500).json({ success: false, message: updateErr.message });
 
+  const auditAction = decision === 'ACCEPTED' ? 'LOAN_APPROVED' : (decision === 'DECLINED' ? 'LOAN_DECLINED' : 'LOAN_UPDATED');
+  try {
+    auditTrailEngine.recordExpressAction(req, auditAction, 'LOAN', loanId, {
+      amount: loan.amount,
+      payout_method,
+      client_id: loan.client_id,
+      decision,
+      trx_id: trx_id || undefined,
+      admin_note: userNote || undefined
+    });
+  } catch (auditErr) {
+    console.warn('[Audit] Failed to log loan decision:', auditErr.message);
+  }
+
   console.log(`[Disbursement] ✅ Loan #${loanId.slice(0, 8)} marked as ${decision} via ${payout_method}. TrxID: ${trx_id || 'N/A'}`);
 
   res.json({
@@ -845,6 +885,17 @@ router.post('/kyc/:clientId/decision', requireAdmin, async (req, res) => {
 
   try {
     const updated = kycManager.adminReviewKyc(clientId, decision, reason);
+
+    try {
+      auditTrailEngine.recordExpressAction(req, decision === 'APPROVED' ? 'KYC_VERIFIED' : 'KYC_REJECTED', 'KYC_PROFILE', clientId, {
+        decision,
+        reason: reason || undefined,
+        status: updated.status
+      });
+    } catch (auditErr) {
+      console.warn('[Audit] Failed to log KYC decision:', auditErr.message);
+    }
+
     res.json({
       success: true,
       message: `KYC for client has been set to ${updated.status}.`,
@@ -1090,6 +1141,17 @@ router.post('/repayments/:id/approve', requireAdmin, async (req, res) => {
       req.params.id,
       req.body?.admin_note || 'Verified and settled by Administrator'
     );
+
+    try {
+      auditTrailEngine.recordExpressAction(req, 'REPAYMENT_APPROVED', 'REPAYMENT', req.params.id, {
+        repayment_id: req.params.id,
+        admin_note: req.body?.admin_note,
+        settled_at: result.repayment?.verified_at
+      });
+    } catch (auditErr) {
+      console.warn('[Audit] Failed to log repayment approval:', auditErr.message);
+    }
+
     res.json(result);
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
@@ -1103,6 +1165,16 @@ router.post('/repayments/:id/reject', requireAdmin, async (req, res) => {
       req.params.id,
       req.body?.reason || 'Transaction proof or TrxID could not be verified'
     );
+
+    try {
+      auditTrailEngine.recordExpressAction(req, 'REPAYMENT_REJECTED', 'REPAYMENT', req.params.id, {
+        repayment_id: req.params.id,
+        reason: req.body?.reason
+      });
+    } catch (auditErr) {
+      console.warn('[Audit] Failed to log repayment rejection:', auditErr.message);
+    }
+
     res.json(result);
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
@@ -1276,6 +1348,17 @@ router.post('/credit/override', requireAdmin, async (req, res) => {
 
     const updatedProfile = await creditScoreEngine.getClientCreditProfile(client_id);
 
+    try {
+      auditTrailEngine.recordExpressAction(req, 'CREDIT_OVERRIDE_SET', 'CLIENT_CREDIT', client_id, {
+        score_offset: effectiveOffset,
+        fixed_grade,
+        fixed_tier,
+        admin_note: effectiveNote
+      });
+    } catch (auditErr) {
+      console.warn('[Audit] Failed to log credit override:', auditErr.message);
+    }
+
     res.json({
       success: true,
       message: 'Admin credit override saved successfully.',
@@ -1292,6 +1375,15 @@ router.delete('/credit/override/:id', requireAdmin, async (req, res) => {
   try {
     const removed = creditScoreEngine.removeAdminOverride(req.params.id);
     const profile = await creditScoreEngine.getClientCreditProfile(req.params.id);
+
+    try {
+      auditTrailEngine.recordExpressAction(req, 'CREDIT_OVERRIDE_REMOVED', 'CLIENT_CREDIT', req.params.id, {
+        removed
+      });
+    } catch (auditErr) {
+      console.warn('[Audit] Failed to log credit override removal:', auditErr.message);
+    }
+
     res.json({
       success: true,
       removed,
@@ -1332,6 +1424,14 @@ router.post('/fraud/resolve', requireAdmin, (req, res) => {
     }
 
     const entry = fraudDetectionEngine.resolveAlert(log_id, resolution, admin_note);
+
+    auditTrailEngine.recordExpressAction(req, 'FRAUD_ALERT_RESOLVED', 'FRAUD_LOG', log_id, {
+      resolution,
+      admin_note,
+      target_ip: entry.ip_address,
+      fingerprint_hash: entry.fingerprint_hash
+    });
+
     res.json({
       success: true,
       message: `Fraud alert resolved as ${resolution}.`,
@@ -1339,6 +1439,128 @@ router.post('/fraud/resolve', requireAdmin, (req, res) => {
     });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// ─── Phase 12: Staff Authentication & Granular RBAC Management ───────────────
+
+// POST /api/admin/staff/auth/login — Staff member login
+router.post('/staff/auth/login', (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const authResult = staffAuthEngine.authenticate(username, password);
+    res.json({
+      success: true,
+      message: `Welcome back, ${authResult.staff.display_name}!`,
+      token: authResult.token,
+      staff: authResult.staff
+    });
+  } catch (err) {
+    res.status(401).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/admin/staff/profile — Currently logged-in staff profile
+router.get('/staff/profile', requireAdmin, (req, res) => {
+  const staff = req.staffUser || {
+    id: 'stf_superadmin_01',
+    username: 'superadmin',
+    display_name: 'Executive Managing Director',
+    role: 'SUPER_ADMIN',
+    permissions: ['*'],
+    approval_ceiling: 100000
+  };
+
+  const catalog = staffAuthEngine.getRolesCatalog();
+  const roleMeta = catalog[staff.role] || { name: staff.role, badge: '👤', color: '#6b7280' };
+
+  res.json({
+    success: true,
+    staff: {
+      ...staff,
+      role_meta: roleMeta
+    }
+  });
+});
+
+// GET /api/admin/staff — List all staff members
+router.get('/staff', requireAdmin, (req, res) => {
+  try {
+    const staffList = staffAuthEngine.listStaff();
+    const rolesCatalog = staffAuthEngine.getRolesCatalog();
+    res.json({
+      success: true,
+      staff: staffList,
+      roles: rolesCatalog
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/admin/staff — Create a new staff account (requires staff:manage or SUPER_ADMIN)
+router.post('/staff', requireAdmin, (req, res) => {
+  try {
+    const operator = req.staffUser || { id: 'stf_superadmin_01', name: 'Super Admin', role: 'SUPER_ADMIN' };
+    if (operator.role !== 'SUPER_ADMIN' && !staffAuthEngine.hasPermission(operator, 'staff:manage')) {
+      return res.status(403).json({ success: false, message: 'Only Super Administrators can create staff accounts.' });
+    }
+
+    const created = staffAuthEngine.createStaffMember(req.body, operator);
+    res.status(201).json({
+      success: true,
+      message: `Staff member ${created.display_name} created successfully.`,
+      staff: created
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// PATCH /api/admin/staff/:id — Update staff details, status, or permissions
+router.patch('/staff/:id', requireAdmin, (req, res) => {
+  try {
+    const operator = req.staffUser || { id: 'stf_superadmin_01', name: 'Super Admin', role: 'SUPER_ADMIN' };
+    if (operator.role !== 'SUPER_ADMIN' && !staffAuthEngine.hasPermission(operator, 'staff:manage')) {
+      return res.status(403).json({ success: false, message: 'Only Super Administrators can modify staff accounts.' });
+    }
+
+    const updated = staffAuthEngine.updateStaffMember(req.params.id, req.body, operator);
+    res.json({
+      success: true,
+      message: `Staff member ${updated.display_name} updated successfully.`,
+      staff: updated
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// ─── Phase 12: Cryptographic Immutable Audit Trail Desk ─────────────────────
+
+// GET /api/admin/audit/logs — Query immutable audit blocks
+router.get('/audit/logs', requireAdmin, (req, res) => {
+  try {
+    const result = auditTrailEngine.getAuditLogs(req.query);
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/admin/audit/verify-chain — Inspect entire cryptographic hash chain
+router.get('/audit/verify-chain', requireAdmin, (req, res) => {
+  try {
+    const verification = auditTrailEngine.verifyChainIntegrity();
+    res.json({
+      success: true,
+      verification
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

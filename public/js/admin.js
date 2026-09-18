@@ -344,9 +344,15 @@ function initAdmin() {
 }
 
 function getHeaders() {
-  return {
+  const staffToken = sessionStorage.getItem('sep_staff_token') || localStorage.getItem('sep_staff_token');
+  const headers = {
     'x-admin-key': ADMIN_KEY,
   };
+  if (staffToken) {
+    headers['Authorization'] = `Bearer ${staffToken}`;
+    headers['x-staff-token'] = staffToken;
+  }
+  return headers;
 }
 
 // ─── Load All Data ────────────────────────────────────────────────────────────
@@ -365,6 +371,8 @@ async function loadAllData() {
     await fetchReminderLogs();
     await fetchCreditMatrix();
     await fetchFraudAlerts();
+    await fetchStaffMembers();
+    await fetchAuditLogs();
     await fetchSuiteNotes();
     await fetchSuiteEvents();
     await fetchSuiteAlarms();
@@ -4048,6 +4056,527 @@ function initCreditFraudListeners() {
   });
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 12: MULTI-STAFF RBAC & CRYPTOGRAPHIC IMMUTABLE AUDIT TRAIL
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let STAFF_ROSTER_CACHE = [];
+let ROLES_CATALOG_CACHE = {};
+let AUDIT_LOGS_CACHE = [];
+
+// ─── Staff & RBAC Functions ──────────────────────────────────────────────────
+async function fetchStaffMembers() {
+  try {
+    const res = await fetch('/api/admin/staff', { headers: getHeaders() });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    STAFF_ROSTER_CACHE = json.staff || [];
+    ROLES_CATALOG_CACHE = json.roles || {};
+    renderStaffRoster(STAFF_ROSTER_CACHE, ROLES_CATALOG_CACHE);
+  } catch (err) {
+    console.error('Failed to fetch staff members:', err);
+  }
+}
+
+function renderStaffRoster(staffList, roles) {
+  const tbody = document.getElementById('staffTableBody');
+  const totalCountBadge = document.getElementById('kpiTotalStaffCount');
+  const superAdminBadge = document.getElementById('kpiSuperAdminCount');
+  const loanOfficersBadge = document.getElementById('kpiLoanOfficersCount');
+  const complianceBadge = document.getElementById('kpiComplianceFinanceCount');
+  const drawerStaffBadge = document.getElementById('adminStaffCountBadge');
+
+  if (drawerStaffBadge) drawerStaffBadge.textContent = staffList.length;
+
+  // KPI calculations
+  const totalActive = staffList.filter(s => s.status === 'ACTIVE').length;
+  const superCount = staffList.filter(s => s.role === 'SUPER_ADMIN').length;
+  const loanOfficerCount = staffList.filter(s => s.role === 'LOAN_OFFICER').length;
+  const otherCount = staffList.length - superCount - loanOfficerCount;
+
+  if (totalCountBadge) totalCountBadge.textContent = `${totalActive} Active`;
+  if (superAdminBadge) superAdminBadge.textContent = `${superCount} ${superCount === 1 ? 'Director' : 'Directors'}`;
+  if (loanOfficersBadge) loanOfficersBadge.textContent = `${loanOfficerCount} ${loanOfficerCount === 1 ? 'Officer' : 'Officers'}`;
+  if (complianceBadge) complianceBadge.textContent = `${otherCount} Officers`;
+
+  if (!tbody) return;
+
+  if (!staffList || staffList.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="p-6 text-center text-slate-500 font-mono text-xs">
+          No staff members registered. Click "+ Add Staff Member" to provision an account.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = staffList.map(member => {
+    const roleMeta = roles[member.role] || { name: member.role, badge: '👤', color: '#6366f1' };
+    const isSuper = member.role === 'SUPER_ADMIN';
+    const statusBg = member.status === 'ACTIVE'
+      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+      : (member.status === 'SUSPENDED' ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' : 'bg-slate-500/20 text-slate-300 border-slate-500/40');
+
+    // Render permission badges
+    let permsHtml = '';
+    if (member.permissions.includes('*')) {
+      permsHtml = `<span class="px-2 py-0.5 rounded text-[10px] font-mono font-black bg-purple-500/20 text-purple-300 border border-purple-500/40">★ Full Root (*)</span>`;
+    } else {
+      const top3 = member.permissions.slice(0, 3);
+      permsHtml = top3.map(p => `<span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-white/5 text-slate-300 border border-white/10 mr-1">${p}</span>`).join('');
+      if (member.permissions.length > 3) {
+        permsHtml += `<span class="text-[10px] text-slate-500 font-mono">+${member.permissions.length - 3} more</span>`;
+      }
+    }
+
+    const lastActive = member.last_login_at
+      ? new Date(member.last_login_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : 'Never';
+
+    return `
+      <tr class="border-b border-white/5 hover:bg-white/[0.02] transition">
+        <td class="py-3 px-3">
+          <div class="font-bold text-white flex items-center">
+            ${member.display_name}
+            ${isSuper ? '<i class="fas fa-crown text-amber-400 text-[10px] ml-1.5" title="Super Administrator"></i>' : ''}
+          </div>
+          <div class="text-[10px] font-mono text-slate-400 mt-0.5">
+            <span class="text-indigo-400">@${member.username}</span> • ${member.email || 'No email'}
+          </div>
+        </td>
+        <td class="py-3 px-3">
+          <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold border inline-flex items-center space-x-1" style="background-color: ${roleMeta.color}20; color: ${roleMeta.color}; border-color: ${roleMeta.color}50;">
+            <span>${roleMeta.badge}</span>
+            <span>${roleMeta.name}</span>
+          </span>
+        </td>
+        <td class="py-3 px-3 font-mono font-bold text-emerald-400">
+          ৳${Number(member.approval_ceiling || 0).toLocaleString()}
+        </td>
+        <td class="py-3 px-3">
+          <div class="flex flex-wrap gap-1 items-center max-w-[200px]">
+            ${permsHtml}
+          </div>
+        </td>
+        <td class="py-3 px-3">
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${statusBg}">
+            ${member.status}
+          </span>
+        </td>
+        <td class="py-3 px-3 text-[11px] font-mono text-slate-400">
+          ${lastActive}
+        </td>
+        <td class="py-3 px-3 text-right space-x-1.5">
+          <button onclick="openEditStaffModal('${member.id}')" class="px-2.5 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 text-xs font-bold transition cursor-pointer border border-indigo-500/30">
+            <i class="fas fa-edit mr-1"></i> Edit
+          </button>
+          ${!isSuper ? `
+            <button onclick="toggleStaffStatus('${member.id}', '${member.status}')" class="px-2 py-1 rounded-lg ${member.status === 'ACTIVE' ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/20' : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20'} text-xs font-bold transition cursor-pointer border">
+              ${member.status === 'ACTIVE' ? '<i class="fas fa-user-slash"></i>' : '<i class="fas fa-user-check"></i>'}
+            </button>
+          ` : ''}
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+window.openAddStaffModal = function() {
+  const form = document.getElementById('adminAddStaffForm');
+  if (form) form.reset();
+  document.getElementById('adminAddStaffModal')?.classList.remove('hidden');
+};
+
+window.closeAddStaffModal = function() {
+  document.getElementById('adminAddStaffModal')?.classList.add('hidden');
+};
+
+window.saveNewStaffMember = async function() {
+  const name = document.getElementById('staffAddName')?.value.trim();
+  const username = document.getElementById('staffAddUsername')?.value.trim();
+  const email = document.getElementById('staffAddEmail')?.value.trim();
+  const password = document.getElementById('staffAddPassword')?.value;
+  const role = document.getElementById('staffAddRole')?.value || 'LOAN_OFFICER';
+  const department = document.getElementById('staffAddDept')?.value.trim();
+  const approval_ceiling = document.getElementById('staffAddApprovalLimit')?.value;
+
+  if (!name || !username || !email || !password) {
+    alert('Please fill all required fields (Name, Username, Email, Password).');
+    return;
+  }
+
+  const permCheckboxes = document.querySelectorAll('input[name="staffAddPerm"]:checked');
+  const custom_permissions = Array.from(permCheckboxes).map(cb => cb.value);
+
+  const btn = document.getElementById('btnSubmitAddStaffModal');
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/admin/staff', {
+      method: 'POST',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        display_name: name,
+        username,
+        email,
+        password,
+        role,
+        department,
+        approval_ceiling: parseInt(approval_ceiling, 10) || 25000,
+        custom_permissions
+      })
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    alert(`✅ ${json.message}`);
+    closeAddStaffModal();
+    await fetchStaffMembers();
+    await fetchAuditLogs();
+  } catch (err) {
+    alert(`Failed to create staff member: ${err.message}`);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+};
+
+window.openEditStaffModal = function(staffId) {
+  const member = STAFF_ROSTER_CACHE.find(s => s.id === staffId);
+  if (!member) return;
+
+  document.getElementById('staffEditId').value = member.id;
+  const nameHeader = document.getElementById('modalEditStaffNameHeader');
+  if (nameHeader) nameHeader.textContent = `Staff: ${member.display_name} (@${member.username})`;
+
+  document.getElementById('staffEditRole').value = member.role;
+  document.getElementById('staffEditStatus').value = member.status || 'ACTIVE';
+  document.getElementById('staffEditDept').value = member.department || '';
+  document.getElementById('staffEditApprovalLimit').value = member.approval_ceiling || 25000;
+  document.getElementById('staffEditPassword').value = '';
+
+  document.getElementById('adminEditStaffModal')?.classList.remove('hidden');
+};
+
+window.closeEditStaffModal = function() {
+  document.getElementById('adminEditStaffModal')?.classList.add('hidden');
+};
+
+window.saveStaffEdit = async function() {
+  const staffId = document.getElementById('staffEditId')?.value;
+  if (!staffId) return;
+
+  const role = document.getElementById('staffEditRole')?.value;
+  const status = document.getElementById('staffEditStatus')?.value;
+  const department = document.getElementById('staffEditDept')?.value.trim();
+  const approval_ceiling = document.getElementById('staffEditApprovalLimit')?.value;
+  const password = document.getElementById('staffEditPassword')?.value;
+
+  const body = {
+    role,
+    status,
+    department,
+    approval_ceiling: parseInt(approval_ceiling, 10) || 0
+  };
+  if (password && password.trim().length >= 8) {
+    body.password = password.trim();
+  }
+
+  const btn = document.getElementById('btnSubmitEditStaffModal');
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await fetch(`/api/admin/staff/${staffId}`, {
+      method: 'PATCH',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    alert(`✅ ${json.message}`);
+    closeEditStaffModal();
+    await fetchStaffMembers();
+    await fetchAuditLogs();
+  } catch (err) {
+    alert(`Failed to update staff member: ${err.message}`);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+};
+
+window.toggleStaffStatus = async function(staffId, currentStatus) {
+  const newStatus = currentStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+  if (!confirm(`Are you sure you want to change this staff member's status to ${newStatus}?`)) return;
+
+  try {
+    const res = await fetch(`/api/admin/staff/${staffId}`, {
+      method: 'PATCH',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    await fetchStaffMembers();
+    await fetchAuditLogs();
+  } catch (err) {
+    alert(`Status Update Error: ${err.message}`);
+  }
+};
+
+// ─── Immutable Audit Trail Functions ──────────────────────────────────────────
+async function fetchAuditLogs(filters = {}) {
+  try {
+    const query = new URLSearchParams();
+    if (filters.role) query.set('role', filters.role);
+    if (filters.action) query.set('action', filters.action);
+    if (filters.search) query.set('search', filters.search);
+    query.set('limit', '50');
+
+    const res = await fetch(`/api/admin/audit/logs?${query.toString()}`, { headers: getHeaders() });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    AUDIT_LOGS_CACHE = json.logs || [];
+    renderAuditLogs(AUDIT_LOGS_CACHE, json.stats);
+  } catch (err) {
+    console.error('Failed to fetch audit logs:', err);
+  }
+}
+
+function renderAuditLogs(logs, stats) {
+  const tbody = document.getElementById('auditTrailTableBody');
+  const totalBlocksBadge = document.getElementById('auditTotalBlocksBadge');
+  const uniqueOperatorsBadge = document.getElementById('auditUniqueOperatorsBadge');
+  const headHashText = document.getElementById('auditChainHeadText');
+  const drawerAuditBadge = document.getElementById('adminAuditBlockCountBadge');
+
+  if (stats) {
+    if (totalBlocksBadge) totalBlocksBadge.textContent = `${stats.total_blocks} Blocks`;
+    if (uniqueOperatorsBadge) uniqueOperatorsBadge.textContent = stats.unique_operators;
+    if (headHashText) headHashText.textContent = stats.head_hash || 'Genesis';
+    if (drawerAuditBadge) drawerAuditBadge.textContent = stats.total_blocks;
+  }
+
+  if (!tbody) return;
+
+  if (!logs || logs.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="p-6 text-center text-slate-500 font-mono text-xs">
+          No audit blocks found matching current filter criteria.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = logs.map(block => {
+    const dateStr = new Date(block.timestamp).toLocaleString('en-US', {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+
+    const isGenesis = block.block_index === 0;
+    const truncatedHash = block.block_hash ? `${block.block_hash.slice(0, 8)}...${block.block_hash.slice(-6)}` : 'GENESIS';
+
+    const actionColors = {
+      LOAN_APPROVED: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+      LOAN_DECLINED: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+      KYC_VERIFIED: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
+      KYC_REJECTED: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+      REPAYMENT_APPROVED: 'bg-teal-500/20 text-teal-300 border-teal-500/40',
+      REPAYMENT_REJECTED: 'bg-orange-500/20 text-orange-300 border-orange-500/40',
+      CREDIT_OVERRIDE_SET: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40',
+      CREDIT_OVERRIDE_REMOVED: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+      FRAUD_ALERT_RESOLVED: 'bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/40',
+      STAFF_LOGIN: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
+      STAFF_CREATED: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+      STAFF_UPDATED: 'bg-violet-500/20 text-violet-300 border-violet-500/40',
+      GENESIS_BLOCK: 'bg-white/10 text-slate-300 border-white/20'
+    };
+
+    const actionClass = actionColors[block.action] || 'bg-slate-500/20 text-slate-300 border-slate-500/40';
+
+    return `
+      <tr class="border-b border-white/5 hover:bg-white/[0.02] transition">
+        <td class="py-2.5 px-3 font-mono font-bold text-white flex items-center">
+          <i class="fas fa-cube text-purple-400 mr-1.5 text-[11px]"></i>
+          #${block.block_index}
+        </td>
+        <td class="py-2.5 px-3 font-mono text-[11px] text-slate-400">
+          ${dateStr}
+        </td>
+        <td class="py-2.5 px-3">
+          <div class="font-bold text-white">${block.staff_name || block.staff_id || 'System'}</div>
+          <div class="text-[10px] font-mono text-indigo-400">${block.staff_role || 'OPERATOR'}</div>
+        </td>
+        <td class="py-2.5 px-3">
+          <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${actionClass}">
+            ${block.action}
+          </span>
+        </td>
+        <td class="py-2.5 px-3 font-mono text-[11px] text-slate-300">
+          <span class="text-slate-500">${block.entity_type}:</span>
+          <span class="text-amber-300 font-semibold">${block.entity_id ? block.entity_id.slice(0, 12) : '—'}</span>
+        </td>
+        <td class="py-2.5 px-3 font-mono text-[11px]">
+          <span class="text-cyan-400 select-all cursor-pointer font-bold" title="${block.block_hash}">${truncatedHash}</span>
+        </td>
+        <td class="py-2.5 px-3 text-right">
+          <button onclick="openAuditBlockModal(${block.block_index})" class="px-2 py-1 rounded bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 text-xs font-bold transition cursor-pointer border border-purple-500/30">
+            <i class="fas fa-search-plus"></i> Inspect
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+window.verifyAuditChainIntegrity = async function() {
+  const badge = document.getElementById('auditChainVerificationBadge');
+  const btn = document.getElementById('btnVerifyAuditChain');
+
+  if (btn) btn.disabled = true;
+  if (badge) {
+    badge.className = 'px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center';
+    badge.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i> Verifying SHA-256 Chain...';
+  }
+
+  try {
+    const res = await fetch('/api/admin/audit/verify-chain', { headers: getHeaders() });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    if (json.verification.valid) {
+      if (badge) {
+        badge.className = 'px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center';
+        badge.innerHTML = '<i class="fas fa-shield-check mr-1.5"></i> Chain Verified (100% Intact)';
+      }
+      alert(`🛡️ Cryptographic Integrity Verified!\n\nAll ${json.verification.total_blocks} ledger blocks cryptographically match their SHA-256 ancestor hashes with zero tampering detected.`);
+    } else {
+      if (badge) {
+        badge.className = 'px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center';
+        badge.innerHTML = '<i class="fas fa-exclamation-triangle mr-1.5"></i> Chain Tampered!';
+      }
+      alert(`⚠️ SECURITY ALERT: Cryptographic chain corruption or tampering detected at Block #${json.verification.broken_at_block}:\n${json.verification.error}`);
+    }
+  } catch (err) {
+    alert(`Verification Error: ${err.message}`);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+};
+
+window.openAuditBlockModal = function(blockIndex) {
+  const block = AUDIT_LOGS_CACHE.find(b => b.block_index === blockIndex);
+  if (!block) return;
+
+  const modal = document.getElementById('adminAuditBlockModal');
+  document.getElementById('modalAuditBlockTitle').textContent = `Block #${block.block_index} • SHA-256 Ledger`;
+  document.getElementById('modalAuditBlockHash').textContent = block.block_hash || 'GENESIS';
+  document.getElementById('modalAuditPrevHash').textContent = block.previous_hash || 'None (Genesis Root)';
+  document.getElementById('modalAuditActionText').textContent = block.action;
+  document.getElementById('modalAuditStaffText').textContent = `${block.staff_name || block.staff_id} (${block.staff_role})`;
+  document.getElementById('modalAuditTimeText').textContent = new Date(block.timestamp).toLocaleString();
+
+  const payload = {
+    block_index: block.block_index,
+    timestamp: block.timestamp,
+    operator: {
+      id: block.staff_id,
+      name: block.staff_name,
+      role: block.staff_role
+    },
+    action: block.action,
+    entity: {
+      type: block.entity_type,
+      id: block.entity_id
+    },
+    details: block.details,
+    client: {
+      ip_address: block.ip_address,
+      user_agent: block.user_agent
+    }
+  };
+
+  document.getElementById('modalAuditPayloadPre').textContent = JSON.stringify(payload, null, 2);
+  modal?.classList.remove('hidden');
+};
+
+function initStaffAuditListeners() {
+  // Staff listeners
+  document.getElementById('refreshStaffBtn')?.addEventListener('click', () => fetchStaffMembers());
+  document.getElementById('btnOpenAddStaffModal')?.addEventListener('click', () => openAddStaffModal());
+  document.getElementById('btnCloseAddStaffModal')?.addEventListener('click', () => closeAddStaffModal());
+  document.getElementById('btnCancelAddStaffModal')?.addEventListener('click', () => closeAddStaffModal());
+  document.getElementById('adminAddStaffForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    saveNewStaffMember();
+  });
+
+  document.getElementById('btnCloseEditStaffModal')?.addEventListener('click', () => closeEditStaffModal());
+  document.getElementById('btnCancelEditStaffModal')?.addEventListener('click', () => closeEditStaffModal());
+  document.getElementById('adminEditStaffForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    saveStaffEdit();
+  });
+
+  // Role selector preset helper
+  document.getElementById('staffAddRole')?.addEventListener('change', (e) => {
+    const role = e.target.value;
+    const defaults = {
+      SUPER_ADMIN: ['*'],
+      LOAN_OFFICER: ['loans:view', 'loans:decision', 'loans:disburse', 'audit:read'],
+      COMPLIANCE_OFFICER: ['loans:view', 'fraud:resolve', 'credit:override', 'audit:read', 'audit:verify'],
+      COLLECTIONS_AGENT: ['loans:view', 'dunning:execute', 'audit:read'],
+      FINANCE_DESK: ['loans:view', 'repayments:verify', 'audit:read']
+    };
+    const activePerms = defaults[role] || ['loans:view', 'audit:read'];
+    document.querySelectorAll('input[name="staffAddPerm"]').forEach(cb => {
+      cb.checked = activePerms.includes('*') || activePerms.includes(cb.value);
+    });
+  });
+
+  // Audit listeners
+  document.getElementById('refreshAuditBtn')?.addEventListener('click', () => {
+    const role = document.getElementById('auditRoleFilter')?.value;
+    const action = document.getElementById('auditActionFilter')?.value;
+    const search = document.getElementById('auditSearchInput')?.value.trim();
+    fetchAuditLogs({ role, action, search });
+  });
+
+  document.getElementById('btnVerifyAuditChain')?.addEventListener('click', () => verifyAuditChainIntegrity());
+
+  document.getElementById('auditRoleFilter')?.addEventListener('change', () => {
+    const role = document.getElementById('auditRoleFilter')?.value;
+    const action = document.getElementById('auditActionFilter')?.value;
+    const search = document.getElementById('auditSearchInput')?.value.trim();
+    fetchAuditLogs({ role, action, search });
+  });
+
+  document.getElementById('auditActionFilter')?.addEventListener('change', () => {
+    const role = document.getElementById('auditRoleFilter')?.value;
+    const action = document.getElementById('auditActionFilter')?.value;
+    const search = document.getElementById('auditSearchInput')?.value.trim();
+    fetchAuditLogs({ role, action, search });
+  });
+
+  document.getElementById('auditSearchInput')?.addEventListener('input', (e) => {
+    const search = e.target.value.trim();
+    const role = document.getElementById('auditRoleFilter')?.value;
+    const action = document.getElementById('auditActionFilter')?.value;
+    fetchAuditLogs({ role, action, search });
+  });
+
+  document.getElementById('btnCloseAuditBlockModal')?.addEventListener('click', () => {
+    document.getElementById('adminAuditBlockModal')?.classList.add('hidden');
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initCreditFraudListeners();
+  initStaffAuditListeners();
 });

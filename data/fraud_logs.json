@@ -1,6 +1,96 @@
 {
   "logs": [
     {
+      "id": "fraud_1789754492588_6vabc",
+      "client_id": null,
+      "client_name": "Unknown",
+      "client_phone": "",
+      "action_type": "UNIT_TEST_PING",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+      "fingerprint_hash": "56eccc38290f791ede2a9f8d",
+      "components": {},
+      "fraud_score": 30,
+      "risk_tier": "MODERATE",
+      "status": "CLEARED",
+      "flags": [
+        {
+          "code": "RAPID_VELOCITY_SPIKE",
+          "severity": "MEDIUM",
+          "message": "High velocity warning: 3 attempts detected within 1 hour."
+        }
+      ],
+      "reasons": [
+        "High velocity warning: 3 attempts detected within 1 hour."
+      ],
+      "colliding_accounts": [],
+      "created_at": "2026-09-18T18:01:32.588Z",
+      "resolved_at": "2026-09-18T18:01:32.588Z",
+      "admin_note": null
+    },
+    {
+      "id": "fraud_1789754490652_jkdt2",
+      "client_id": null,
+      "client_name": "Unknown",
+      "client_phone": "",
+      "action_type": "LOAN_REQUEST",
+      "ip_address": "203.0.113.55",
+      "user_agent": "Mozilla/5.0 (iPhone)",
+      "fingerprint_hash": "3fe3511bcf83a4cd67be8527",
+      "components": {},
+      "fraud_score": 90,
+      "risk_tier": "HIGH",
+      "status": "BLOCKED",
+      "flags": [
+        {
+          "code": "CRITICAL_IP_BLACKLISTED",
+          "severity": "HIGH",
+          "message": "Client IP 203.0.113.55 is listed on administrative security blacklist."
+        }
+      ],
+      "reasons": [
+        "Client IP 203.0.113.55 is listed on administrative security blacklist."
+      ],
+      "colliding_accounts": [],
+      "created_at": "2026-09-18T18:01:30.652Z",
+      "resolved_at": null,
+      "admin_note": null
+    },
+    {
+      "id": "fraud_1789754490603_fvxpz",
+      "client_id": null,
+      "client_name": "Unknown",
+      "client_phone": "",
+      "action_type": "BOT_TEST",
+      "ip_address": "10.0.0.1",
+      "user_agent": "Mozilla/5.0 HeadlessChrome/120.0",
+      "fingerprint_hash": "393db84d492a4163d772bb15",
+      "components": {},
+      "fraud_score": 80,
+      "risk_tier": "HIGH",
+      "status": "UNDER_REVIEW",
+      "flags": [
+        {
+          "code": "RAPID_VELOCITY_SPIKE",
+          "severity": "MEDIUM",
+          "message": "High velocity warning: 3 attempts detected within 1 hour."
+        },
+        {
+          "code": "AUTOMATED_BOT_SIGNATURE",
+          "severity": "HIGH",
+          "message": "Headless Chrome or automated bot framework detected in user agent."
+        }
+      ],
+      "reasons": [
+        "High velocity warning: 3 attempts detected within 1 hour.",
+        "Headless Chrome or automated bot framework detected in user agent."
+      ],
+      "colliding_accounts": [],
+      "created_at": "2026-09-18T18:01:30.603Z",
+      "resolved_at": null,
+      "admin_note": null
+    },
+    {
       "id": "fraud_1789753805623_bzntx",
       "client_id": null,
       "client_name": "Unknown",

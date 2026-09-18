@@ -1,0 +1,200 @@
+{
+  "staff": [
+    {
+      "id": "stf_superadmin_01",
+      "username": "superadmin",
+      "display_name": "Executive Managing Director",
+      "email": "director@symloan.best-travel.ltd",
+      "phone": "+8801700000000",
+      "role": "SUPER_ADMIN",
+      "password_hash": "414c84496da5a5e9b71b7a3f0a4c1f8dccaf90ca63ee20cc7b8495bb7eda1a9f",
+      "password_salt": "sep_salt_master_2026",
+      "permissions": [
+        "*"
+      ],
+      "approval_ceiling": 100000,
+      "status": "ACTIVE",
+      "created_at": "2026-09-18T10:00:00.000Z",
+      "last_login_at": "2026-09-18T18:02:28.880Z"
+    },
+    {
+      "id": "stf_loanofficer_01",
+      "username": "officer_karim",
+      "display_name": "Karim Uddin (Underwriting)",
+      "email": "karim@symloan.best-travel.ltd",
+      "phone": "+8801711223344",
+      "role": "LOAN_OFFICER",
+      "password_hash": "e5013e5bb806103d91736df9f15f585ff990e845f9d19e2d56e72e274ecdec00",
+      "password_salt": "sep_salt_master_2026",
+      "permissions": [
+        "loans:read",
+        "loans:view",
+        "loans:review",
+        "loans:approve",
+        "loans:decline",
+        "loans:decision",
+        "loans:disburse",
+        "clients:read",
+        "credit:read",
+        "audit:read"
+      ],
+      "approval_ceiling": 25000,
+      "status": "ACTIVE",
+      "created_at": "2026-09-18T10:30:00.000Z",
+      "last_login_at": "2026-09-18T18:02:29.117Z"
+    },
+    {
+      "id": "stf_compliance_01",
+      "username": "auditor_nusrat",
+      "display_name": "Nusrat Jahan (KYC & Audit)",
+      "email": "nusrat@symloan.best-travel.ltd",
+      "phone": "+8801722334455",
+      "role": "COMPLIANCE_OFFICER",
+      "password_hash": "4dd3cefe94d21f5a1687a48a88a8c219f8c84b1b8124f431da2829367d3c74d4",
+      "password_salt": "sep_salt_master_2026",
+      "permissions": [
+        "kyc:read",
+        "kyc:verify",
+        "kyc:reject",
+        "fraud:read",
+        "fraud:resolve",
+        "credit:read",
+        "credit:override",
+        "audit:read",
+        "audit:verify"
+      ],
+      "approval_ceiling": 0,
+      "status": "ACTIVE",
+      "created_at": "2026-09-18T11:00:00.000Z",
+      "last_login_at": null
+    },
+    {
+      "id": "stf_collections_01",
+      "username": "agent_tareq",
+      "display_name": "Tareq Hasan (Debt Recovery)",
+      "email": "tareq@symloan.best-travel.ltd",
+      "phone": "+8801733445566",
+      "role": "COLLECTIONS_AGENT",
+      "password_hash": "28c09e7a6d7ce357ff1831e487328bf05904f9bbc3e7b33a9f71e63177836697",
+      "password_salt": "sep_salt_master_2026",
+      "permissions": [
+        "loans:read",
+        "loans:view",
+        "collections:read",
+        "collections:remind",
+        "collections:cycle",
+        "collections:strikes",
+        "dunning:execute",
+        "blacklist:view",
+        "audit:read"
+      ],
+      "approval_ceiling": 0,
+      "status": "ACTIVE",
+      "created_at": "2026-09-18T11:30:00.000Z",
+      "last_login_at": null
+    },
+    {
+      "id": "stf_finance_01",
+      "username": "cashier_monir",
+      "display_name": "Monirul Islam (Finance Desk)",
+      "email": "monir@symloan.best-travel.ltd",
+      "phone": "+8801744556677",
+      "role": "FINANCE_DESK",
+      "password_hash": "b2705571050eeca25995830fbcb77666bdf4650407035c5995af3a8c36f011bd",
+      "password_salt": "sep_salt_master_2026",
+      "permissions": [
+        "loans:read",
+        "loans:view",
+        "loans:disburse",
+        "repayments:read",
+        "repayments:verify",
+        "repayments:reject",
+        "vouchers:issue",
+        "audit:read"
+      ],
+      "approval_ceiling": 0,
+      "status": "ACTIVE",
+      "created_at": "2026-09-18T12:00:00.000Z",
+      "last_login_at": null
+    }
+  ],
+  "roles_catalog": {
+    "SUPER_ADMIN": {
+      "name": "Super Administrator / Managing Director",
+      "description": "Unrestricted administrative governance across all operations, financial allocations, staff accounts, and security protocols.",
+      "default_permissions": [
+        "*"
+      ],
+      "color": "#ef4444",
+      "badge": "👑"
+    },
+    "LOAN_OFFICER": {
+      "name": "Loan Officer / Credit Underwriter",
+      "description": "Reviews and adjudicates loan applications within pre-configured delegation limits.",
+      "default_permissions": [
+        "loans:read",
+        "loans:view",
+        "loans:review",
+        "loans:approve",
+        "loans:decline",
+        "loans:decision",
+        "loans:disburse",
+        "clients:read",
+        "credit:read",
+        "audit:read"
+      ],
+      "color": "#3b82f6",
+      "badge": "📋"
+    },
+    "COMPLIANCE_OFFICER": {
+      "name": "Compliance & KYC Auditor",
+      "description": "Reviews customer identities, NID documents, biometric selfies, email OTPs, and anti-fraud forensics.",
+      "default_permissions": [
+        "kyc:read",
+        "kyc:verify",
+        "kyc:reject",
+        "fraud:read",
+        "fraud:resolve",
+        "credit:read",
+        "credit:override",
+        "audit:read",
+        "audit:verify"
+      ],
+      "color": "#10b981",
+      "badge": "🛡️"
+    },
+    "COLLECTIONS_AGENT": {
+      "name": "Debt Collections & Dunning Agent",
+      "description": "Monitors past-due debt ledgers, executes automated and manual SMS/Telegram dunning reminders, and escalates strike warnings.",
+      "default_permissions": [
+        "loans:read",
+        "loans:view",
+        "collections:read",
+        "collections:remind",
+        "collections:cycle",
+        "collections:strikes",
+        "dunning:execute",
+        "blacklist:view",
+        "audit:read"
+      ],
+      "color": "#f59e0b",
+      "badge": "⚡"
+    },
+    "FINANCE_DESK": {
+      "name": "Finance Desk & Cashier",
+      "description": "Authorizes payouts (Cash/bKash/Nagad), verifies borrower repayment receipts, and issues cryptographic clearance certificates.",
+      "default_permissions": [
+        "loans:read",
+        "loans:view",
+        "loans:disburse",
+        "repayments:read",
+        "repayments:verify",
+        "repayments:reject",
+        "vouchers:issue",
+        "audit:read"
+      ],
+      "color": "#06b6d4",
+      "badge": "💰"
+    }
+  }
+}

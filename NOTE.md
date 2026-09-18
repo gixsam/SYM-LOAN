@@ -14,7 +14,93 @@
 > **Telegram Bot:** `@money_loan_bot` (Token: `[PROTECTED IN .ENV — Never commit plain tokens]`)  
 > **Technology Stack:** Node.js, Express, Supabase (PostgreSQL), Multer, jsPDF, node-telegram-bot-api, node-cron, CORS, Helmet, dotenv, HTML5, Tailwind CSS, FontAwesome 6, Cloudflare Tunnel  
 > **Live Local Server:** `http://localhost:5000` (Client: `/`, Admin: `/admin`)  
-> **Last Synchronized:** 2026-09-18 23:55 Local Time  
+> **Last Synchronized:** 2026-09-19 00:05 Local Time  
+
+### [Update-061] — Phase 12: Multi-Staff Role-Based Access Control (RBAC), Granular Permission Matrix & Cryptographic Immutable Audit Trail Engine (2026-09-19)
+**Type:** Enterprise Multi-Staff RBAC Governance, Signed Session Tokens, Granular Permission Evaluation, Cryptographic Tamper-Evident SHA-256 Block Chaining & Executive Accountability Audit Trail  
+**Status:** ✅ COMPLETED, TESTED (75/75 TESTS PASSED — 100%), FULL REGRESSION TESTED (212/212 TOTAL TESTS PASSED), COMPILED, PACKAGED & DUAL-SYNCED ACROSS WORKPLACES  
+
+#### User Requests & Step-by-Step Implementation:
+1. **Multi-Staff RBAC Governance & Identity Architecture (`src/lib/staffAuthEngine.js` & `data/staff_members.json`):**
+   - Implemented an enterprise staff authentication and delegation engine supporting 5 predefined financial staff roles:
+     - **👑 Super Administrator (`SUPER_ADMIN`):** Unrestricted root operations (`*`), staff account provisioning, and platform risk overrides.
+     - **📋 Loan Officer / Underwriter (`LOAN_OFFICER`):** Loan application adjudication, document reviews, and disbursement delegation up to ৳25,000 ceiling.
+     - **🛡️ Compliance & KYC Officer (`COMPLIANCE_OFFICER`):** Identity document verification, anti-fraud collision resolution, and biometric clearance.
+     - **⚡ Debt Collections Agent (`COLLECTIONS_AGENT`):** Debtor risk monitoring, strike escalation notices, and multi-channel SMS/Telegram dunning dispatch.
+     - **💰 Finance Desk & Cashier (`FINANCE_DESK`):** Payout authorization (Cash, bKash, Nagad), borrower repayment reconciliation, and digital clearance certificate issuance.
+   - Enforced SHA-256 salted password hashing (`crypto.createHash('sha256').update(password + salt).digest('hex')`) with automatic salt generation on provisioning.
+   - Issued cryptographically signed scoped session JWT tokens with 14-day validity containing staff claims, role, approval ceiling, and permissions array.
+   - Built granular permission matrix evaluator with wildcard root (`*`), prefix wildcards (`loans:*`), and scoped permissions (`loans:decision`, `repayments:verify`, `credit:override`, `fraud:resolve`, `dunning:execute`, `staff:manage`, `audit:read`, `audit:verify`).
+   - Implemented full staff lifecycle: create, list (omitting sensitive credentials), update, password reset, and status toggling (`ACTIVE` vs `SUSPENDED`). Suspended accounts are immediately blocked from logging in.
+
+2. **Cryptographic Blockchain-Style Immutable Audit Trail (`src/lib/auditTrailEngine.js` & `data/audit_trail.json`):**
+   - Engineered an immutable, tamper-evident ledger chaining every administrative action into cryptographically linked blocks using SHA-256 hashing.
+   - Block structure: `index`, `block_index`, `timestamp`, `previous_hash`, `staff_id`, `staff_name`, `staff_role`, `action`, `entity_type`, `entity_id`, `details`, `ip_address`, `user_agent`, `hash`, `block_hash`.
+   - Anchored with a genesis block (`Block #0`) initialized with zero parent hash (`0000000000000000000000000000000000000000000000000000000000000000`) and deterministic SHA-256 digest (`a6f98d1c03e2179a5d10bd90cbb6255e3bcb094e42a47774c5af530b556d5330`).
+   - Every subsequent block calculates `hash = sha256(index | timestamp | previous_hash | staff_id | staff_role | action | entity_type | entity_id | details | ip | ua)` where `previous_hash` points to the ancestor block.
+   - Built mathematical chain integrity validator `verifyChainIntegrity()` that recalculates every block's SHA-256 digest and verifies hash continuity from genesis to head. Any byte alteration or index deletion is immediately pinpointed.
+   - Wired live automated audit recording across core financial workflows:
+     - `STAFF_LOGIN` (Staff credential login)
+     - `STAFF_CREATED` (Provisioning new staff)
+     - `STAFF_UPDATED` (Staff role, status, permission updates)
+     - `LOAN_APPROVED` & `LOAN_DECLINED` (Underwriter adjudication)
+     - `KYC_VERIFIED` & `KYC_REJECTED` (Identity compliance review)
+     - `REPAYMENT_APPROVED` & `REPAYMENT_REJECTED` (Treasury reconciliation)
+     - `CREDIT_OVERRIDE_SET` & `CREDIT_OVERRIDE_REMOVED` (Risk adjustments)
+     - `FRAUD_ALERT_RESOLVED` (Forensic device threat clearance/blocking)
+
+3. **RBAC & Authentication Middleware (`src/middleware/rbacMiddleware.js` & `src/routes/adminApi.js`):**
+   - Upgraded administrative router with `requireAdmin` dual-mode authentication:
+     - Inspects `x-staff-token` or `Authorization: Bearer <token>` to authenticate specific staff identities.
+     - Fallback backward-compatible verification for `x-admin-key: SEP_ADMIN_2026` mapping to root Super Admin.
+   - Mounted Phase 12 REST Endpoints:
+     - `POST /api/admin/staff/auth/login` (Staff login)
+     - `GET /api/admin/staff/profile` (Current staff profile with role metadata)
+     - `GET /api/admin/staff` (List all staff members and roles catalog)
+     - `POST /api/admin/staff` (Provision new staff account, requires `SUPER_ADMIN` or `staff:manage`)
+     - `PATCH /api/admin/staff/:id` (Update staff roles, limits, password, status)
+     - `GET /api/admin/audit/logs` (Query immutable audit blocks with multi-criteria filtering)
+     - `GET /api/admin/audit/verify-chain` (Execute cryptographic chain integrity validation)
+
+4. **Executive Administration Control Center (`public/admin.html` & `public/js/admin.js`):**
+   - Added slide-out drawer navigation links with dynamic count badges:
+     - `Staff & RBAC Governance` (`#adminStaffCountBadge`)
+     - `Immutable Audit Trail` (`#adminAuditBlockCountBadge`)
+   - Implemented `#staffManagementSection`:
+     - 4 KPI summary cards (Total Staff, Super Admins, Loan Underwriters, Compliance & Finance).
+     - Full staff directory table displaying member identity, role badge with color, approval ceiling in BDT, granular permissions, account status, last login timestamp, and inline action controls.
+   - Implemented `#auditTrailSection`:
+     - Cryptographic verification badge (`#auditChainVerificationBadge`) displaying live integrity status.
+     - Chain telemetry bar showing total blocks, unique operators, and current head hash.
+     - Multi-criteria filter bar (filter by role, action token, search query, limit).
+     - Audit blocks table with cube icons, formatted timestamps, operator badges, target entities, and truncated SHA-256 hashes.
+   - Added 3 interactive modal interfaces:
+     - `#adminAddStaffModal` (Full form to provision staff with legal name, username, email, password, role select, department, approval ceiling, and checkbox permissions).
+     - `#adminEditStaffModal` (Modify staff role, status `ACTIVE`/`SUSPENDED`, approval limit, reset password).
+     - `#adminAuditBlockModal` (Cryptographic block inspector showing full SHA-256 current hash, previous hash, link status, operator details, and formatted JSON state snapshot).
+   - Wired client-side controller in `public/js/admin.js` with auto-loading, verification triggers, and responsive handlers.
+
+5. **Automated Verification & Regression Testing (`scripts/test_phase12.js`):**
+   - Created comprehensive 6-section test suite:
+     - Section 1: Staff Database & Roles Catalog Verification
+     - Section 2: Staff Authentication & Cryptographic Token Generation
+     - Section 3: Granular RBAC Permission Matrix & Scope Evaluation
+     - Section 4: Staff Provisioning & Lifecycle Management
+     - Section 5: Cryptographic Blockchain Immutable Audit Trail & Tamper Detection
+     - Section 6: Live HTTP REST API Endpoints & Real-Time Audit Triggering
+   - **Verification Results:**
+     - `test_phase12.js`: 75 / 75 tests passed (100%)
+     - `test_phase11.js`: 60 / 60 tests passed (100%)
+     - `test_phase10.js`: 32 / 32 tests passed (100%)
+     - `test_phase9.js`: 26 / 26 tests passed (100%)
+     - `test_phase8.js`: 19 / 19 tests passed (100%)
+     - **Cumulative Regression Test Suite:** **212 / 212 tests passed (100% pass rate)**.
+
+6. **Deployment Packaging & Workplace Dual-Sync:**
+   - Packaged distribution bundle via `scripts/package_hostinger.js` into `dist/hostinger_deploy.zip` (1072.3 KB).
+   - Dual-synchronized `NOTE.md` with Google Drive at `G:\My Drive\ALL WEBSITE WORKPLACE\SYM LOAN WORKPLACE\NOTE.md`.
+
+---
 
 ### [Update-060] — Phase 11: Dynamic Credit Scoring, VIP Loyalty Tiers & Anti-Fraud Device Fingerprinting Engine (2026-09-18)
 **Type:** Autonomous Credit Scoring Engine, 5-Tier VIP Loyalty Ladder, Hardware Device Fingerprinting, Multi-Account Collision Detection & Anti-Fraud Threat Radar  

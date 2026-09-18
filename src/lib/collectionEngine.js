@@ -21,12 +21,27 @@ const smsService = require('./smsService');
  */
 function getDaysDiffFromToday(dateStr) {
   if (!dateStr) return 0;
+  const targetDateStr = String(dateStr).split('T')[0];
+  const now = new Date();
+  const todayIso = now.toISOString().split('T')[0];
+  const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  if (targetDateStr === todayIso || targetDateStr === todayLocal) {
+    return 0;
+  }
+
+  const parts = targetDateStr.split('-');
+  if (parts.length === 3) {
+    const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const targetDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    const diffMs = targetDate.getTime() - todayDate.getTime();
+    return Math.round(diffMs / (1000 * 60 * 60 * 24));
+  }
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
   const target = new Date(dateStr);
   target.setHours(0, 0, 0, 0);
-
   const diffMs = target.getTime() - today.getTime();
   return Math.round(diffMs / (1000 * 60 * 60 * 24));
 }
