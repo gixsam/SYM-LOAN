@@ -14,11 +14,36 @@
 > **Telegram Bot:** `@money_loan_bot` (Live Token: `8846454332:AAGl0VAri-CNPRcDCAjJvsHOcA00BJo6hhI`)  
 > **Technology Stack:** Node.js, Express, Supabase (PostgreSQL), Multer, jsPDF, node-telegram-bot-api, node-cron, CORS, Helmet, dotenv, HTML5, Tailwind CSS, FontAwesome 6, Cloudflare Tunnel  
 > **Live Local Server:** `http://localhost:5000` (Client: `/`, Admin: `/admin`)  
-> **Last Synchronized:** 2026-09-18 10:48 Local Time  
+> **Last Synchronized:** 2026-09-18 11:18 Local Time  
 
 ---
 
 ## 🚀 Logged System Updates & Changelog
+
+### [Update-043] — Hostinger Production Deployment Resolved (403 Forbidden Fixed) & Production Routing Calibrated (2026-09-18)
+**Type:** Production Deployment, Web Server Architecture, Apache/LiteSpeed Configuration & Dual-Sync  
+**Status:** ✅ RESOLVED & VERIFIED LIVE ON `https://symloan.best-travel.ltd`  
+
+#### Issue Diagnostics & Analysis:
+* **Symptom:** User deployed repository `SYM-LOAN` to Hostinger via `Advanced > GIT` into `public_html`. Visiting `https://symloan.best-travel.ltd/` produced `403 Forbidden - Access to this resource on the server is denied!`.
+* **Root Cause:** Hostinger's LiteSpeed/Apache web server serves the contents of `public_html/`. In our repository, the client HTML files (`index.html`, `admin.html`) were inside the `public/` subdirectory. Because there was no default index file (`index.html`, `index.php`) or `.htaccess` routing rule in the root of `public_html`, the web server blocked access with `403 Forbidden`.
+
+#### Resolution & Execution:
+1. **Engineered `.htaccess` Configuration:**
+   * Configured `DirectoryIndex public/index.html index.html index.php`.
+   * Added `mod_rewrite` rules seamlessly routing root `/` to `public/index.html`, `/admin` to `public/admin.html`, and static asset folders (`/js/`, `/css/`, `/uploads/`).
+   * Enforced security rules denying web access to `.env`, `.git`, `NOTE.md`, and `server.js`.
+2. **Added Root `index.html` Fallback:**
+   * Created root HTML redirector ensuring instant rendering even on restrictive web server configurations.
+3. **Pushed & Auto-Deployed via GitHub:**
+   * Committed changes and pushed to GitHub `main` branch (commit `a0182e6`).
+   * Hostinger's auto-deployment automatically pulled the update into `public_html`.
+4. **Live Verification:**
+   * `https://symloan.best-travel.ltd/` verified: `200 OK` (Loads SYM LOAN client portal).
+   * `https://symloan.best-travel.ltd/admin` verified: `200 OK` (Loads SYM LOAN Admin Panel).
+   * `https://symloan.best-travel.ltd/js/app.js` verified: `200 OK`.
+
+---
 
 ### [Update-042] — Phase 4 Completed: Cash & MFS Disbursement Engine (Option 3), Receipt Vault, PDF Voucher & Google Notes Digitalizer (2026-09-18)
 **Type:** Multi-Channel Disbursement Architecture, MFS Fee Math, Digital Vouchers & Historical Ledger AI  
