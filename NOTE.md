@@ -14,11 +14,33 @@
 > **Telegram Bot:** `@money_loan_bot` (Live Token: `8846454332:AAGl0VAri-CNPRcDCAjJvsHOcA00BJo6hhI`)  
 > **Technology Stack:** Node.js, Express, Supabase (PostgreSQL), Multer, jsPDF, node-telegram-bot-api, node-cron, CORS, Helmet, dotenv, HTML5, Tailwind CSS, FontAwesome 6, Cloudflare Tunnel  
 > **Live Local Server:** `http://localhost:5000` (Client: `/`, Admin: `/admin`)  
-> **Last Synchronized:** 2026-09-18 12:47 Local Time  
+> **Last Synchronized:** 2026-09-18 13:25 Local Time  
 
 ---
 
 ## 🚀 Logged System Updates & Changelog
+
+### [Update-048] — Telegram Bot Access Setting Unblock & BotFather Command Directory Calibration (2026-09-18)
+**Type:** Bot Configuration, Access Security Unblocking, UX Navigation Commands  
+**Status:** ✅ COMPLETED & DUAL-SYNCED ACROSS WORKPLACES  
+
+#### User Request & Objectives:
+1. **Unblock Bot Public Access:**
+   - Disabled `Restrict bot usage` in BotFather's Access section, resolving the *"The owner of this bot has restricted access"* error and opening `@money_loan_bot` to all global clients.
+   - Disabled `Secretary Mode` to keep the loan engine isolated from personal chats.
+2. **Bot Commands Directory Configuration:**
+   - Review and calibrate registered bot commands in BotFather (`/start`, `/status`, `/help`).
+
+#### Architecture & Implementation Details:
+1. **Commands Directory Verification:**
+   - **`/start`**: *"Initialize secure mobile phone verification pipeline"* — Scope: Direct Messages, Group Chats, Group Admins (Ephemeral ON).
+   - **`/status`**: *"Check your loan status and strikes"* — Scope: Direct Messages, Group Chats, Group Admins (Ephemeral recommended ON for privacy).
+   - **`/help`**: *"View instructions and support"* — Scope: Direct Messages, Group Chats, Group Admins (Ephemeral ON).
+2. **End-to-End Readiness:**
+   - Bot is now fully accessible by any Telegram client without restriction warnings.
+   - Interactive commands populate the official Telegram bot menu (`[/] Menu`).
+
+---
 
 ### [Update-047] — Fixed +88 Country Prefix Badge, 11-Digit Input Masking & Telegram BotFather vs Business Settings Diagnostic (2026-09-18)
 **Type:** Frontend Input Sanitization, Country Code Prefix Architecture, Multi-Format Backend Phone Normalization, Telegram Bot Security Configuration  
