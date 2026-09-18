@@ -14,7 +14,73 @@
 > **Telegram Bot:** `@money_loan_bot` (Token: `[PROTECTED IN .ENV — Never commit plain tokens]`)  
 > **Technology Stack:** Node.js, Express, Supabase (PostgreSQL), Multer, jsPDF, node-telegram-bot-api, node-cron, CORS, Helmet, dotenv, HTML5, Tailwind CSS, FontAwesome 6, Cloudflare Tunnel  
 > **Live Local Server:** `http://localhost:5000` (Client: `/`, Admin: `/admin`)  
-> **Last Synchronized:** 2026-09-18 21:20 Local Time  
+> **Last Synchronized:** 2026-09-18 23:55 Local Time  
+
+### [Update-060] — Phase 11: Dynamic Credit Scoring, VIP Loyalty Tiers & Anti-Fraud Device Fingerprinting Engine (2026-09-18)
+**Type:** Autonomous Credit Scoring Engine, 5-Tier VIP Loyalty Ladder, Hardware Device Fingerprinting, Multi-Account Collision Detection & Anti-Fraud Threat Radar  
+**Status:** ✅ COMPLETED, TESTED (60/60 TESTS PASSED — 100%), REGRESSION TESTED (137/137 TOTAL TESTS PASSED), COMPILED, PACKAGED & DUAL-SYNCED ACROSS WORKPLACES  
+
+#### User Requests & Step-by-Step Implementation:
+1. **Dynamic Credit Scoring Engine (`src/lib/creditScoreEngine.js` & `data/credit_scores.json`):**
+   - Engineered an autonomous credit scoring algorithm on a 300 - 850 FICO-style scale with letter grades from **A+ to F**:
+     - **Grade A+ (Elite Borrower, 780 - 850 pts):** Very low risk, max limit ৳100,000.
+     - **Grade A (Prime Borrower, 700 - 779 pts):** Low risk, max limit ৳50,000.
+     - **Grade B (Standard Borrower, 620 - 699 pts):** Moderate risk, max limit ৳25,000.
+     - **Grade C (Fair Risk, 540 - 619 pts):** Elevated risk, max limit ৳10,000.
+     - **Grade D (High Risk, 450 - 539 pts):** High risk subprime, max limit ৳5,000.
+     - **Grade F (Default / Ineligible, < 450 pts):** Critical risk, borrowing locked (৳0 limit).
+   - Multi-dimensional behavioral scoring telemetry:
+     - Baseline starting score: 550.
+     - Repayment Track Record: +35 points per verified on-time repayment (up to +175).
+     - Repayment Volume: +10 points per ৳5,000 settled debt (up to +100).
+     - Delinquency & Strike Penalties: -75 points per active strike, -60 points per active overdue loan.
+     - KYC & Trust Anchors: +50 points for verified Smart NID, +20 points for verified email, +20 points for Telegram chat.
+     - Longevity: +30 points for account age >= 90 days (+15 points for >= 30 days).
+     - Active debt health: +20 points for zero active overdue debt.
+   - Administrative credit score override engine with persistent audit trail (`setAdminOverride`, `removeAdminOverride`).
+2. **VIP Loyalty Tiers & Dynamic Borrowing Ceilings:**
+   - 5-Tier progressive loyalty ladder:
+     - **🥉 Bronze Member:** 0 settled loans | ৳10,000 max ceiling | 10% standard service fee.
+     - **🥈 Silver Member:** 1-2 settled loans | ৳25,000 max ceiling | 1% fee discount (9% effective fee).
+     - **🥇 Gold Member:** 3-5 settled loans | ৳50,000 max ceiling | 2% fee discount (8% effective fee) + Priority queue.
+     - **💎 Platinum Member:** 6-9 settled loans | ৳75,000 max ceiling | 3% fee discount (7% effective fee) + 24hr grace period.
+     - **👑 Diamond VIP:** 10+ settled loans | ৳100,000 max ceiling | 5% fee discount (5% effective fee) + Instant disbursement & concierge.
+3. **Anti-Fraud Intelligence & Device Fingerprinting Engine (`src/lib/fraudDetectionEngine.js` & `data/fraud_logs.json`):**
+   - Telemetry profiling: User-Agent, screen resolution, color depth, timezone offset, language, platform, hardware concurrency cores.
+   - Deterministic 24-character cryptographic device fingerprint hashing (`hashFingerprint`).
+   - Cross-account collision detector: Identifies multiple different client IDs sharing identical hardware fingerprints or public IP addresses (+35 fraud risk per collision).
+   - Application velocity throttle: Flags rapid loan submission bursts (> 2 attempts/hr = +30 risk; > 5 attempts/day = +20 risk).
+   - Anomaly heuristics: Flags headless browsers (Puppeteer, Selenium, PhantomJS, Headless Chrome) (+50 risk) and severe timezone offset mismatches.
+   - Fraud Risk Index (0 - 100) mapped to risk tiers (`LOW`, `MODERATE`, `HIGH`, `CRITICAL`).
+   - Automated status assignment: Logs with fraud score >= 60 placed `UNDER_REVIEW`; blacklisted IPs/fingerprints immediately `BLOCKED`.
+   - Admin Threat Desk: Automated and manual IP/Device blacklisting and whitelisting with dossier inspector.
+4. **Client Portal Dynamic Credit Showcase (`public/index.html` & `public/js/app.js`):**
+   - Interactive `#clientCreditScoreCard` right above the loan application form.
+   - Radial SVG speedometer gauge displaying animated stroke progress ring based on the 300-850 score.
+   - Live letter grade pill, rating title, eligible credit limit, and VIP service fee discount badge.
+   - Progress bar to next VIP tier showing completed percentage and exact number of settled loans required to advance.
+   - Dynamic synchronization: Automatically recalibrates `#amountSlider.max` and `#maxAmountLabel` to the borrower's eligible credit limit ceiling.
+   - Background telemetry collector (`collectAndSendDeviceTelemetry`) registering hardware footprint on page visit and loan submission.
+5. **Admin Credit & Fraud Radar Command Center (`public/admin.html`, `public/js/admin.js`, & `src/routes/adminApi.js`):**
+   - Added `#creditFraudDeskSection` with 4 executive KPI summary cards: Average Portfolio Score, Prime Borrowers Count, Active Fraud Alerts, Blacklisted Entities.
+   - Sub-tab navigation: **`[ 📊 Credit Scoring Roster ]`** vs **`[ 🛡️ Fraud Threat Radar ]`**.
+   - Interactive Credit Scoring Roster table with grade filters (`All`, `Grade A+ / A`, `Grade B`, `Grade C`, `Grade D / F`) and live search.
+   - One-click **`[ Manual Score Override ]`** modal (`#adminScoreOverrideModal`) allowing score delta offsets, fixed grades, or fixed VIP tiers.
+   - Interactive Fraud Threat Radar table with risk filters (`All Alerts`, `Under Review`, `High Risk Threat`, `Blocked`, `Cleared`).
+   - One-click **`[ Inspect Threat Dossier ]`** modal (`#adminFraudDossierModal`) displaying complete digital footprint: IP, fingerprint hash, screen, timezone, detected anomaly flags, and colliding accounts list.
+   - Threat resolution controls: **`[ Mark Safe & Clear ]`** vs **`[ Block & Blacklist ]`**.
+   - Real-time notification badge (`#adminFraudBadge`) alerting administrators to unresolved security threats.
+
+#### Automated Verification & Production Release:
+- Created automated test suite `scripts/test_phase11.js` testing 60 assertions covering scoring formulas, VIP tiers, grade ceilings, admin overrides, fingerprint hashing, bot detection, blacklist management, live APIs, and frontend UI components (**60/60 Passed — 100% Pass Rate**).
+- Verified Phase 10 regression suite `scripts/test_phase10.js` (**32/32 Passed — 100% Pass Rate**).
+- Verified Phase 9 regression suite `scripts/test_phase9.js` (**26/26 Passed — 100% Pass Rate**).
+- Verified Phase 8 regression suite `scripts/test_phase8.js` (**19/19 Passed — 100% Pass Rate**).
+- Grand total: **137 / 137 automated test assertions passing**.
+- Rebuilt Hostinger deployment package `dist/hostinger_deploy.zip` (1045.9 KB).
+- Synchronized `NOTE.md` dual-workplace mirror to `G:\My Drive\ALL WEBSITE WORKPLACE\SYM LOAN WORKPLACE\NOTE.md`.
+
+---
 
 ### [Update-059] — Phase 10: Multi-Channel Automated Debt Collection, Strike Escalator & SMS/Telegram Reminder Engine (2026-09-18)
 **Type:** Automated Debt Recovery Pipeline, Debtor Risk Matrix, Multi-Channel SMS/Telegram Dunning Gateway, Automated Strike Escalator & Interactive Administrative Collection Operations Desk  

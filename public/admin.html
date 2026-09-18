@@ -157,6 +157,11 @@
           <span>Debt Collection & Strikes Desk</span>
           <span id="collectionOverdueDrawerBadge" class="ml-auto px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">0</span>
         </a>
+        <a href="#creditFraudDeskSection" class="drawer-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition">
+          <i class="fas fa-shield-virus text-cyan-400 w-5"></i>
+          <span>Credit & Fraud Desk</span>
+          <span id="adminFraudBadge" class="ml-auto px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">0</span>
+        </a>
         <a href="#historicalLedgerSection" class="drawer-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition">
           <i class="fas fa-sticky-note text-amber-400 w-5"></i>
           <span>Copy and Paste from Google Notes</span>
@@ -511,6 +516,135 @@
             <tbody id="reminderLogsTableBody">
               <tr>
                 <td colspan="7" class="p-4 text-center text-slate-500">No dispatches logged yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── PHASE 11: CREDIT INTELLIGENCE & ANTI-FRAUD THREAT RADAR ───────── -->
+    <div id="creditFraudDeskSection" class="glass-card p-6 space-y-5 border-cyan-500/40 shadow-2xl">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-white/10 pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-black text-base shadow-lg shadow-cyan-500/20">
+            <i class="fas fa-shield-virus"></i>
+          </div>
+          <div>
+            <h2 class="text-base font-extrabold text-white flex items-center">
+              Credit Scoring & Anti-Fraud Threat Radar
+              <span class="ml-2 text-[10px] font-mono bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded border border-cyan-500/40 font-black">PHASE 11</span>
+            </h2>
+            <p class="text-[11px] text-slate-400">Dynamic 300-850 FICO scoring, VIP loyalty progression, and cross-account device fingerprinting</p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <button type="button" id="refreshCreditFraudBtn" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition flex items-center cursor-pointer">
+            <i class="fas fa-sync-alt mr-1.5"></i> Refresh Radar
+          </button>
+        </div>
+      </div>
+
+      <!-- Portfolio Credit KPI Metrics Grid -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="p-3.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
+          <div class="text-[10px] font-extrabold text-cyan-400 uppercase flex items-center">
+            <i class="fas fa-tachometer-alt mr-1"></i> Average Portfolio Score
+          </div>
+          <div class="text-lg sm:text-xl font-mono font-black text-white mt-1" id="kpiAvgCreditScore">550 <span class="text-xs font-normal text-slate-400">/ 850</span></div>
+          <div class="text-[10px] text-slate-400 mt-0.5" id="kpiAvgGradeText">Grade: Fair Risk</div>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+          <div class="text-[10px] font-extrabold text-emerald-400 uppercase flex items-center">
+            <i class="fas fa-award mr-1"></i> Prime Borrowers (A/A+)
+          </div>
+          <div class="text-lg sm:text-xl font-mono font-black text-emerald-300 mt-1" id="kpiPrimeCount">0 <span class="text-xs font-normal text-slate-400">(0%)</span></div>
+          <div class="text-[10px] text-slate-400 mt-0.5">Top-tier low-risk borrowers</div>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
+          <div class="text-[10px] font-extrabold text-amber-400 uppercase flex items-center">
+            <i class="fas fa-crown mr-1"></i> VIP Members
+          </div>
+          <div class="text-lg sm:text-xl font-mono font-black text-amber-300 mt-1" id="kpiVipMembersCount">0 Borrowers</div>
+          <div class="text-[10px] text-slate-400 mt-0.5">Silver, Gold, Plat, Diamond</div>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30">
+          <div class="text-[10px] font-extrabold text-rose-400 uppercase flex items-center">
+            <i class="fas fa-user-secret mr-1"></i> Active Fraud Alerts
+          </div>
+          <div class="text-lg sm:text-xl font-mono font-black text-rose-300 mt-1" id="kpiFraudAlertsCount">0 Pending</div>
+          <div class="text-[10px] text-slate-400 mt-0.5" id="kpiBlacklistCounters">0 blocked devices/IPs</div>
+        </div>
+      </div>
+
+      <!-- Sub-Desk Tabs: Credit Scoring Matrix vs. Anti-Fraud Threat Radar -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-2">
+        <div class="flex items-center space-x-2">
+          <button type="button" id="tabCreditRosterBtn" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center cursor-pointer bg-cyan-500 text-black shadow">
+            <i class="fas fa-users-cog mr-1.5"></i> Credit Roster & VIP Limits
+          </button>
+          <button type="button" id="tabFraudRadarBtn" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center cursor-pointer text-slate-300 hover:text-white bg-white/5 border border-white/10">
+            <i class="fas fa-radar mr-1.5 text-rose-400"></i> Anti-Fraud Threat Radar
+            <span id="tabFraudBadgePill" class="ml-1.5 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">0</span>
+          </button>
+        </div>
+
+        <div class="relative w-full sm:w-60">
+          <i class="fas fa-search absolute left-2.5 top-2.5 text-slate-500 text-xs"></i>
+          <input type="text" id="creditFilterSearch" placeholder="Search name, phone, tier..." class="w-full bg-black/50 border border-white/10 rounded-lg pl-7 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400">
+        </div>
+      </div>
+
+      <!-- Tab Content 1: Credit Roster & Limits Table -->
+      <div id="contentCreditRoster" class="space-y-3">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="border-b border-white/10 text-[11px] font-mono text-slate-400 uppercase bg-[#0d1527]">
+                <th class="py-2.5 px-3">Borrower Profile</th>
+                <th class="py-2.5 px-3">Credit Score & Grade</th>
+                <th class="py-2.5 px-3">VIP Loyalty Tier</th>
+                <th class="py-2.5 px-3">Eligible Limit & Fee</th>
+                <th class="py-2.5 px-3">Settlement History</th>
+                <th class="py-2.5 px-3">Strikes & Risk</th>
+                <th class="py-2.5 px-3 text-right">Administrative Actions</th>
+              </tr>
+            </thead>
+            <tbody id="creditMatrixTableBody">
+              <tr>
+                <td colspan="7" class="p-6 text-center text-slate-500">
+                  <i class="fas fa-spinner fa-spin mr-2"></i> Loading portfolio credit intelligence...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab Content 2: Anti-Fraud Threat Radar Table -->
+      <div id="contentFraudRadar" class="space-y-3 hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="border-b border-white/10 text-[11px] font-mono text-slate-400 uppercase bg-[#0d1527]">
+                <th class="py-2.5 px-3">Timestamp</th>
+                <th class="py-2.5 px-3">Client / IP Address</th>
+                <th class="py-2.5 px-3">Device Fingerprint</th>
+                <th class="py-2.5 px-3">Fraud Risk Index</th>
+                <th class="py-2.5 px-3">Threat Flags & Collisions</th>
+                <th class="py-2.5 px-3">Status</th>
+                <th class="py-2.5 px-3 text-right">Intervention Actions</th>
+              </tr>
+            </thead>
+            <tbody id="fraudAlertsTableBody">
+              <tr>
+                <td colspan="7" class="p-6 text-center text-slate-500">
+                  <i class="fas fa-spinner fa-spin mr-2"></i> Loading anti-fraud telemetry logs...
+                </td>
               </tr>
             </tbody>
           </table>
@@ -2100,6 +2234,158 @@
         </button>
         <button type="button" id="btnConfirmSendReminder" class="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-black text-xs transition flex items-center shadow-lg shadow-rose-900/50 cursor-pointer">
           <i class="fas fa-paper-plane mr-1.5"></i> Dispatch Reminder Now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── MODAL: ADMIN CREDIT SCORE & TIER OVERRIDE ────────────────────────── -->
+  <div id="adminScoreOverrideModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="glass-card max-w-md w-full p-6 space-y-4 border-cyan-500/40 shadow-2xl relative">
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-400">
+            <i class="fas fa-user-shield"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-black text-white uppercase">Credit & VIP Override</h3>
+            <p id="modalCreditClientName" class="text-[11px] font-mono text-cyan-300">Client: —</p>
+          </div>
+        </div>
+        <button type="button" id="btnCloseCreditModal" class="text-slate-400 hover:text-white cursor-pointer">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <input type="hidden" id="modalCreditClientId" value="">
+
+        <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between font-mono">
+          <span class="text-slate-400 text-[10px]">CURRENT RATING:</span>
+          <span id="modalCreditCurrentScoreText" class="font-bold text-white">550 (Grade C) • Bronze</span>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-bold mb-1">Score Manual Offset (+/- Points):</label>
+          <input type="number" id="modalScoreOffsetInput" placeholder="e.g. +50 or -30" class="w-full bg-black/60 border border-white/20 rounded-lg p-2 text-white focus:outline-none focus:border-cyan-400 font-mono">
+          <p class="text-[10px] text-slate-400 mt-0.5">Adds or subtracts points from natural calculated score (FICO 300-850).</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-300 font-bold mb-1">Fixed Letter Grade:</label>
+            <select id="modalFixedGradeSelect" class="w-full bg-black/60 border border-white/20 rounded-lg p-2 text-white focus:outline-none focus:border-cyan-400">
+              <option value="">Auto (Calculate)</option>
+              <option value="A+">A+ (Elite - Max ৳100K)</option>
+              <option value="A">A (Prime - Max ৳50K)</option>
+              <option value="B">B (Standard - Max ৳25K)</option>
+              <option value="C">C (Fair - Max ৳10K)</option>
+              <option value="D">D (High Risk - Max ৳5K)</option>
+              <option value="F">F (Ineligible - ৳0)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-300 font-bold mb-1">Fixed VIP Tier:</label>
+            <select id="modalFixedTierSelect" class="w-full bg-black/60 border border-white/20 rounded-lg p-2 text-white focus:outline-none focus:border-cyan-400">
+              <option value="">Auto (Calculate)</option>
+              <option value="BRONZE">🥉 Bronze (৳10K)</option>
+              <option value="SILVER">🥈 Silver (৳25K, 1% off)</option>
+              <option value="GOLD">🥇 Gold (৳50K, 2% off)</option>
+              <option value="PLATINUM">💎 Platinum (৳75K, 3% off)</option>
+              <option value="DIAMOND">👑 Diamond VIP (৳100K, 5% off)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-bold mb-1">Administrative Note / Justification:</label>
+          <input type="text" id="modalCreditNoteInput" placeholder="e.g. VIP merchant partner or manual risk waiver..." class="w-full bg-black/60 border border-white/20 rounded-lg p-2 text-white focus:outline-none focus:border-cyan-400">
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-3 border-t border-white/10">
+        <button type="button" id="btnRemoveCreditOverride" class="px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-bold text-xs transition cursor-pointer border border-rose-500/30">
+          Reset to Auto
+        </button>
+        <div class="flex items-center space-x-2">
+          <button type="button" id="btnCancelCreditModal" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 font-bold text-xs transition cursor-pointer">
+            Cancel
+          </button>
+          <button type="button" id="btnSaveCreditOverride" class="px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs transition flex items-center shadow-lg shadow-cyan-900/50 cursor-pointer">
+            <i class="fas fa-check mr-1.5"></i> Save Override
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── MODAL: ANTI-FRAUD THREAT DOSSIER & COLLISION INSPECTOR ──────────── -->
+  <div id="adminFraudDossierModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="glass-card max-w-lg w-full p-6 space-y-4 border-rose-500/40 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-rose-500/20 flex items-center justify-center text-rose-400">
+            <i class="fas fa-fingerprint"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-black text-white uppercase">Device & Threat Dossier</h3>
+            <p id="modalFraudLogRef" class="text-[11px] font-mono text-rose-300">Log Ref: —</p>
+          </div>
+        </div>
+        <button type="button" id="btnCloseFraudModal" class="text-slate-400 hover:text-white cursor-pointer">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <input type="hidden" id="modalFraudLogId" value="">
+
+        <div class="p-3 rounded-xl bg-black/50 border border-white/10 flex items-center justify-between">
+          <div>
+            <span class="text-[10px] text-slate-400 uppercase font-bold">Calculated Fraud Index</span>
+            <div id="modalFraudScoreText" class="text-2xl font-mono font-black text-rose-400">85 / 100</div>
+          </div>
+          <span id="modalFraudRiskBadge" class="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">HIGH RISK</span>
+        </div>
+
+        <div class="p-3 rounded-xl bg-black/40 border border-white/5 space-y-2 font-mono text-[11px]">
+          <div class="flex justify-between border-b border-white/5 pb-1">
+            <span class="text-slate-400">Client:</span>
+            <span id="modalFraudClientText" class="text-white font-bold">—</span>
+          </div>
+          <div class="flex justify-between border-b border-white/5 pb-1">
+            <span class="text-slate-400">IP Address:</span>
+            <span id="modalFraudIpText" class="text-amber-400">—</span>
+          </div>
+          <div class="flex justify-between border-b border-white/5 pb-1">
+            <span class="text-slate-400">Fingerprint Hash:</span>
+            <span id="modalFraudHashText" class="text-cyan-400">—</span>
+          </div>
+          <div class="flex justify-between border-b border-white/5 pb-1">
+            <span class="text-slate-400">User Agent:</span>
+            <span id="modalFraudUaText" class="text-slate-300 truncate max-w-[240px]">—</span>
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="block text-slate-300 font-bold">Detected Threat Flags & Multi-Account Collisions:</label>
+          <div id="modalFraudFlagsList" class="space-y-1.5">
+            <!-- Loaded dynamically -->
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-bold mb-1">Administrative Action Note:</label>
+          <input type="text" id="modalFraudAdminNote" placeholder="e.g. Verified by phone call or blocked due to spoofing..." class="w-full bg-black/60 border border-white/20 rounded-lg p-2 text-white focus:outline-none focus:border-rose-400">
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-3 border-t border-white/10">
+        <button type="button" id="btnResolveFraudClear" class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition cursor-pointer flex items-center shadow">
+          <i class="fas fa-check-circle mr-1.5"></i> Clear / Whitelist
+        </button>
+        <button type="button" id="btnResolveFraudBlock" class="px-3.5 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-black text-xs transition cursor-pointer flex items-center shadow-lg shadow-rose-900/50">
+          <i class="fas fa-ban mr-1.5"></i> Blacklist & Block Device
         </button>
       </div>
     </div>

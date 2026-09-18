@@ -34,6 +34,8 @@ const emailService  = require('../lib/emailService');
 const repaymentManager = require('../lib/repaymentManager');
 const smsService     = require('../lib/smsService');
 const collectionEngine = require('../lib/collectionEngine');
+const creditScoreEngine = require('../lib/creditScoreEngine');
+const fraudDetectionEngine = require('../lib/fraudDetectionEngine');
 
 const router = express.Router();
 
@@ -405,7 +407,49 @@ router.post('/loans', async (req, res) => {
     });
   }
 
-  // 3. Strict Boundary Validation against Admin Configured Limits
+  // 3. Anti-Fraud Telemetry & Velocity Engine Check
+  const fraudEval = fraudDetectionEngine.evaluateExpressRequest(req, client, 'LOAN_APPLICATION');
+  if (!isAdmin && (fraudEval.status === 'BLOCKED' || fraudEval.fraud_score >= 85)) {
+    return res.status(403).json({
+      success: false,
+      code: 'FRAUD_ALERT_BLOCKED',
+      message: 'Security Alert: Loan request blocked due to suspicious device or network collision signatures.',
+      fraud: {
+        score: fraudEval.fraud_score,
+        risk_tier: fraudEval.risk_tier,
+        flags: fraudEval.flags
+      }
+    });
+  }
+
+  // 4. Dynamic Credit Score & VIP Tier Limit Check
+  const creditProfile = await creditScoreEngine.getClientCreditProfile(client_id);
+  if (creditProfile && !isAdmin) {
+    if (creditProfile.score < 400 || creditProfile.grade === 'F') {
+      return res.status(403).json({
+        success: false,
+        code: 'CREDIT_SCORE_TOO_LOW',
+        message: `Your credit rating (${creditProfile.grade} - Score ${creditProfile.score}) is currently ineligible for new loan requests. Please settle any overdue balance.`,
+        credit_profile: {
+          score: creditProfile.score,
+          grade: creditProfile.grade,
+          vip_tier: creditProfile.vip_tier.name
+        }
+      });
+    }
+
+    if (parseFloat(amount) > creditProfile.eligible_credit_limit) {
+      return res.status(400).json({
+        success: false,
+        code: 'TIER_LIMIT_EXCEEDED',
+        message: `Requested amount (৳${parseFloat(amount).toLocaleString()}) exceeds your ${creditProfile.vip_tier.name} credit limit of ৳${creditProfile.eligible_credit_limit.toLocaleString()}.`,
+        eligible_limit: creditProfile.eligible_credit_limit,
+        vip_tier: creditProfile.vip_tier.name
+      });
+    }
+  }
+
+  // 5. Strict Boundary Validation against Admin Configured Limits
   const validation = loanSettings.validateLoanRequest(client_id, amount, deadline_date);
   if (!validation.valid) {
     return res.status(400).json({
@@ -416,10 +460,21 @@ router.post('/loans', async (req, res) => {
     });
   }
 
-  // 4. Create Loan Request in Supabase
-  const formattedNote = admin_note
+  // 6. Create Loan Request in Supabase with Telemetry Footprint
+  let formattedNote = admin_note
     ? (isAdmin ? `[Executive Admin Inspection Test]: ${admin_note}` : `[Client Note]: ${admin_note}`)
     : (isAdmin ? `[Executive Admin Inspection Test]` : null);
+
+  const metaFlags = [];
+  if (creditProfile) {
+    metaFlags.push(`[Credit: ${creditProfile.score} (${creditProfile.grade}) | ${creditProfile.vip_tier.name}]`);
+  }
+  if (fraudEval && fraudEval.fraud_score > 25) {
+    metaFlags.push(`[Fraud Risk: ${fraudEval.fraud_score}/100 (${fraudEval.risk_tier})]`);
+  }
+  if (metaFlags.length > 0) {
+    formattedNote = formattedNote ? `${formattedNote} ${metaFlags.join(' ')}` : metaFlags.join(' ');
+  }
 
   const { data, error } = await supabaseAdmin
     .from('money_requests')
@@ -435,12 +490,18 @@ router.post('/loans', async (req, res) => {
 
   if (error) return res.status(500).json({ success: false, message: error.message });
 
-  console.log(`[Loans] 💰 New loan submitted: ৳${amount} for ${client.name} (Due: ${deadline_date})`);
+  console.log(`[Loans] 💰 New loan submitted: ৳${amount} for ${client.name} (Due: ${deadline_date}) | Credit: ${creditProfile?.score || 'N/A'}`);
 
   res.status(201).json({
     success: true,
     message: 'Loan application submitted successfully and is pending administrator review.',
     data,
+    credit_summary: creditProfile ? {
+      score: creditProfile.score,
+      grade: creditProfile.grade,
+      vip_tier: creditProfile.vip_tier.name,
+      fee_discount_percent: creditProfile.vip_tier.fee_discount_percent,
+    } : null,
   });
 });
 
@@ -963,6 +1024,54 @@ router.get('/clients/:id/standing', async (req, res) => {
         due_today_loans: dueTodayLoans,
         active_loans_count: loans ? loans.length : 0,
         recent_reminders: recentReminders,
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─── Phase 11: Dynamic Credit Score & VIP Loyalty Profile ───────────────────
+router.get('/clients/:id/credit-profile', async (req, res) => {
+  try {
+    const clientId = req.params.id;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(clientId)) {
+      return res.status(404).json({
+        success: false,
+        message: 'Client profile not found. Invalid ID format.'
+      });
+    }
+
+    const profile = await creditScoreEngine.getClientCreditProfile(clientId);
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        message: 'Client profile not found.'
+      });
+    }
+
+    res.json({
+      success: true,
+      profile
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/telemetry/device — Browser client registers device fingerprint telemetry
+router.post('/telemetry/device', (req, res) => {
+  try {
+    const result = fraudDetectionEngine.evaluateExpressRequest(req, {}, req.body?.action_type || 'PAGE_VISIT');
+    res.json({
+      success: true,
+      telemetry: {
+        id: result.id,
+        fingerprint_hash: result.fingerprint_hash,
+        fraud_score: result.fraud_score,
+        risk_tier: result.risk_tier,
+        status: result.status
       }
     });
   } catch (err) {

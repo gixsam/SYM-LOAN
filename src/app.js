@@ -108,7 +108,8 @@ app.use('/api', (req, res, next) => {
     req.path === '/config/limits' ||
     req.path.startsWith('/auth/') ||
     req.path === '/bot/webhook' ||
-    req.path === '/app/download-apk'
+    req.path === '/app/download-apk' ||
+    req.path === '/telemetry/device'
   ) {
     return next();
   }

@@ -319,6 +319,86 @@
           </button>
         </div>
 
+        <!-- Phase 11: Dynamic Credit Score & VIP Loyalty Showcase -->
+        <div id="clientCreditScoreCard" class="p-4 rounded-2xl bg-gradient-to-br from-[#0c1529]/95 via-[#0e1f3d]/90 to-[#070d1a]/98 border border-cyan-500/30 text-white space-y-3.5 shadow-xl shadow-cyan-950/30 relative overflow-hidden">
+          <div class="absolute -right-8 -top-8 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+          <!-- Header: Score + VIP Status -->
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <div class="w-8 h-8 rounded-xl bg-cyan-500/20 flex items-center justify-center text-cyan-400 border border-cyan-500/30">
+                <i class="fas fa-chart-line text-sm"></i>
+              </div>
+              <div>
+                <h3 class="text-xs font-black uppercase tracking-wider text-cyan-300">Credit Score & VIP Tier</h3>
+                <span class="text-[10px] font-mono text-slate-400">Autonomous FICO Rating</span>
+              </div>
+            </div>
+            <!-- VIP Tier Badge -->
+            <div id="clientVipTierBadge" class="px-2.5 py-1 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 flex items-center space-x-1.5 shadow">
+              <span id="clientVipTierIcon" class="text-xs">🥉</span>
+              <span id="clientVipTierName" class="text-[11px] font-black uppercase tracking-wide">BRONZE MEMBER</span>
+            </div>
+          </div>
+
+          <!-- Main Metrics Grid: Speedometer Gauge + Tier Benefits -->
+          <div class="grid grid-cols-12 gap-3 items-center bg-black/40 p-3 rounded-xl border border-white/5">
+            <!-- Left: Score Ring & Grade (5 cols) -->
+            <div class="col-span-5 flex flex-col items-center justify-center border-r border-white/10 pr-2">
+              <div class="relative w-20 h-20 flex items-center justify-center">
+                <!-- SVG Radial Ring -->
+                <svg class="w-20 h-20 transform -rotate-90" viewBox="0 0 36 36">
+                  <path class="text-slate-800" stroke-width="3.5" stroke="currentColor" fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                  <path id="clientScoreSvgRing" class="text-amber-400 transition-all duration-1000 ease-out" stroke-dasharray="64, 100" stroke-width="3.5" stroke-linecap="round" stroke="currentColor" fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                </svg>
+                <div class="absolute flex flex-col items-center justify-center text-center">
+                  <span id="clientCreditScoreNum" class="text-lg font-black font-mono text-white leading-none">550</span>
+                  <span class="text-[9px] font-mono text-slate-400">/ 850</span>
+                </div>
+              </div>
+              <div class="mt-1 flex items-center space-x-1">
+                <span id="clientCreditGradePill" class="px-2 py-0.2 rounded text-[10px] font-mono font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">GRADE C</span>
+              </div>
+            </div>
+
+            <!-- Right: Telemetry & Limits (7 cols) -->
+            <div class="col-span-7 space-y-1.5 pl-1 text-xs">
+              <div class="flex items-center justify-between">
+                <span class="text-slate-400 text-[10px]">Rating:</span>
+                <span id="clientRatingTitle" class="font-bold text-amber-400 text-[11px]">Fair Risk</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-400 text-[10px]">Eligible Limit:</span>
+                <span id="clientEligibleLimitText" class="font-mono font-bold text-white text-[11px]">৳10,000</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-400 text-[10px]">Fee Discount:</span>
+                <span id="clientFeeDiscountText" class="font-mono font-bold text-emerald-400 text-[11px]">0% (Standard 10%)</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-400 text-[10px]">Anti-Fraud Seal:</span>
+                <span class="text-emerald-400 text-[10px] font-bold flex items-center">
+                  <i class="fas fa-shield-alt mr-1"></i> Hardware Verified
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Progress towards next VIP Tier -->
+          <div class="space-y-1">
+            <div class="flex justify-between items-center text-[10px]">
+              <span class="text-slate-400" id="clientNextTierLabel">Next Tier: Silver Member (Max ৳25,000)</span>
+              <span id="clientNextTierPercent" class="font-mono font-bold text-cyan-400">0%</span>
+            </div>
+            <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden border border-white/5">
+              <div id="clientNextTierProgressBar" class="bg-gradient-to-r from-cyan-500 to-blue-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <p id="clientNextTierHint" class="text-[9px] text-slate-400 text-right">Settle 1 more loan on time to unlock Silver benefits</p>
+          </div>
+        </div>
+
         <!-- ─── LOAN APPLICATION FORM ────────────────────────────────────────── -->
         <section class="glass-card-gold p-5 relative overflow-hidden">
           <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>

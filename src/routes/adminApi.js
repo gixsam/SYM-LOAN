@@ -25,6 +25,8 @@ const executiveSuiteManager = require('../lib/executiveSuiteManager');
 const repaymentManager = require('../lib/repaymentManager');
 const smsService       = require('../lib/smsService');
 const collectionEngine = require('../lib/collectionEngine');
+const creditScoreEngine = require('../lib/creditScoreEngine');
+const fraudDetectionEngine = require('../lib/fraudDetectionEngine');
 
 const router = express.Router();
 
@@ -314,7 +316,11 @@ router.get('/notifications', requireAdmin, async (req, res) => {
     // 3. Fetch pending repayments
     const pendingRepayments = repaymentManager.getRepayments({ status: 'PENDING_REVIEW' });
 
-    const totalCount = (pendingLoans || []).length + pendingKyc.length + pendingRepayments.length;
+    // 4. Fetch under-review fraud alerts
+    const fraudAlerts = fraudDetectionEngine.getFraudAlerts('UNDER_REVIEW');
+    const pendingFraud = fraudAlerts.items || [];
+
+    const totalCount = (pendingLoans || []).length + pendingKyc.length + pendingRepayments.length + pendingFraud.length;
 
     res.json({
       success: true,
@@ -322,6 +328,7 @@ router.get('/notifications', requireAdmin, async (req, res) => {
       pending_loans: pendingLoans || [],
       pending_kyc: pendingKyc,
       pending_repayments: pendingRepayments,
+      pending_fraud_alerts: pendingFraud,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -1225,6 +1232,113 @@ router.get('/collections/logs', requireAdmin, (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─── Phase 11: Credit Scoring, VIP Loyalty & Anti-Fraud Operations Desk ───────
+
+// GET /api/admin/credit/matrix — Portfolio credit intelligence roster & distribution
+router.get('/credit/matrix', requireAdmin, async (req, res) => {
+  try {
+    const data = await creditScoreEngine.getPortfolioCreditMatrix();
+    res.json({
+      success: true,
+      summary: data.summary,
+      items: data.items,
+      matrix: {
+        ...data.summary,
+        clients: data.items
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/admin/credit/override — Set manual score adjustment, fixed tier or grade
+router.post('/credit/override', requireAdmin, async (req, res) => {
+  try {
+    const { client_id, score_offset, score_delta, fixed_grade, fixed_tier, force_status, admin_note, reason } = req.body;
+    if (!client_id) {
+      return res.status(400).json({ success: false, message: 'client_id is required.' });
+    }
+
+    const effectiveOffset = score_offset !== undefined ? score_offset : score_delta;
+    const effectiveNote = admin_note || reason;
+
+    const override = creditScoreEngine.setAdminOverride(client_id, {
+      score_offset: effectiveOffset,
+      fixed_grade,
+      fixed_tier,
+      force_status,
+      admin_note: effectiveNote
+    });
+
+    const updatedProfile = await creditScoreEngine.getClientCreditProfile(client_id);
+
+    res.json({
+      success: true,
+      message: 'Admin credit override saved successfully.',
+      override,
+      profile: updatedProfile
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/admin/credit/override/:id — Remove manual override
+router.delete('/credit/override/:id', requireAdmin, async (req, res) => {
+  try {
+    const removed = creditScoreEngine.removeAdminOverride(req.params.id);
+    const profile = await creditScoreEngine.getClientCreditProfile(req.params.id);
+    res.json({
+      success: true,
+      removed,
+      message: removed ? 'Override removed. Natural scoring restored.' : 'No active override found.',
+      profile
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/admin/fraud/alerts — Inspect fraud logs and collision alerts
+router.get('/fraud/alerts', requireAdmin, (req, res) => {
+  try {
+    const filter = req.query.filter || 'ALL';
+    const alerts = fraudDetectionEngine.getFraudAlerts(filter);
+    res.json({
+      success: true,
+      summary: alerts.summary,
+      items: alerts.items,
+      alerts: alerts.items,
+      stats: {
+        ...alerts.summary,
+        total_evaluations: alerts.summary.total_logs
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/admin/fraud/resolve — Resolve fraud alert (CLEARED or BLOCKED)
+router.post('/fraud/resolve', requireAdmin, (req, res) => {
+  try {
+    const { log_id, resolution, admin_note } = req.body;
+    if (!log_id || !resolution) {
+      return res.status(400).json({ success: false, message: 'log_id and resolution (CLEARED or BLOCKED) are required.' });
+    }
+
+    const entry = fraudDetectionEngine.resolveAlert(log_id, resolution, admin_note);
+    res.json({
+      success: true,
+      message: `Fraud alert resolved as ${resolution}.`,
+      entry
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
   }
 });
 

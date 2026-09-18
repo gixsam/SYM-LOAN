@@ -1,5 +1,51 @@
 [
   {
+    "id": "rem_1789753811276_9j2wy",
+    "client_id": "cl_demo_test",
+    "client_name": "Client",
+    "client_phone": "",
+    "loan_id": null,
+    "loan_amount": 0,
+    "deadline_date": null,
+    "channel": "SMS",
+    "template_type": "MANUAL_DUNNING",
+    "message_text": "Phase 10 Automated Dunning Test",
+    "trigger": "ADMIN_MANUAL",
+    "status": "FAILED",
+    "results": {
+      "telegram": null,
+      "sms": {
+        "success": false,
+        "status": "NO_PHONE_NUMBER",
+        "note": "Client has no phone number on file."
+      }
+    },
+    "dispatched_at": "2026-09-18T17:50:11.276Z"
+  },
+  {
+    "id": "rem_1789753810559_dk23j",
+    "client_id": "cl_test_001",
+    "client_name": "Al-Amin Hossain",
+    "client_phone": "+8801700112233",
+    "loan_id": "loan_test_001",
+    "loan_amount": 8000,
+    "deadline_date": "2026-09-25",
+    "channel": "SMS",
+    "template_type": "PRE_DUE_3D",
+    "message_text": "⏰ [SYM LOAN Reminder] Dear Al-Amin Hossain, your loan of ৳8,000 is due in 3 days on 2026-09-25. Please prepare repayment via bKash/Nagad/Rocket/Bank to maintain your 5-star credit standing. Portal: https://symloan.best-travel.ltd",
+    "trigger": "AUTOMATED_CRON",
+    "status": "DELIVERED",
+    "results": {
+      "telegram": null,
+      "sms": {
+        "success": true,
+        "status": "SIMULATED_DELIVERED",
+        "note": "SMS simulated successfully. Configure SMS_GATEWAY_URL and SMS_API_KEY in .env for live carrier delivery."
+      }
+    },
+    "dispatched_at": "2026-09-18T17:50:10.559Z"
+  },
+  {
     "id": "rem_1789752993003_3k4r1",
     "client_id": "cl_demo_test",
     "client_name": "Client",

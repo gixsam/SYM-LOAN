@@ -363,6 +363,8 @@ async function loadAllData() {
     await fetchExpenses();
     await fetchCollectionsMatrix();
     await fetchReminderLogs();
+    await fetchCreditMatrix();
+    await fetchFraudAlerts();
     await fetchSuiteNotes();
     await fetchSuiteEvents();
     await fetchSuiteAlarms();
@@ -850,8 +852,9 @@ async function fetchNotifications() {
 
     const notifs = json.notifications || [];
     const repPending = json.pending_repayments || [];
+    const fraudPending = json.pending_fraud_alerts || [];
 
-    // Combine repayments into alerts tray
+    // Combine repayments and fraud alerts into alerts tray
     const allNotifs = [...notifs];
     repPending.forEach(r => {
       allNotifs.push({
@@ -861,6 +864,17 @@ async function fetchNotifications() {
         client_name: r.client_name,
         phone_number: r.client_phone || r.sender_number,
         time_ago: new Date(r.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      });
+    });
+
+    fraudPending.forEach(f => {
+      allNotifs.push({
+        id: 'fraud-' + f.id,
+        type: 'FRAUD',
+        title: `🚨 Fraud Alert (${f.fraud_score}/100 - ${f.risk_tier})`,
+        client_name: f.client_name || 'Anonymous',
+        phone_number: f.ip_address || 'IP Collision',
+        time_ago: new Date(f.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       });
     });
 
@@ -884,6 +898,11 @@ async function fetchNotifications() {
     if (repDrawerBadge) repDrawerBadge.textContent = repPending.length;
     if (repCounterBadge) repCounterBadge.textContent = `${repPending.length} PENDING`;
 
+    const fraudBadgeEl = document.getElementById('adminFraudBadge');
+    const tabFraudBadgePillEl = document.getElementById('tabFraudBadgePill');
+    if (fraudBadgeEl) fraudBadgeEl.textContent = fraudPending.length;
+    if (tabFraudBadgePillEl) tabFraudBadgePillEl.textContent = fraudPending.length;
+
     if (DOM.notificationList) {
       if (allNotifs.length === 0) {
         DOM.notificationList.innerHTML = `
@@ -896,6 +915,7 @@ async function fetchNotifications() {
         DOM.notificationList.innerHTML = allNotifs.map(n => {
           const isKyc = n.type === 'KYC';
           const isRep = n.type === 'REPAYMENT';
+          const isFraud = n.type === 'FRAUD';
           let icon = 'fa-file-invoice-dollar text-emerald-400';
           let targetSection = '#loanInboxSection';
           if (isKyc) {
@@ -904,6 +924,9 @@ async function fetchNotifications() {
           } else if (isRep) {
             icon = 'fa-hand-holding-usd text-emerald-400';
             targetSection = '#repaymentsDeskSection';
+          } else if (isFraud) {
+            icon = 'fa-shield-virus text-rose-400';
+            targetSection = '#creditFraudDeskSection';
           }
 
           return `
@@ -3631,4 +3654,400 @@ function initTermsPolicyModal() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', initAdmin);
+// ─── Phase 11: Credit Intelligence & Anti-Fraud Threat Desk ───────────────────
+let CREDIT_MATRIX_CACHE = null;
+let FRAUD_ALERTS_CACHE = [];
+let ACTIVE_FRAUD_FILTER = 'ALL';
+let ACTIVE_CREDIT_OVERRIDE_CLIENT = null;
+let ACTIVE_FRAUD_DOSSIER_LOG = null;
+
+async function fetchCreditMatrix() {
+  try {
+    const res = await fetch('/api/admin/credit/matrix', { headers: getHeaders() });
+    if (!res.ok) return;
+    const json = await res.json();
+    if (!json.success || !json.items) return;
+
+    CREDIT_MATRIX_CACHE = json;
+    const s = json.summary || {};
+
+    const avgScoreEl = document.getElementById('kpiAvgCreditScore');
+    const avgGradeEl = document.getElementById('kpiAvgGradeText');
+    const primeCountEl = document.getElementById('kpiPrimeCount');
+    const vipCountEl = document.getElementById('kpiVipMembersCount');
+
+    if (avgScoreEl) avgScoreEl.innerHTML = `${s.average_score || 550} <span class="text-xs font-normal text-slate-400">/ 850</span>`;
+    if (avgGradeEl) {
+      const avgGrade = (s.average_score >= 700 ? 'Prime / Elite' : (s.average_score >= 620 ? 'Standard Good' : (s.average_score >= 540 ? 'Fair Risk' : 'High Risk')));
+      avgGradeEl.textContent = `Portfolio Health: ${avgGrade}`;
+    }
+    if (primeCountEl) primeCountEl.innerHTML = `${s.prime_count || 0} <span class="text-xs font-normal text-slate-400">(${s.prime_percentage || 0}%)</span>`;
+    if (vipCountEl) vipCountEl.textContent = `${s.vip_count || 0} Borrowers`;
+
+    renderCreditMatrix(json.items);
+  } catch (err) {
+    console.error('Failed to fetch credit matrix:', err);
+  }
+}
+
+function renderCreditMatrix(items) {
+  const tbody = document.getElementById('creditMatrixTableBody');
+  if (!tbody) return;
+
+  const searchQuery = (document.getElementById('creditFilterSearch')?.value || '').toLowerCase().trim();
+
+  let filtered = items;
+  if (searchQuery) {
+    filtered = items.filter(i => 
+      (i.client_name || '').toLowerCase().includes(searchQuery) ||
+      (i.client_phone || '').toLowerCase().includes(searchQuery) ||
+      (i.grade || '').toLowerCase().includes(searchQuery) ||
+      (i.vip_tier?.name || '').toLowerCase().includes(searchQuery)
+    );
+  }
+
+  if (!filtered || filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-500">No client credit records match criteria.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(item => {
+    const isOverride = item.telemetry?.has_admin_override;
+    const tier = item.vip_tier || {};
+    const t = item.telemetry || {};
+
+    let gradeBadgeClass = 'bg-slate-700/50 text-slate-300 border-slate-600';
+    if (item.grade === 'A+') gradeBadgeClass = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm shadow-emerald-950';
+    else if (item.grade === 'A') gradeBadgeClass = 'bg-blue-500/20 text-blue-300 border-blue-500/40';
+    else if (item.grade === 'B') gradeBadgeClass = 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40';
+    else if (item.grade === 'C') gradeBadgeClass = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+    else if (item.grade === 'D') gradeBadgeClass = 'bg-orange-500/20 text-orange-300 border-orange-500/40';
+    else if (item.grade === 'F') gradeBadgeClass = 'bg-rose-500/20 text-rose-300 border-rose-500/40';
+
+    return `
+      <tr class="border-b border-white/5 hover:bg-white/[0.02] text-xs transition">
+        <td class="py-3 px-3">
+          <div class="font-bold text-white">${escapeHtml(item.client_name)}</div>
+          <div class="font-mono text-[10px] text-slate-400">${item.client_phone || '—'}</div>
+          <div class="text-[9px] font-mono text-slate-500">#${item.client_id.slice(0, 8)}</div>
+        </td>
+        <td class="py-3 px-3">
+          <div class="flex items-center space-x-2">
+            <span class="font-mono font-black text-sm text-white">${item.score}</span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-black border ${gradeBadgeClass}">
+              ${item.grade}
+            </span>
+          </div>
+          <div class="text-[10px] text-slate-400 mt-0.5">${item.title || ''}</div>
+          ${isOverride ? '<span class="text-[9px] font-bold text-amber-400">[OVERRIDDEN]</span>' : ''}
+        </td>
+        <td class="py-3 px-3">
+          <div class="flex items-center space-x-1.5 font-bold text-white">
+            <span>${tier.badge || '🥉'}</span>
+            <span>${tier.name || 'Bronze Member'}</span>
+          </div>
+          <div class="text-[10px] text-slate-400 mt-0.5">Progress: ${item.next_tier_progress || 0}%</div>
+        </td>
+        <td class="py-3 px-3">
+          <div class="font-mono font-bold text-emerald-400">৳${(item.eligible_credit_limit || 0).toLocaleString()}</div>
+          <div class="text-[10px] text-slate-400">Fee: ${item.effective_service_fee_percent || 10}% (${tier.fee_discount_percent || 0}% off)</div>
+        </td>
+        <td class="py-3 px-3">
+          <div class="font-mono text-white font-bold">${t.verified_repayments_count || 0} Settled</div>
+          <div class="text-[10px] font-mono text-slate-400">৳${(t.total_repaid_amount || 0).toLocaleString()} volume</div>
+        </td>
+        <td class="py-3 px-3">
+          <div class="font-mono font-bold ${t.strikes_count > 0 ? 'text-rose-400' : 'text-slate-400'}">${t.strikes_count || 0} / 3 Strikes</div>
+          <div class="text-[10px] ${t.active_overdue_loans_count > 0 ? 'text-rose-400 font-bold' : 'text-slate-500'}">
+            ${t.active_overdue_loans_count > 0 ? `${t.active_overdue_loans_count} Overdue` : 'Clean Schedule'}
+          </div>
+        </td>
+        <td class="py-3 px-3 text-right">
+          <button onclick="openCreditOverrideModal('${item.client_id}')" class="px-2.5 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-[11px] font-bold transition cursor-pointer">
+            <i class="fas fa-sliders-h mr-1"></i> Override
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function fetchFraudAlerts(filter = ACTIVE_FRAUD_FILTER) {
+  try {
+    const res = await fetch(`/api/admin/fraud/alerts?filter=${encodeURIComponent(filter)}`, { headers: getHeaders() });
+    if (!res.ok) return;
+    const json = await res.json();
+    if (!json.success || !json.items) return;
+
+    FRAUD_ALERTS_CACHE = json.items;
+    const s = json.summary || {};
+
+    const alertsCountEl = document.getElementById('kpiFraudAlertsCount');
+    const blacklistCounterEl = document.getElementById('kpiBlacklistCounters');
+    const badgeEl = document.getElementById('adminFraudBadge');
+    const pillEl = document.getElementById('tabFraudBadgePill');
+
+    if (alertsCountEl) alertsCountEl.textContent = `${s.under_review_count || 0} Pending`;
+    if (blacklistCounterEl) blacklistCounterEl.textContent = `${s.blacklisted_devices_count || 0} blocked devices / ${s.blacklisted_ips_count || 0} IPs`;
+    if (badgeEl) badgeEl.textContent = s.under_review_count || 0;
+    if (pillEl) pillEl.textContent = s.under_review_count || 0;
+
+    renderFraudAlerts(FRAUD_ALERTS_CACHE);
+  } catch (err) {
+    console.error('Failed to fetch fraud alerts:', err);
+  }
+}
+
+function renderFraudAlerts(logs) {
+  const tbody = document.getElementById('fraudAlertsTableBody');
+  if (!tbody) return;
+
+  if (!logs || logs.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-500">No anti-fraud alerts recorded yet.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = logs.map(log => {
+    let riskBadgeClass = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+    if (log.risk_tier === 'HIGH') riskBadgeClass = 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-sm shadow-rose-950 animate-pulse';
+    else if (log.risk_tier === 'MODERATE') riskBadgeClass = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+
+    let statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">UNDER REVIEW</span>`;
+    if (log.status === 'CLEARED') {
+      statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">CLEARED</span>`;
+    } else if (log.status === 'BLOCKED') {
+      statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">BLOCKED</span>`;
+    }
+
+    const flagCount = (log.flags || []).length;
+    const collisionsCount = (log.colliding_accounts || []).length;
+
+    const timeAgo = new Date(log.created_at).toLocaleString([], {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+
+    return `
+      <tr class="border-b border-white/5 hover:bg-white/[0.02] text-xs transition">
+        <td class="py-3 px-3 font-mono text-slate-400">${timeAgo}</td>
+        <td class="py-3 px-3">
+          <div class="font-bold text-white">${escapeHtml(log.client_name || 'Anonymous')}</div>
+          <div class="font-mono text-[10px] text-amber-300">${log.ip_address || '127.0.0.1'}</div>
+        </td>
+        <td class="py-3 px-3 font-mono text-[11px] text-cyan-300">
+          ${log.fingerprint_hash ? log.fingerprint_hash.slice(0, 10) + '...' : '—'}
+        </td>
+        <td class="py-3 px-3">
+          <span class="font-mono font-black text-sm text-white">${log.fraud_score}</span>
+          <span class="ml-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${riskBadgeClass}">${log.risk_tier}</span>
+        </td>
+        <td class="py-3 px-3">
+          <div class="text-[11px] text-slate-300">${flagCount} Threat Flags</div>
+          ${collisionsCount > 0 ? `<div class="text-[10px] font-bold text-rose-400"><i class="fas fa-exclamation-circle mr-1"></i> ${collisionsCount} Account Collisions</div>` : '<div class="text-[10px] text-slate-500">Zero Multi-Account Matches</div>'}
+        </td>
+        <td class="py-3 px-3">${statusBadge}</td>
+        <td class="py-3 px-3 text-right">
+          <button onclick="openFraudDossierModal('${log.id}')" class="px-2.5 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-[11px] font-bold transition cursor-pointer">
+            <i class="fas fa-search mr-1"></i> Inspect
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+window.openCreditOverrideModal = function(clientId) {
+  if (!CREDIT_MATRIX_CACHE) return;
+  const item = CREDIT_MATRIX_CACHE.items.find(i => i.client_id === clientId);
+  if (!item) {
+    alert('Borrower credit profile not found.');
+    return;
+  }
+
+  ACTIVE_CREDIT_OVERRIDE_CLIENT = item;
+
+  document.getElementById('modalCreditClientId').value = clientId;
+  document.getElementById('modalCreditClientName').textContent = `${item.client_name} (${item.client_phone || '—'})`;
+  document.getElementById('modalCreditCurrentScoreText').textContent = `${item.score} (Grade ${item.grade}) • ${item.vip_tier?.name || 'Bronze'}`;
+
+  document.getElementById('modalScoreOffsetInput').value = '';
+  document.getElementById('modalFixedGradeSelect').value = '';
+  document.getElementById('modalFixedTierSelect').value = '';
+  document.getElementById('modalCreditNoteInput').value = '';
+
+  document.getElementById('adminScoreOverrideModal')?.classList.remove('hidden');
+};
+
+window.saveCreditOverride = async function() {
+  if (!ACTIVE_CREDIT_OVERRIDE_CLIENT) return;
+  const clientId = document.getElementById('modalCreditClientId').value;
+  const score_offset = parseInt(document.getElementById('modalScoreOffsetInput').value, 10) || 0;
+  const fixed_grade = document.getElementById('modalFixedGradeSelect').value || null;
+  const fixed_tier = document.getElementById('modalFixedTierSelect').value || null;
+  const admin_note = document.getElementById('modalCreditNoteInput').value.trim() || 'Manual adjustment by administrator';
+
+  try {
+    const res = await fetch('/api/admin/credit/override', {
+      method: 'POST',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: clientId, score_offset, fixed_grade, fixed_tier, admin_note }),
+    });
+
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    alert(`✅ Credit profile overridden successfully for ${ACTIVE_CREDIT_OVERRIDE_CLIENT.client_name}!`);
+    document.getElementById('adminScoreOverrideModal')?.classList.add('hidden');
+    await fetchCreditMatrix();
+  } catch (err) {
+    alert(`Override Error: ${err.message}`);
+  }
+};
+
+window.removeCreditOverride = async function() {
+  if (!ACTIVE_CREDIT_OVERRIDE_CLIENT) return;
+  if (!confirm('Remove manual overrides and restore automatic algorithmic scoring?')) return;
+
+  const clientId = document.getElementById('modalCreditClientId').value;
+  try {
+    const res = await fetch(`/api/admin/credit/override/${clientId}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    alert('✅ Manual override removed. Algorithmic scoring restored.');
+    document.getElementById('adminScoreOverrideModal')?.classList.add('hidden');
+    await fetchCreditMatrix();
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+};
+
+window.openFraudDossierModal = function(logId) {
+  const log = FRAUD_ALERTS_CACHE.find(l => l.id === logId);
+  if (!log) return;
+
+  ACTIVE_FRAUD_DOSSIER_LOG = log;
+
+  document.getElementById('modalFraudLogId').value = log.id;
+  document.getElementById('modalFraudLogRef').textContent = `Log Ref: #${log.id.slice(0, 10)}`;
+  document.getElementById('modalFraudScoreText').textContent = `${log.fraud_score} / 100`;
+
+  const badgeEl = document.getElementById('modalFraudRiskBadge');
+  if (badgeEl) {
+    badgeEl.textContent = `${log.risk_tier} RISK (${log.status})`;
+    badgeEl.className = log.risk_tier === 'HIGH'
+      ? 'px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40'
+      : 'px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40';
+  }
+
+  document.getElementById('modalFraudClientText').textContent = `${log.client_name || 'Anonymous'} (${log.client_phone || '—'})`;
+  document.getElementById('modalFraudIpText').textContent = log.ip_address || '127.0.0.1';
+  document.getElementById('modalFraudHashText').textContent = log.fingerprint_hash || 'N/A';
+  document.getElementById('modalFraudUaText').textContent = log.user_agent || 'N/A';
+
+  const flagsList = document.getElementById('modalFraudFlagsList');
+  if (flagsList) {
+    const allFlags = log.flags || [];
+    if (allFlags.length === 0) {
+      flagsList.innerHTML = `<div class="p-2.5 rounded-lg bg-black/40 text-slate-400 text-xs">No critical threat flags detected. Clean environment.</div>`;
+    } else {
+      flagsList.innerHTML = allFlags.map(f => `
+        <div class="p-2.5 rounded-lg bg-rose-950/40 border border-rose-500/30 text-xs text-rose-200">
+          <div class="font-bold flex items-center"><i class="fas fa-exclamation-triangle mr-1 text-rose-400"></i> ${f.code} (${f.severity})</div>
+          <div class="text-[11px] text-slate-300 mt-0.5">${f.message}</div>
+        </div>
+      `).join('');
+    }
+  }
+
+  document.getElementById('modalFraudAdminNote').value = '';
+  document.getElementById('adminFraudDossierModal')?.classList.remove('hidden');
+};
+
+window.resolveFraudAlert = async function(resolution) {
+  if (!ACTIVE_FRAUD_DOSSIER_LOG) return;
+  const logId = document.getElementById('modalFraudLogId').value;
+  const adminNote = document.getElementById('modalFraudAdminNote').value.trim() || `Intervention resolved as ${resolution}`;
+
+  try {
+    const res = await fetch('/api/admin/fraud/resolve', {
+      method: 'POST',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ log_id: logId, resolution, admin_note: adminNote }),
+    });
+
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    alert(`✅ Fraud log resolved as ${resolution}.`);
+    document.getElementById('adminFraudDossierModal')?.classList.add('hidden');
+    await fetchFraudAlerts();
+  } catch (err) {
+    alert(`Resolution Error: ${err.message}`);
+  }
+};
+
+// Wire Phase 11 Event Listeners
+function initCreditFraudListeners() {
+  document.getElementById('refreshCreditFraudBtn')?.addEventListener('click', () => {
+    fetchCreditMatrix();
+    fetchFraudAlerts();
+  });
+
+  const tabCredit = document.getElementById('tabCreditRosterBtn');
+  const tabFraud = document.getElementById('tabFraudRadarBtn');
+  const contentCredit = document.getElementById('contentCreditRoster');
+  const contentFraud = document.getElementById('contentFraudRadar');
+
+  tabCredit?.addEventListener('click', () => {
+    tabCredit.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center cursor-pointer bg-cyan-500 text-black shadow';
+    tabFraud.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center cursor-pointer text-slate-300 hover:text-white bg-white/5 border border-white/10';
+    contentCredit?.classList.remove('hidden');
+    contentFraud?.classList.add('hidden');
+  });
+
+  tabFraud?.addEventListener('click', () => {
+    tabFraud.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center cursor-pointer bg-rose-500 text-white shadow';
+    tabCredit.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center cursor-pointer text-slate-300 hover:text-white bg-white/5 border border-white/10';
+    contentFraud?.classList.remove('hidden');
+    contentCredit?.classList.add('hidden');
+  });
+
+  document.getElementById('creditFilterSearch')?.addEventListener('input', () => {
+    if (CREDIT_MATRIX_CACHE && CREDIT_MATRIX_CACHE.items) {
+      renderCreditMatrix(CREDIT_MATRIX_CACHE.items);
+    }
+  });
+
+  // Credit Override Modal
+  document.getElementById('btnCloseCreditModal')?.addEventListener('click', () => {
+    document.getElementById('adminScoreOverrideModal')?.classList.add('hidden');
+  });
+  document.getElementById('btnCancelCreditModal')?.addEventListener('click', () => {
+    document.getElementById('adminScoreOverrideModal')?.classList.add('hidden');
+  });
+  document.getElementById('btnSaveCreditOverride')?.addEventListener('click', () => {
+    saveCreditOverride();
+  });
+  document.getElementById('btnRemoveCreditOverride')?.addEventListener('click', () => {
+    removeCreditOverride();
+  });
+
+  // Fraud Dossier Modal
+  document.getElementById('btnCloseFraudModal')?.addEventListener('click', () => {
+    document.getElementById('adminFraudDossierModal')?.classList.add('hidden');
+  });
+  document.getElementById('btnResolveFraudClear')?.addEventListener('click', () => {
+    resolveFraudAlert('CLEARED');
+  });
+  document.getElementById('btnResolveFraudBlock')?.addEventListener('click', () => {
+    resolveFraudAlert('BLOCKED');
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initCreditFraudListeners();
+});

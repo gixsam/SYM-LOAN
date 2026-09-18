@@ -11,6 +11,7 @@ const STATE = {
   kyc: null,
   cameraStream: null,
   activeTab: 'loans',
+  creditProfile: null,
 };
 
 const DOM = {
@@ -196,6 +197,22 @@ const DOM = {
   // Loans list
   loansContainer: document.getElementById('loansContainer'),
   loansCountBadge: document.getElementById('loansCountBadge'),
+
+  // Phase 11: Dynamic Credit Score & VIP Loyalty Showcase
+  clientCreditScoreCard: document.getElementById('clientCreditScoreCard'),
+  clientVipTierBadge: document.getElementById('clientVipTierBadge'),
+  clientVipTierIcon: document.getElementById.bind(document, 'clientVipTierIcon')(),
+  clientVipTierName: document.getElementById('clientVipTierName'),
+  clientScoreSvgRing: document.getElementById('clientScoreSvgRing'),
+  clientCreditScoreNum: document.getElementById('clientCreditScoreNum'),
+  clientCreditGradePill: document.getElementById('clientCreditGradePill'),
+  clientRatingTitle: document.getElementById('clientRatingTitle'),
+  clientEligibleLimitText: document.getElementById('clientEligibleLimitText'),
+  clientFeeDiscountText: document.getElementById('clientFeeDiscountText'),
+  clientNextTierLabel: document.getElementById('clientNextTierLabel'),
+  clientNextTierPercent: document.getElementById('clientNextTierPercent'),
+  clientNextTierProgressBar: document.getElementById('clientNextTierProgressBar'),
+  clientNextTierHint: document.getElementById('clientNextTierHint'),
 };
 
 
@@ -211,6 +228,7 @@ async function initApp() {
   setupPwaServiceWorker();
   initClientLiveClock();
   initTermsPolicyModal();
+  collectAndSendDeviceTelemetry();
 
   // Parse URL query parameters for admin bypass / deep linking
   const urlParams = new URLSearchParams(window.location.search);
@@ -406,6 +424,7 @@ async function lookupClientByPhone(phone) {
     }
     await fetchClientLoans(json.client.id);
     await fetchKycProfile(json.client.id);
+    await fetchClientCreditProfile(json.client.id);
   } catch (err) {
     DOM.phoneError.textContent = err.message;
     DOM.phoneError.classList.remove('hidden');
@@ -426,6 +445,7 @@ async function fetchClientProfile(clientId) {
       else await fetchLimits(clientId);
       await fetchClientLoans(clientId);
       await fetchKycProfile(clientId);
+      await fetchClientCreditProfile(clientId);
       fetchClientNotifications();
     } else {
       const adminKey = sessionStorage.getItem('sep_admin_key') || localStorage.getItem('sep_admin_key');
@@ -601,9 +621,10 @@ function renderClientUI(client) {
     DOM.submitBtn.className = 'btn-gold w-full py-3.5 rounded-xl font-black text-sm tracking-wide shadow-lg uppercase';
   }
 
-  // Check client standing and overdue alerts (Phase 10)
+  // Check client standing and overdue alerts (Phase 10 & 11)
   if (client.id) {
     fetchClientStanding(client.id);
+    fetchClientCreditProfile(client.id);
   }
 }
 
@@ -668,6 +689,164 @@ function renderStandingAndOverdueAlert(standing) {
   }
 }
 
+// ─── Phase 11: Dynamic Credit Score & VIP Loyalty Engine ─────────────────────
+async function fetchClientCreditProfile(clientId) {
+  if (!clientId) return;
+  try {
+    const res = await fetch(`/api/clients/${clientId}/credit-profile`, { headers: getAuthHeaders() });
+    if (!res.ok) return;
+    const json = await res.json();
+    if (json.success && json.profile) {
+      STATE.creditProfile = json.profile;
+      renderCreditScoreCard(json.profile);
+    }
+  } catch (err) {
+    console.warn('Failed to fetch credit profile:', err.message);
+  }
+}
+
+function renderCreditScoreCard(profile) {
+  if (!profile) return;
+  if (DOM.clientCreditScoreCard) {
+    DOM.clientCreditScoreCard.classList.remove('hidden');
+  }
+
+  // 1. Score Number & Radial SVG Gauge Animation
+  if (DOM.clientCreditScoreNum) {
+    DOM.clientCreditScoreNum.textContent = profile.score;
+  }
+  if (DOM.clientScoreSvgRing) {
+    // 300 to 850 scale (range: 550 points)
+    const pct = Math.max(5, Math.min(100, Math.round(((profile.score - 300) / 550) * 100)));
+    DOM.clientScoreSvgRing.setAttribute('stroke-dasharray', `${pct}, 100`);
+    DOM.clientScoreSvgRing.style.color = profile.color || '#f59e0b';
+  }
+
+  // 2. Grade Pill
+  if (DOM.clientCreditGradePill) {
+    DOM.clientCreditGradePill.textContent = `GRADE ${profile.grade}`;
+    DOM.clientCreditGradePill.style.color = profile.color || '#f59e0b';
+    DOM.clientCreditGradePill.style.borderColor = `${profile.color || '#f59e0b'}66`;
+    DOM.clientCreditGradePill.style.backgroundColor = `${profile.color || '#f59e0b'}22`;
+  }
+
+  // 3. Rating Title
+  if (DOM.clientRatingTitle) {
+    DOM.clientRatingTitle.textContent = profile.title || 'Fair Risk';
+    DOM.clientRatingTitle.style.color = profile.color || '#f59e0b';
+  }
+
+  // 4. Eligible Credit Limit
+  if (DOM.clientEligibleLimitText) {
+    const lim = profile.eligible_credit_limit || 0;
+    DOM.clientEligibleLimitText.textContent = `৳${lim.toLocaleString()}`;
+  }
+
+  // 5. Fee Discount
+  if (DOM.clientFeeDiscountText) {
+    const disc = profile.vip_tier?.fee_discount_percent || 0;
+    if (disc > 0) {
+      DOM.clientFeeDiscountText.textContent = `${disc}% Discount (${profile.vip_tier.effective_fee_percent}% Net Fee)`;
+      DOM.clientFeeDiscountText.className = 'font-mono font-bold text-emerald-400 text-[11px]';
+    } else {
+      DOM.clientFeeDiscountText.textContent = '0% (Standard 10%)';
+      DOM.clientFeeDiscountText.className = 'font-mono font-bold text-slate-300 text-[11px]';
+    }
+  }
+
+  // 6. VIP Tier Badge
+  if (DOM.clientVipTierBadge && profile.vip_tier) {
+    DOM.clientVipTierBadge.style.borderColor = `${profile.vip_tier.color || '#d97706'}66`;
+    DOM.clientVipTierBadge.style.backgroundColor = `${profile.vip_tier.color || '#d97706'}22`;
+    DOM.clientVipTierBadge.style.color = profile.vip_tier.color || '#f59e0b';
+  }
+  const vipIconEl = document.getElementById('clientVipTierIcon');
+  if (vipIconEl && profile.vip_tier) {
+    vipIconEl.textContent = profile.vip_tier.badge || '🥉';
+  }
+  if (DOM.clientVipTierName && profile.vip_tier) {
+    DOM.clientVipTierName.textContent = (profile.vip_tier.name || 'BRONZE MEMBER').toUpperCase();
+  }
+
+  // 7. Progress toward next VIP Tier
+  if (profile.vip_tier?.next_tier) {
+    const nextTierName = profile.vip_tier.next_tier;
+    const nextTierLimits = { SILVER: '৳25,000', GOLD: '৳50,000', PLATINUM: '৳75,000', DIAMOND: '৳100,000' };
+    const nextLimit = nextTierLimits[nextTierName] || '৳100,000';
+    if (DOM.clientNextTierLabel) {
+      DOM.clientNextTierLabel.textContent = `Next Tier: ${nextTierName} (Max ${nextLimit})`;
+    }
+    if (DOM.clientNextTierPercent) {
+      DOM.clientNextTierPercent.textContent = `${profile.next_tier_progress || 0}%`;
+    }
+    if (DOM.clientNextTierProgressBar) {
+      DOM.clientNextTierProgressBar.style.width = `${profile.next_tier_progress || 0}%`;
+    }
+    if (DOM.clientNextTierHint) {
+      const count = profile.loans_needed_for_next_tier || 1;
+      DOM.clientNextTierHint.textContent = `Settle ${count} more loan${count > 1 ? 's' : ''} on time to unlock ${nextTierName} benefits`;
+    }
+  } else {
+    if (DOM.clientNextTierLabel) {
+      DOM.clientNextTierLabel.textContent = '🌟 Supreme VIP Tier: Diamond';
+    }
+    if (DOM.clientNextTierPercent) {
+      DOM.clientNextTierPercent.textContent = '100%';
+    }
+    if (DOM.clientNextTierProgressBar) {
+      DOM.clientNextTierProgressBar.style.width = '100%';
+    }
+    if (DOM.clientNextTierHint) {
+      DOM.clientNextTierHint.textContent = 'Highest VIP tier unlocked! Enjoy maximum limits and lowest service fees.';
+    }
+  }
+
+  // 8. Dynamically sync loan slider max ceiling
+  if (profile.eligible_credit_limit > 0 && STATE.limits) {
+    const effectiveCeiling = Math.min(STATE.limits.max_amount, profile.eligible_credit_limit);
+    if (DOM.amountSlider) {
+      DOM.amountSlider.max = effectiveCeiling;
+      if (parseFloat(DOM.amountSlider.value) > effectiveCeiling) {
+        DOM.amountSlider.value = effectiveCeiling;
+        if (DOM.amountInput) DOM.amountInput.value = effectiveCeiling;
+      }
+    }
+    if (DOM.amountInput) {
+      DOM.amountInput.max = effectiveCeiling;
+    }
+    if (DOM.maxAmountLabel) {
+      DOM.maxAmountLabel.textContent = `৳${effectiveCeiling.toLocaleString()}`;
+    }
+  }
+}
+
+// ─── Phase 11: Device Telemetry & Anti-Fraud Fingerprinting ──────────────────
+async function collectAndSendDeviceTelemetry(actionType = 'PAGE_VISIT') {
+  try {
+    const payload = {
+      screen_resolution: `${window.screen?.width || 0}x${window.screen?.height || 0}`,
+      color_depth: window.screen?.colorDepth || 24,
+      timezone: Intl?.DateTimeFormat?.().resolvedOptions()?.timeZone || 'Asia/Dhaka',
+      language: navigator.language || 'en-US',
+      platform: navigator.platform || 'unknown',
+      hardware_concurrency: navigator.hardwareConcurrency || 4,
+      client_id: STATE.client?.id || null,
+      action_type: actionType,
+    };
+
+    fetch('/api/telemetry/device', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify(payload)
+    }).catch(() => {});
+  } catch (e) {
+    // Silently ignore telemetry transmission errors
+  }
+}
+
 // ─── Fetch Client Loans & Repayments ───────────────────────────────────────────
 async function fetchClientLoans(clientId) {
   try {
@@ -694,6 +873,7 @@ async function fetchClientLoans(clientId) {
 
     renderLoans(STATE.loans);
     fetchClientStanding(clientId);
+    fetchClientCreditProfile(clientId);
   } catch (err) {
     console.error('Failed to fetch loans:', err);
   }
@@ -2442,6 +2622,7 @@ function setupEventListeners() {
 
       DOM.loanNote.value = '';
       await fetchClientLoans(STATE.client.id);
+      await fetchClientCreditProfile(STATE.client.id);
 
       setTimeout(() => {
         DOM.formFeedback.classList.add('hidden');
