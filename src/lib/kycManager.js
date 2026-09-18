@@ -254,6 +254,7 @@ function extractNidCredentials(frontFilename, backFilename) {
 
 module.exports = {
   getKycProfile,
+  getProfile: getKycProfile,
   saveKycDraft,
   submitKyc,
   isClientKycVerified,

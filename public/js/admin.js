@@ -13,7 +13,11 @@
  *   - Google Keep "Money 💰" notes digitalizer & historical ledger
  */
 
-let ADMIN_KEY = sessionStorage.getItem('sep_admin_key') || 'SEP_ADMIN_2026';
+let ADMIN_KEY = sessionStorage.getItem('sep_admin_key') || localStorage.getItem('sep_admin_key') || 'SEP_ADMIN_2026';
+if (ADMIN_KEY) {
+  sessionStorage.setItem('sep_admin_key', ADMIN_KEY);
+  localStorage.setItem('sep_admin_key', ADMIN_KEY);
+}
 let CLIENTS_CACHE = [];
 let SETTINGS_CACHE = null;
 let LOANS_CACHE = [];
@@ -1026,6 +1030,7 @@ function setupEvents() {
   DOM.adminKeyInput.addEventListener('change', () => {
     ADMIN_KEY = DOM.adminKeyInput.value.trim();
     sessionStorage.setItem('sep_admin_key', ADMIN_KEY);
+    localStorage.setItem('sep_admin_key', ADMIN_KEY);
     loadAllData();
   });
 
@@ -1413,6 +1418,7 @@ function setupEvents() {
 
         ADMIN_KEY = json.admin_key;
         sessionStorage.setItem('sep_admin_key', ADMIN_KEY);
+        localStorage.setItem('sep_admin_key', ADMIN_KEY);
         if (DOM.adminKeyInput) DOM.adminKeyInput.value = ADMIN_KEY;
         closeLoginModal();
         alert('👑 Master Password Verified! Executive Administrator access granted.');
@@ -1507,6 +1513,7 @@ function setupEvents() {
         clearInterval(telegramOtpTimer);
         ADMIN_KEY = json.admin_key;
         sessionStorage.setItem('sep_admin_key', ADMIN_KEY);
+        localStorage.setItem('sep_admin_key', ADMIN_KEY);
         if (DOM.adminKeyInput) DOM.adminKeyInput.value = ADMIN_KEY;
         closeLoginModal();
         alert('✅ Telegram 2FA Verified! Executive access granted.');
@@ -1601,6 +1608,7 @@ function setupEvents() {
         clearInterval(emailOtpTimer);
         ADMIN_KEY = json.admin_key;
         sessionStorage.setItem('sep_admin_key', ADMIN_KEY);
+        localStorage.setItem('sep_admin_key', ADMIN_KEY);
         if (DOM.adminKeyInput) DOM.adminKeyInput.value = ADMIN_KEY;
         closeLoginModal();
         alert('✅ Email 2FA Verified! Executive access granted.');

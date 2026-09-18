@@ -80,6 +80,139 @@ router.get('/config/branding', (_req, res) => {
   });
 });
 
+// ─── Client Real-Time Notifications ──────────────────────────────────────────
+router.get('/client/notifications', async (req, res) => {
+  try {
+    const clientId = req.query.client_id;
+    const phone = req.query.phone;
+    if (!clientId && !phone) {
+      return res.status(400).json({ success: false, message: 'client_id or phone is required.' });
+    }
+
+    let client = null;
+    if (clientId) {
+      const { data } = await supabaseAdmin.from('client_profiles').select('*').eq('id', clientId).maybeSingle();
+      client = data;
+    } else if (phone) {
+      const { filterList } = buildPhoneSearchFilter(phone);
+      const { data } = await supabaseAdmin.from('client_profiles').select('*').or(filterList).maybeSingle();
+      client = data;
+    }
+
+    if (!client) {
+      return res.json({ success: true, count: 0, unread_count: 0, notifications: [] });
+    }
+
+    const notifications = [];
+
+    // 1. Check KYC Status
+    const kyc = kycManager.getKycProfile ? kycManager.getKycProfile(client.id) : (kycManager.getProfile ? kycManager.getProfile(client.id) : null);
+    const kycStatus = (kyc?.status || kyc?.kyc_status || 'UNSUBMITTED').toUpperCase();
+
+    if (kycStatus === 'VERIFIED') {
+      notifications.push({
+        id: 'kyc-verified',
+        type: 'KYC_APPROVED',
+        title: 'KYC Identity Approved! 🎉',
+        message: 'Your National ID & Biometric Selfie were verified. Loan applications are now fully unlocked!',
+        icon: 'fa-user-check',
+        color: 'text-emerald-400',
+        badge: 'APPROVED',
+        time_ago: 'Active',
+        is_unread: false
+      });
+    } else if (kycStatus === 'REJECTED') {
+      notifications.push({
+        id: 'kyc-rejected',
+        type: 'KYC_REJECTED',
+        title: 'KYC Identity Review Action Required ⚠️',
+        message: kyc.rejection_reason || 'Your KYC submission was rejected by compliance. Please re-upload clearer photos.',
+        icon: 'fa-times-circle',
+        color: 'text-rose-400',
+        badge: 'REJECTED',
+        time_ago: 'Recent',
+        is_unread: true
+      });
+    } else if (kycStatus === 'PENDING') {
+      notifications.push({
+        id: 'kyc-pending',
+        type: 'KYC_PENDING',
+        title: 'KYC Documents Under Review ⏳',
+        message: 'Your National ID documents and biometric selfie are currently being inspected by compliance.',
+        icon: 'fa-hourglass-half',
+        color: 'text-amber-400',
+        badge: 'PENDING',
+        time_ago: 'In Review',
+        is_unread: false
+      });
+    }
+
+    // 2. Check Recent Loan Applications
+    const { data: loans } = await supabaseAdmin
+      .from('money_requests')
+      .select('*')
+      .eq('client_id', client.id)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    if (loans && loans.length > 0) {
+      loans.forEach(loan => {
+        const d = loan.disbursement || {};
+        const method = d.payout_method || 'Cash';
+        const trx = d.trx_id ? ` (TrxID: ${d.trx_id})` : '';
+
+        if (loan.status === 'ACCEPTED') {
+          notifications.push({
+            id: 'loan-' + loan.id,
+            type: 'LOAN_ACCEPTED',
+            title: `Loan Approved & Disbursed: ৳${parseFloat(loan.amount).toLocaleString()} 💰`,
+            message: `Disbursement completed via ${method}${trx}. Deadline: ${loan.deadline_date}.`,
+            icon: 'fa-check-circle',
+            color: 'text-emerald-400',
+            badge: 'DISBURSED',
+            time_ago: loan.created_at ? new Date(loan.created_at).toLocaleDateString() : 'Recent',
+            is_unread: false
+          });
+        } else if (loan.status === 'DECLINED') {
+          notifications.push({
+            id: 'loan-' + loan.id,
+            type: 'LOAN_DECLINED',
+            title: `Loan Application Declined ❌`,
+            message: `Your loan request for ৳${parseFloat(loan.amount).toLocaleString()} was declined.`,
+            icon: 'fa-times-circle',
+            color: 'text-rose-400',
+            badge: 'DECLINED',
+            time_ago: loan.created_at ? new Date(loan.created_at).toLocaleDateString() : 'Recent',
+            is_unread: false
+          });
+        } else if (loan.status === 'PENDING') {
+          notifications.push({
+            id: 'loan-' + loan.id,
+            type: 'LOAN_PENDING',
+            title: `Loan Request Under Review 📝`,
+            message: `Application for ৳${parseFloat(loan.amount).toLocaleString()} is in the executive disbursement queue.`,
+            icon: 'fa-clock',
+            color: 'text-amber-400',
+            badge: 'PENDING',
+            time_ago: loan.created_at ? new Date(loan.created_at).toLocaleDateString() : 'Recent',
+            is_unread: false
+          });
+        }
+      });
+    }
+
+    const unreadCount = notifications.filter(n => n.is_unread).length;
+    res.json({
+      success: true,
+      count: notifications.length,
+      unread_count: unreadCount,
+      notifications
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ─── Client Profiles ──────────────────────────────────────────────────────────
 router.get('/clients', async (req, res) => {
   const { data, error } = await supabaseAdmin

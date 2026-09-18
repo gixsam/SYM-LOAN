@@ -27,7 +27,42 @@ const DOM = {
   drawerNavLoans: document.getElementById('drawerNavLoans'),
   drawerNavKyc: document.getElementById('drawerNavKyc'),
   drawerNavKycDot: document.getElementById('drawerNavKycDot'),
+  drawerNavSettings: document.getElementById('drawerNavSettings'),
+  drawerAdminContainer: document.getElementById('drawerAdminContainer'),
   drawerLogoutBtn: document.getElementById('drawerLogoutBtn'),
+
+  // Executive Admin Banner & Switcher
+  adminExecutiveBanner: document.getElementById('adminExecutiveBanner'),
+  adminClientSwitcherSelect: document.getElementById('adminClientSwitcherSelect'),
+
+  // Real-Time Notification Bell Elements
+  clientNotifBellBtn: document.getElementById('clientNotifBellBtn'),
+  clientNotifDot: document.getElementById('clientNotifDot'),
+  clientNotifBadge: document.getElementById('clientNotifBadge'),
+  clientNotifDropdown: document.getElementById('clientNotifDropdown'),
+  clientNotifCountBadge: document.getElementById('clientNotifCountBadge'),
+  refreshClientNotifsBtn: document.getElementById('refreshClientNotifsBtn'),
+  clientNotificationList: document.getElementById('clientNotificationList'),
+  clientEnablePushBtn: document.getElementById('clientEnablePushBtn'),
+
+  // Client Settings & Preferences Modal Elements
+  clientSettingsModal: document.getElementById('clientSettingsModal'),
+  closeClientSettingsBtn: document.getElementById('closeClientSettingsBtn'),
+  settingsClientKycBadge: document.getElementById('settingsClientKycBadge'),
+  settingsClientName: document.getElementById('settingsClientName'),
+  settingsClientPhone: document.getElementById('settingsClientPhone'),
+  settingsClientEmail: document.getElementById('settingsClientEmail'),
+  togglePushAlertsBtn: document.getElementById('togglePushAlertsBtn'),
+  settingsJumpKycBtn: document.getElementById('settingsJumpKycBtn'),
+  settingsLogoutBtn: document.getElementById('settingsLogoutBtn'),
+
+  // Progressive Contextual Permission & Trust Modal Elements
+  permissionGuidanceModal: document.getElementById('permissionGuidanceModal'),
+  permissionModalIcon: document.getElementById('permissionModalIcon'),
+  permissionModalTitle: document.getElementById('permissionModalTitle'),
+  permissionModalDesc: document.getElementById('permissionModalDesc'),
+  permissionModalDismissBtn: document.getElementById('permissionModalDismissBtn'),
+  permissionModalAllowBtn: document.getElementById('permissionModalAllowBtn'),
 
   // Header Elements
   headerKycBtn: document.getElementById('headerKycBtn'),
@@ -162,24 +197,107 @@ const DOM = {
 };
 
 
+function escapeHtml(str) {
+  if (typeof str !== 'string') return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
 // ─── Initialize Application ──────────────────────────────────────────────────
 async function initApp() {
   loadSavedClient();
   setupEventListeners();
 
-  if (STATE.client) {
-    await fetchClientProfile(STATE.client.id);
-  } else {
-    // Check if phone was passed in URL query
-    const params = new URLSearchParams(window.location.search);
-    const phoneParam = params.get('phone');
-    if (phoneParam) {
-      await lookupClientByPhone(phoneParam);
-    } else {
-      // Default to the first known client or open login prompt
-      openLoginModal();
+  // 1. Check for Active Executive Admin Session
+  const adminKey = sessionStorage.getItem('sep_admin_key') || localStorage.getItem('sep_admin_key');
+  let isAdminSession = false;
+
+  if (adminKey) {
+    try {
+      const chkRes = await fetch('/api/admin/config/limits', {
+        headers: { 'x-admin-key': adminKey }
+      });
+      if (chkRes.ok) {
+        isAdminSession = true;
+        sessionStorage.setItem('sep_admin_key', adminKey);
+        localStorage.setItem('sep_admin_key', adminKey);
+        await initAdminExecutiveMode();
+      }
+    } catch (e) {
+      console.warn('Admin executive check ping error:', e);
     }
   }
+
+  // 2. Normal Client Mode initialization if not admin
+  if (!isAdminSession) {
+    if (STATE.client) {
+      await fetchClientProfile(STATE.client.id);
+    } else {
+      // Check if phone was passed in URL query
+      const params = new URLSearchParams(window.location.search);
+      const phoneParam = params.get('phone');
+      if (phoneParam) {
+        await lookupClientByPhone(phoneParam);
+      } else {
+        // Default to the first known client or open login prompt
+        openLoginModal();
+      }
+    }
+  }
+
+  // 3. Start Notification Poller (every 15s)
+  if (STATE.client) {
+    fetchClientNotifications();
+  }
+  setInterval(() => {
+    if (STATE.client) {
+      fetchClientNotifications();
+    }
+  }, 15000);
+}
+
+// ─── Executive Admin Cross-Panel Mode ─────────────────────────────────────────
+async function initAdminExecutiveMode() {
+  DOM.adminExecutiveBanner?.classList.remove('hidden');
+  DOM.drawerAdminContainer?.classList.remove('hidden');
+
+  try {
+    const res = await fetch('/api/clients');
+    const json = await res.json();
+    if (res.ok && json.success && Array.isArray(json.data) && json.data.length > 0) {
+      const select = DOM.adminClientSwitcherSelect;
+      if (select) {
+        select.innerHTML = '<option value="">👑 Switch Client Profile...</option>';
+        json.data.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.id;
+          opt.textContent = `${c.name || 'Client'} (${c.phone_number || 'No Phone'})`;
+          if (STATE.client && STATE.client.id === c.id) {
+            opt.selected = true;
+          }
+          select.appendChild(opt);
+        });
+      }
+
+      const targetClient = (STATE.client && json.data.some(c => c.id === STATE.client.id))
+        ? STATE.client
+        : json.data[0];
+
+      if (select && targetClient) {
+        select.value = targetClient.id;
+      }
+      await fetchClientProfile(targetClient.id);
+    } else if (STATE.client) {
+      await fetchClientProfile(STATE.client.id);
+    }
+  } catch (err) {
+    console.error('Failed to populate admin client switcher:', err);
+    if (STATE.client) {
+      await fetchClientProfile(STATE.client.id);
+    }
+  }
+
+  // Always keep login modal hidden for Executive Admin
+  closeLoginModal();
 }
 
 // ─── Client Session Management ────────────────────────────────────────────────
@@ -251,8 +369,12 @@ async function fetchClientProfile(clientId) {
       else await fetchLimits(clientId);
       await fetchClientLoans(clientId);
       await fetchKycProfile(clientId);
+      fetchClientNotifications();
     } else {
-      openLoginModal();
+      const adminKey = sessionStorage.getItem('sep_admin_key') || localStorage.getItem('sep_admin_key');
+      if (!adminKey) {
+        openLoginModal();
+      }
     }
   } catch (err) {
     console.error('Failed to fetch client:', err);
@@ -589,6 +711,190 @@ function openClientDrawer() {
 function closeClientDrawer() {
   DOM.clientDrawer?.classList.add('-translate-x-full');
   DOM.clientDrawerBackdrop?.classList.add('hidden');
+}
+
+// ─── Client Settings & Preferences Modal ──────────────────────────────────────
+function openClientSettingsModal() {
+  if (!DOM.clientSettingsModal) return;
+
+  if (DOM.settingsClientName) DOM.settingsClientName.textContent = STATE.client?.name || 'Client';
+  if (DOM.settingsClientPhone) DOM.settingsClientPhone.textContent = STATE.client?.phone_number || '01xxxxxxxxx';
+  if (DOM.settingsClientEmail) DOM.settingsClientEmail.textContent = STATE.kyc?.email || 'Not verified';
+
+  const kycStatus = (STATE.kyc?.kyc_status || STATE.kyc?.status || 'UNSUBMITTED').toUpperCase();
+  if (DOM.settingsClientKycBadge) {
+    DOM.settingsClientKycBadge.textContent = kycStatus;
+    if (kycStatus === 'VERIFIED') {
+      DOM.settingsClientKycBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+    } else if (kycStatus === 'REJECTED') {
+      DOM.settingsClientKycBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30';
+    } else if (kycStatus === 'PENDING') {
+      DOM.settingsClientKycBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30';
+    } else {
+      DOM.settingsClientKycBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-500/20 text-slate-300 border border-slate-500/30';
+    }
+  }
+
+  if (DOM.togglePushAlertsBtn && 'Notification' in window && Notification.permission === 'granted') {
+    DOM.togglePushAlertsBtn.textContent = 'Push Enabled ✓';
+    DOM.togglePushAlertsBtn.className = 'px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold';
+  }
+
+  DOM.clientSettingsModal.classList.remove('hidden');
+}
+
+function closeClientSettingsModal() {
+  DOM.clientSettingsModal?.classList.add('hidden');
+}
+
+// ─── Real-Time Client Notifications ──────────────────────────────────────────
+async function fetchClientNotifications() {
+  if (!STATE.client || !STATE.client.id) return;
+
+  try {
+    const phone = STATE.client.phone_number || '';
+    const res = await fetch(`/api/client/notifications?client_id=${STATE.client.id}&phone=${encodeURIComponent(phone)}`);
+    const json = await res.json();
+    if (!res.ok || !json.success) return;
+
+    const list = DOM.clientNotificationList;
+    const dot = DOM.clientNotifDot;
+    const badge = DOM.clientNotifBadge;
+    const countBadge = DOM.clientNotifCountBadge;
+
+    const unread = json.unread_count || 0;
+    const total = json.count || 0;
+
+    if (unread > 0) {
+      dot?.classList.remove('hidden');
+      if (badge) {
+        badge.textContent = unread > 9 ? '9+' : unread;
+        badge.classList.remove('hidden');
+      }
+      if (countBadge) countBadge.textContent = `${unread} NEW`;
+    } else {
+      dot?.classList.add('hidden');
+      badge?.classList.add('hidden');
+      if (countBadge) countBadge.textContent = `${total} UPDATES`;
+    }
+
+    if (!list) return;
+
+    if (!json.notifications || json.notifications.length === 0) {
+      list.innerHTML = `
+        <div class="py-6 text-center text-slate-500 text-xs">
+          <i class="fas fa-bell-slash text-base mb-1 block opacity-40"></i>
+          No account notifications yet.
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = json.notifications.map(n => {
+      const isUnread = n.is_unread;
+      const borderClass = isUnread ? 'border-l-2 border-amber-400 bg-amber-500/10' : 'bg-black/30';
+      return `
+        <div class="p-2.5 rounded-xl ${borderClass} hover:bg-white/5 transition cursor-pointer space-y-1 client-notif-item" data-type="${n.type}">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <i class="fas ${n.icon} ${n.color} text-xs"></i>
+              <span class="font-bold text-white text-xs">${escapeHtml(n.title)}</span>
+            </div>
+            <span class="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold uppercase ${n.badge === 'APPROVED' || n.badge === 'DISBURSED' ? 'bg-emerald-500/20 text-emerald-300' : (n.badge === 'REJECTED' || n.badge === 'DECLINED' ? 'bg-rose-500/20 text-rose-300' : 'bg-amber-500/20 text-amber-300')}">${escapeHtml(n.badge)}</span>
+          </div>
+          <p class="text-[11px] text-slate-300 pl-4 leading-relaxed">${escapeHtml(n.message)}</p>
+          <div class="text-[9px] text-slate-500 pl-4 font-mono">${escapeHtml(n.time_ago)}</div>
+        </div>
+      `;
+    }).join('');
+
+    // Wire item navigation jumps
+    list.querySelectorAll('.client-notif-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const type = item.getAttribute('data-type');
+        DOM.clientNotifDropdown?.classList.add('hidden');
+        if (type && type.startsWith('KYC')) {
+          switchTab('kyc');
+        } else {
+          switchTab('loans');
+        }
+      });
+    });
+  } catch (err) {
+    console.error('Failed to fetch client notifications:', err);
+  }
+}
+
+// ─── Push Notifications Request ───────────────────────────────────────────────
+function requestPushNotificationPermission() {
+  if (!('Notification' in window)) {
+    alert('Web push notifications are not supported on this browser.');
+    return;
+  }
+  Notification.requestPermission().then((permission) => {
+    if (permission === 'granted') {
+      if (DOM.togglePushAlertsBtn) {
+        DOM.togglePushAlertsBtn.textContent = 'Push Enabled ✓';
+        DOM.togglePushAlertsBtn.className = 'px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold';
+      }
+      if (DOM.clientEnablePushBtn) {
+        DOM.clientEnablePushBtn.innerHTML = '<i class="fas fa-check text-emerald-400 mr-1 text-[10px]"></i> Alerts Enabled';
+      }
+      new Notification('SYM LOAN Alerts Activated', {
+        body: 'You will receive real-time updates on loan disbursements and KYC review status.',
+        icon: '/images/logo.png'
+      });
+    } else {
+      alert('Notification permission was dismissed or denied.');
+    }
+  });
+}
+
+// ─── Progressive Contextual Permission & Trust Manager ───────────────────────
+let pendingPermissionCallback = null;
+
+function requestDevicePermissionGuidance(type, onAllow) {
+  const modal = DOM.permissionGuidanceModal;
+  if (!modal) {
+    if (typeof onAllow === 'function') onAllow();
+    return;
+  }
+
+  const alreadyGranted = localStorage.getItem('sep_perm_' + type) === 'granted';
+  if (alreadyGranted) {
+    if (typeof onAllow === 'function') onAllow();
+    return;
+  }
+
+  const iconEl = DOM.permissionModalIcon;
+  const titleEl = DOM.permissionModalTitle;
+  const descEl = DOM.permissionModalDesc;
+
+  if (type === 'camera') {
+    if (iconEl) iconEl.innerHTML = '<i class="fas fa-camera"></i>';
+    if (titleEl) titleEl.textContent = 'Camera Access Required';
+    if (descEl) descEl.textContent = 'SYM LOAN requires device camera access to take your real-time live biometric photo for KYC verification.';
+  } else if (type === 'storage') {
+    if (iconEl) iconEl.innerHTML = '<i class="fas fa-id-card"></i>';
+    if (titleEl) titleEl.textContent = 'Storage & Photos Access';
+    if (descEl) descEl.textContent = 'SYM LOAN needs access to select and upload your front and back National ID (NID) photos.';
+  } else if (type === 'notifications') {
+    if (iconEl) iconEl.innerHTML = '<i class="fas fa-bell"></i>';
+    if (titleEl) titleEl.textContent = 'Live Notifications Permission';
+    if (descEl) descEl.textContent = 'Receive immediate alerts on your mobile device when your loan application is disbursed or KYC status changes.';
+  } else if (type === 'location') {
+    if (iconEl) iconEl.innerHTML = '<i class="fas fa-map-marker-alt"></i>';
+    if (titleEl) titleEl.textContent = 'Device Integrity & Region Check';
+    if (descEl) descEl.textContent = 'Verify your device integrity and regional compliance for secure fintech transactions within Bangladesh.';
+  }
+
+  pendingPermissionCallback = () => {
+    localStorage.setItem('sep_perm_' + type, 'granted');
+    modal.classList.add('hidden');
+    if (typeof onAllow === 'function') onAllow();
+  };
+
+  modal.classList.remove('hidden');
 }
 
 // ─── Fetch KYC Profile ───────────────────────────────────────────────────────
@@ -1188,9 +1494,73 @@ function setupEventListeners() {
   DOM.drawerProfileCard?.addEventListener('click', () => switchTab('kyc'));
   DOM.drawerNavLoans?.addEventListener('click', () => switchTab('loans'));
   DOM.drawerNavKyc?.addEventListener('click', () => switchTab('kyc'));
+  DOM.drawerNavSettings?.addEventListener('click', () => {
+    closeClientDrawer();
+    openClientSettingsModal();
+  });
   DOM.drawerLogoutBtn?.addEventListener('click', () => {
     closeClientDrawer();
     DOM.logoutBtn.click();
+  });
+
+  // Client Settings Modal Controls
+  DOM.closeClientSettingsBtn?.addEventListener('click', closeClientSettingsModal);
+  DOM.settingsJumpKycBtn?.addEventListener('click', () => {
+    closeClientSettingsModal();
+    switchTab('kyc');
+  });
+  DOM.settingsLogoutBtn?.addEventListener('click', () => {
+    closeClientSettingsModal();
+    DOM.logoutBtn.click();
+  });
+  DOM.togglePushAlertsBtn?.addEventListener('click', requestPushNotificationPermission);
+
+  // Admin Client Switcher Dropdown Listener
+  DOM.adminClientSwitcherSelect?.addEventListener('change', async (e) => {
+    const selectedClientId = e.target.value;
+    if (!selectedClientId) return;
+    await fetchClientProfile(selectedClientId);
+  });
+
+  // Notification Bell Listeners
+  DOM.clientNotifBellBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    DOM.clientNotifDropdown?.classList.toggle('hidden');
+    if (!DOM.clientNotifDropdown?.classList.contains('hidden')) {
+      fetchClientNotifications();
+    }
+  });
+  DOM.refreshClientNotifsBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    fetchClientNotifications();
+  });
+  DOM.clientEnablePushBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    requestPushNotificationPermission();
+  });
+
+  // Global Outside Click to dismiss Notification Dropdown
+  document.addEventListener('click', (e) => {
+    if (DOM.clientNotifDropdown && !DOM.clientNotifDropdown.classList.contains('hidden')) {
+      if (!DOM.clientNotifDropdown.contains(e.target) && !DOM.clientNotifBellBtn?.contains(e.target)) {
+        DOM.clientNotifDropdown.classList.add('hidden');
+      }
+    }
+  });
+
+  // Progressive Permission Guidance Modal Listeners
+  DOM.permissionModalAllowBtn?.addEventListener('click', () => {
+    if (typeof pendingPermissionCallback === 'function') {
+      const cb = pendingPermissionCallback;
+      pendingPermissionCallback = null;
+      cb();
+    } else {
+      DOM.permissionGuidanceModal?.classList.add('hidden');
+    }
+  });
+  DOM.permissionModalDismissBtn?.addEventListener('click', () => {
+    DOM.permissionGuidanceModal?.classList.add('hidden');
+    pendingPermissionCallback = null;
   });
 
   DOM.tabBtnLoans?.addEventListener('click', () => switchTab('loans'));
@@ -1377,9 +1747,29 @@ function setupEventListeners() {
   });
 
   // ─── Smart NID Card File Listeners ───
+  DOM.nidFrontInput?.addEventListener('click', (e) => {
+    const granted = localStorage.getItem('sep_perm_storage') === 'granted';
+    if (!granted) {
+      e.preventDefault();
+      requestDevicePermissionGuidance('storage', () => {
+        DOM.nidFrontInput?.click();
+      });
+    }
+  });
+
   DOM.nidFrontInput?.addEventListener('change', (e) => {
     if (e.target.files && e.target.files[0]) {
       uploadNidSide(e.target.files[0], 'front');
+    }
+  });
+
+  DOM.nidBackInput?.addEventListener('click', (e) => {
+    const granted = localStorage.getItem('sep_perm_storage') === 'granted';
+    if (!granted) {
+      e.preventDefault();
+      requestDevicePermissionGuidance('storage', () => {
+        DOM.nidBackInput?.click();
+      });
     }
   });
 
@@ -1398,7 +1788,9 @@ function setupEventListeners() {
   });
 
   // ─── Live Camera & Selfie Listeners ───
-  DOM.startCameraBtn?.addEventListener('click', startCamera);
+  DOM.startCameraBtn?.addEventListener('click', () => {
+    requestDevicePermissionGuidance('camera', startCamera);
+  });
   DOM.captureSelfieBtn?.addEventListener('click', captureLiveSelfie);
   DOM.kycSelfieFallbackInput?.addEventListener('change', handleFallbackSelfieFile);
 
