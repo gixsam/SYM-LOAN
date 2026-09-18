@@ -92,8 +92,8 @@
         <div class="hidden lg:flex items-center">
           <input type="password" id="adminKeyInput" placeholder="Admin Key" class="bg-black/50 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-amber-400 w-32 font-mono">
         </div>
-        <a href="/" target="_blank" class="hidden sm:flex text-xs font-bold text-slate-400 hover:text-white transition items-center px-2 py-1 rounded hover:bg-white/5">
-          <i class="fas fa-mobile-alt mr-1"></i> Client App
+        <a href="/?admin_mode=true" id="openClientPortalBtn" target="_blank" class="hidden sm:flex text-xs font-bold text-slate-400 hover:text-white transition items-center px-2 py-1 rounded hover:bg-white/5 cursor-pointer" title="Open Client Portal in Admin Inspection Mode">
+          <i class="fas fa-mobile-alt mr-1 text-amber-400"></i> Client App
         </a>
       </div>
     </div>
@@ -154,7 +154,7 @@
       <button id="drawerOpenLoginBtn" class="w-full py-2 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-black text-xs flex items-center justify-center transition shadow cursor-pointer">
         <i class="fas fa-key mr-1.5"></i> Admin Login / 2FA
       </button>
-      <a href="/" target="_blank" class="w-full py-2 px-3 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold flex items-center justify-center transition">
+      <a href="/?admin_mode=true" id="drawerOpenClientPortalBtn" target="_blank" class="w-full py-2 px-3 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold flex items-center justify-center transition cursor-pointer" title="Open Client Portal in Admin Inspection Mode">
         <i class="fas fa-mobile-alt mr-1.5 text-amber-400"></i> Open Client Portal
       </a>
       <div class="pt-2 border-t border-white/5 text-[10px] text-slate-400 space-y-1">

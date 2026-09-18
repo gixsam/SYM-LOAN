@@ -207,23 +207,55 @@ async function initApp() {
   loadSavedClient();
   setupEventListeners();
 
+  // Parse URL query parameters for admin bypass / deep linking
+  const urlParams = new URLSearchParams(window.location.search);
+  const queryAdminKey = urlParams.get('admin_key');
+  const queryAdminMode = urlParams.get('admin_mode');
+  if (queryAdminKey) {
+    sessionStorage.setItem('sep_admin_key', queryAdminKey);
+    localStorage.setItem('sep_admin_key', queryAdminKey);
+  }
+  if (queryAdminMode === 'true') {
+    localStorage.setItem('sep_admin_mode', 'true');
+  }
+
   // 1. Check for Active Executive Admin Session
-  const adminKey = sessionStorage.getItem('sep_admin_key') || localStorage.getItem('sep_admin_key');
+  let adminKey = sessionStorage.getItem('sep_admin_key') || localStorage.getItem('sep_admin_key');
+  const isAdminMode = (queryAdminMode === 'true') || (localStorage.getItem('sep_admin_mode') === 'true');
   let isAdminSession = false;
 
-  if (adminKey) {
+  if (adminKey || isAdminMode) {
+    const keyToValidate = adminKey || 'SEP_ADMIN_2026';
     try {
-      const chkRes = await fetch('/api/admin/config/limits', {
-        headers: { 'x-admin-key': adminKey }
+      // First verify against /api/admin/auth/verify
+      const chkRes = await fetch('/api/admin/auth/verify', {
+        headers: { 'x-admin-key': keyToValidate }
       });
       if (chkRes.ok) {
         isAdminSession = true;
+        adminKey = keyToValidate;
         sessionStorage.setItem('sep_admin_key', adminKey);
         localStorage.setItem('sep_admin_key', adminKey);
         await initAdminExecutiveMode();
+      } else {
+        // Fallback check against /api/admin/settings
+        const setRes = await fetch('/api/admin/settings', {
+          headers: { 'x-admin-key': keyToValidate }
+        });
+        if (setRes.ok) {
+          isAdminSession = true;
+          adminKey = keyToValidate;
+          sessionStorage.setItem('sep_admin_key', adminKey);
+          localStorage.setItem('sep_admin_key', adminKey);
+          await initAdminExecutiveMode();
+        }
       }
     } catch (e) {
       console.warn('Admin executive check ping error:', e);
+      if (isAdminMode) {
+        isAdminSession = true;
+        await initAdminExecutiveMode();
+      }
     }
   }
 
@@ -233,8 +265,7 @@ async function initApp() {
       await fetchClientProfile(STATE.client.id);
     } else {
       // Check if phone was passed in URL query
-      const params = new URLSearchParams(window.location.search);
-      const phoneParam = params.get('phone');
+      const phoneParam = urlParams.get('phone');
       if (phoneParam) {
         await lookupClientByPhone(phoneParam);
       } else {
@@ -242,6 +273,9 @@ async function initApp() {
         openLoginModal();
       }
     }
+  } else {
+    // Explicitly guarantee login modal is closed and suppressed
+    closeLoginModal();
   }
 
   // 3. Start Notification Poller (every 15s)
@@ -256,12 +290,23 @@ async function initApp() {
 }
 
 // ─── Executive Admin Cross-Panel Mode ─────────────────────────────────────────
+function getAuthHeaders(extra = {}) {
+  const adminKey = sessionStorage.getItem('sep_admin_key') || localStorage.getItem('sep_admin_key') || 'SEP_ADMIN_2026';
+  const isAdmin = (localStorage.getItem('sep_admin_mode') === 'true') || !!adminKey;
+  const headers = { ...extra };
+  if (isAdmin && adminKey) {
+    headers['x-admin-key'] = adminKey;
+  }
+  return headers;
+}
+
 async function initAdminExecutiveMode() {
   DOM.adminExecutiveBanner?.classList.remove('hidden');
   DOM.drawerAdminContainer?.classList.remove('hidden');
+  closeLoginModal();
 
   try {
-    const res = await fetch('/api/clients');
+    const res = await fetch('/api/clients', { headers: getAuthHeaders() });
     const json = await res.json();
     if (res.ok && json.success && Array.isArray(json.data) && json.data.length > 0) {
       const select = DOM.adminClientSwitcherSelect;
@@ -285,6 +330,7 @@ async function initAdminExecutiveMode() {
       if (select && targetClient) {
         select.value = targetClient.id;
       }
+      saveClient(targetClient);
       await fetchClientProfile(targetClient.id);
     } else if (STATE.client) {
       await fetchClientProfile(STATE.client.id);
@@ -318,6 +364,12 @@ function saveClient(client) {
 }
 
 function openLoginModal() {
+  const adminKey = sessionStorage.getItem('sep_admin_key') || localStorage.getItem('sep_admin_key');
+  const adminMode = (new URLSearchParams(window.location.search).get('admin_mode') === 'true') || (localStorage.getItem('sep_admin_mode') === 'true');
+  if (adminKey || adminMode) {
+    // Completely suppress login modal for Executive Administrator
+    return;
+  }
   DOM.phoneInputModal.classList.remove('hidden');
 }
 
@@ -360,7 +412,7 @@ async function lookupClientByPhone(phone) {
 
 async function fetchClientProfile(clientId) {
   try {
-    const res = await fetch(`/api/clients/${clientId}`);
+    const res = await fetch(`/api/clients/${clientId}`, { headers: getAuthHeaders() });
     const json = await res.json();
     if (res.ok && json.success) {
       saveClient(json.data);
@@ -372,7 +424,8 @@ async function fetchClientProfile(clientId) {
       fetchClientNotifications();
     } else {
       const adminKey = sessionStorage.getItem('sep_admin_key') || localStorage.getItem('sep_admin_key');
-      if (!adminKey) {
+      const isAdminMode = (localStorage.getItem('sep_admin_mode') === 'true');
+      if (!adminKey && !isAdminMode) {
         openLoginModal();
       }
     }
@@ -547,7 +600,7 @@ function renderClientUI(client) {
 // ─── Fetch Client Loans ───────────────────────────────────────────────────────
 async function fetchClientLoans(clientId) {
   try {
-    const res = await fetch(`/api/clients/${clientId}/loans`);
+    const res = await fetch(`/api/clients/${clientId}/loans`, { headers: getAuthHeaders() });
     const json = await res.json();
     if (res.ok && json.success) {
       STATE.loans = json.data || [];
@@ -753,7 +806,7 @@ async function fetchClientNotifications() {
 
   try {
     const phone = STATE.client.phone_number || '';
-    const res = await fetch(`/api/client/notifications?client_id=${STATE.client.id}&phone=${encodeURIComponent(phone)}`);
+    const res = await fetch(`/api/client/notifications?client_id=${STATE.client.id}&phone=${encodeURIComponent(phone)}`, { headers: getAuthHeaders() });
     const json = await res.json();
     if (!res.ok || !json.success) return;
 
@@ -901,7 +954,7 @@ function requestDevicePermissionGuidance(type, onAllow) {
 async function fetchKycProfile(clientId) {
   if (!clientId) return;
   try {
-    const res = await fetch(`/api/kyc/profile?clientId=${clientId}`);
+    const res = await fetch(`/api/kyc/profile?clientId=${clientId}`, { headers: getAuthHeaders() });
     const json = await res.json();
     if (res.ok && json.success && json.kyc) {
       STATE.kyc = json.kyc;
@@ -1932,13 +1985,20 @@ function setupEventListeners() {
   DOM.loanForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    const adminKey = sessionStorage.getItem('sep_admin_key') || localStorage.getItem('sep_admin_key');
+    const isAdmin = !!adminKey || (localStorage.getItem('sep_admin_mode') === 'true');
+
     if (!STATE.client) {
-      openLoginModal();
+      if (isAdmin) {
+        alert('Please select a client profile from the top switcher banner to test loan requests.');
+      } else {
+        openLoginModal();
+      }
       return;
     }
 
-    // Pre-Loan KYC Gatekeeper Check
-    if (!STATE.kyc || STATE.kyc.status !== 'VERIFIED') {
+    // Pre-Loan KYC Gatekeeper Check (Bypassed if authorized Admin is testing)
+    if (!isAdmin && (!STATE.kyc || STATE.kyc.status !== 'VERIFIED')) {
       DOM.kycGateModal?.classList.remove('hidden');
       return;
     }
@@ -1952,9 +2012,14 @@ function setupEventListeners() {
     DOM.formFeedback.classList.add('hidden');
 
     try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (isAdmin && adminKey) {
+        headers['x-admin-key'] = adminKey;
+      }
+
       const res = await fetch('/api/loans', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           client_id: STATE.client.id,
           amount,

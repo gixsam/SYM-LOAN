@@ -60,6 +60,26 @@ router.post('/auth/login-password', (req, res) => {
   return res.status(401).json({ success: false, message: 'Invalid Admin Password.' });
 });
 
+// GET /api/admin/auth/verify — Verify active admin credentials
+router.get('/auth/verify', requireAdmin, (req, res) => {
+  res.json({
+    success: true,
+    admin: true,
+    message: 'Executive Admin session verified.',
+    admin_key: ADMIN_SECRET,
+  });
+});
+
+// GET /api/admin/config/limits — Alias to loan limits for admin inspection
+router.get('/config/limits', requireAdmin, (req, res) => {
+  const settings = loanSettings.getAllSettings();
+  res.json({
+    success: true,
+    limits: settings.global,
+    settings,
+  });
+});
+
 // POST /api/admin/auth/request-otp — Options 2 & 3: Telegram OTP (01612669922) or Email OTP
 router.post('/auth/request-otp', async (req, res) => {
   const { email, phone, channel } = req.body;

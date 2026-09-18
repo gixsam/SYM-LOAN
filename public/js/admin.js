@@ -1034,6 +1034,19 @@ function setupEvents() {
     loadAllData();
   });
 
+  // Seamless Admin -> Client Portal Navigation Handlers
+  const handleClientPortalNav = (e) => {
+    localStorage.setItem('sep_admin_key', ADMIN_KEY);
+    sessionStorage.setItem('sep_admin_key', ADMIN_KEY);
+    localStorage.setItem('sep_admin_mode', 'true');
+    const targetUrl = `/?admin_mode=true&admin_key=${encodeURIComponent(ADMIN_KEY)}&t=${Date.now()}`;
+    if (e.currentTarget) {
+      e.currentTarget.href = targetUrl;
+    }
+  };
+  document.getElementById('openClientPortalBtn')?.addEventListener('click', handleClientPortalNav);
+  document.getElementById('drawerOpenClientPortalBtn')?.addEventListener('click', handleClientPortalNav);
+
   DOM.refreshLoansBtn.addEventListener('click', () => {
     fetchLoans();
     fetchClients();
