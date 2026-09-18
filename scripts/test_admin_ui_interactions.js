@@ -112,6 +112,25 @@ const document = {
   readyState: 'complete',
   getElementById: (id) => elements[id] || null,
   querySelectorAll: (selector) => {
+    if (selector === '.desk-pane') {
+      return [
+        elements['deskPaneOperations'],
+        elements['deskPaneLedgers'],
+        elements['deskPaneRisk'],
+        elements['deskPaneGovernance'],
+        elements['deskPaneExecutive']
+      ].filter(Boolean);
+    }
+    if (selector === '.desk-pill') {
+      return [
+        elements['deskPillOperations'],
+        elements['deskPillLedgers'],
+        elements['deskPillRisk'],
+        elements['deskPillGovernance'],
+        elements['deskPillExecutive'],
+        elements['deskPillAll']
+      ].filter(Boolean);
+    }
     return [];
   },
   querySelector: () => null,
@@ -280,5 +299,85 @@ if (notifDropdown.classList.has('hidden') === wasHidden) {
 }
 console.log('✅ toggleNotificationDropdown() successfully toggled dropdown visibility!');
 
-console.log('\n🎉 ALL 6/6 UI INTERACTIVE SUITES VERIFIED AND PASSED WITH 100% SUCCESS!');
+// 7. Test Modular Desk Switching
+console.log('\nTesting Modular Desk Switcher:');
+const paneOperations = elements['deskPaneOperations'];
+const paneLedgers = elements['deskPaneLedgers'];
+const paneRisk = elements['deskPaneRisk'];
+const paneGov = elements['deskPaneGovernance'];
+const paneExec = elements['deskPaneExecutive'];
+
+// Switch to Ledgers
+window.switchDesk('ledgers');
+if (paneLedgers.classList.has('hidden') || !paneOperations.classList.has('hidden')) {
+  console.error('❌ switchDesk("ledgers") failed!');
+  process.exit(1);
+}
+console.log('✅ switchDesk("ledgers") successfully activated Ledgers desk!');
+
+// Switch to Risk
+window.switchDesk('risk');
+if (paneRisk.classList.has('hidden') || !paneLedgers.classList.has('hidden')) {
+  console.error('❌ switchDesk("risk") failed!');
+  process.exit(1);
+}
+console.log('✅ switchDesk("risk") successfully activated Risk desk!');
+
+// Switch to Governance
+window.switchDesk('governance');
+if (paneGov.classList.has('hidden') || !paneRisk.classList.has('hidden')) {
+  console.error('❌ switchDesk("governance") failed!');
+  process.exit(1);
+}
+console.log('✅ switchDesk("governance") successfully activated Governance desk!');
+
+// Switch to Executive Suite
+window.switchDesk('executive');
+if (paneExec.classList.has('hidden') || !paneGov.classList.has('hidden')) {
+  console.error('❌ switchDesk("executive") failed!');
+  process.exit(1);
+}
+console.log('✅ switchDesk("executive") successfully activated Executive Suite desk!');
+
+// Switch to View All
+window.switchDesk('all');
+if (paneOperations.classList.has('hidden') || paneLedgers.classList.has('hidden') || paneRisk.classList.has('hidden') || paneGov.classList.has('hidden') || paneExec.classList.has('hidden')) {
+  console.error('❌ switchDesk("all") failed to reveal all panes!');
+  process.exit(1);
+}
+console.log('✅ switchDesk("all") successfully revealed all modular desks!');
+
+// Switch back to Operations
+window.switchDesk('operations');
+if (paneOperations.classList.has('hidden') || !paneLedgers.classList.has('hidden')) {
+  console.error('❌ switchDesk("operations") failed!');
+  process.exit(1);
+}
+console.log('✅ switchDesk("operations") successfully restored Core Operations desk!');
+
+// 8. Test Section Deep Linking with navigateToSection
+console.log('\nTesting navigateToSection:');
+window.navigateToSection('spreadsheetSection');
+if (paneLedgers.classList.has('hidden')) {
+  console.error('❌ navigateToSection("spreadsheetSection") failed to activate Ledgers desk!');
+  process.exit(1);
+}
+console.log('✅ navigateToSection("spreadsheetSection") automatically routed to Ledgers desk!');
+
+window.navigateToSection('auditTrailSection');
+if (paneRisk.classList.has('hidden')) {
+  console.error('❌ navigateToSection("auditTrailSection") failed to activate Risk desk!');
+  process.exit(1);
+}
+console.log('✅ navigateToSection("auditTrailSection") automatically routed to Risk desk!');
+
+window.navigateToSection('loanInboxSection');
+if (paneOperations.classList.has('hidden')) {
+  console.error('❌ navigateToSection("loanInboxSection") failed to activate Operations desk!');
+  process.exit(1);
+}
+console.log('✅ navigateToSection("loanInboxSection") automatically routed to Operations desk!');
+
+console.log('\n🎉 ALL 8/8 UI INTERACTIVE SUITES VERIFIED AND PASSED WITH 100% SUCCESS!');
 process.exit(0);
+

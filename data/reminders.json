@@ -1,5 +1,28 @@
 [
   {
+    "id": "rem_1789758922945_yj3q7",
+    "client_id": "cl_demo_test",
+    "client_name": "Client",
+    "client_phone": "",
+    "loan_id": null,
+    "loan_amount": 0,
+    "deadline_date": null,
+    "channel": "SMS",
+    "template_type": "MANUAL_DUNNING",
+    "message_text": "Phase 10 Automated Dunning Test",
+    "trigger": "ADMIN_MANUAL",
+    "status": "FAILED",
+    "results": {
+      "telegram": null,
+      "sms": {
+        "success": false,
+        "status": "NO_PHONE_NUMBER",
+        "note": "Client has no phone number on file."
+      }
+    },
+    "dispatched_at": "2026-09-18T19:15:22.945Z"
+  },
+  {
     "id": "rem_1789755634029_k06ib",
     "client_id": "cl_demo_test",
     "client_name": "Client",

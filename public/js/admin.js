@@ -975,7 +975,7 @@ async function fetchNotifications() {
                   <div class="text-[10px] text-amber-400/80 font-mono mt-0.5">${n.time_ago || 'Recent'}</div>
                 </div>
               </div>
-              <a href="${targetSection}" onclick="DOM.notificationDropdown?.classList.add('hidden')" class="px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-slate-200 text-[10px] font-bold whitespace-nowrap transition">
+              <a href="${targetSection}" onclick="DOM.notificationDropdown?.classList.add('hidden'); navigateToSection('${targetSection.replace('#', '')}'); return false;" class="px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-slate-200 text-[10px] font-bold whitespace-nowrap transition">
                 Review <i class="fas fa-arrow-right ml-0.5 text-[9px]"></i>
               </a>
             </div>
@@ -4645,6 +4645,157 @@ function initStaffAuditListeners() {
   });
 }
 
+// ─── Executive Modular Desk Switcher Architecture ───────────────────────────
+const SECTION_DESK_MAP = {
+  kpiSection: 'operations',
+  loanInboxSection: 'operations',
+  kycReviewSection: 'operations',
+  repaymentsDeskSection: 'operations',
+  spreadsheetSection: 'ledgers',
+  clientRegistrySection: 'ledgers',
+  historicalLedgerSection: 'ledgers',
+  upcomingRepaymentsSection: 'ledgers',
+  expenseTrackingSection: 'ledgers',
+  debtCollectionSection: 'risk',
+  creditFraudDeskSection: 'risk',
+  auditTrailSection: 'risk',
+  staffManagementSection: 'governance',
+  executiveSuiteSection: 'executive'
+};
+
+const DESK_CONFIGS = {
+  operations: {
+    paneId: 'deskPaneOperations',
+    pillId: 'deskPillOperations',
+    label: 'Operations Desk'
+  },
+  ledgers: {
+    paneId: 'deskPaneLedgers',
+    pillId: 'deskPillLedgers',
+    label: 'Ledgers & Spreadsheets'
+  },
+  risk: {
+    paneId: 'deskPaneRisk',
+    pillId: 'deskPillRisk',
+    label: 'Risk & Compliance'
+  },
+  governance: {
+    paneId: 'deskPaneGovernance',
+    pillId: 'deskPillGovernance',
+    label: 'Staff & Governance'
+  },
+  executive: {
+    paneId: 'deskPaneExecutive',
+    pillId: 'deskPillExecutive',
+    label: 'Executive Suite'
+  },
+  all: {
+    paneId: null,
+    pillId: 'deskPillAll',
+    label: 'All Desks'
+  }
+};
+
+function switchDesk(deskName, targetSectionId = null) {
+  const targetDesk = DESK_CONFIGS[deskName] ? deskName : 'operations';
+
+  // 1. Toggle visibility of all desk panes
+  const allPanes = document.querySelectorAll('.desk-pane');
+  allPanes.forEach(pane => {
+    if (targetDesk === 'all') {
+      pane.classList.remove('hidden');
+    } else {
+      const activePaneId = DESK_CONFIGS[targetDesk].paneId;
+      if (pane.id === activePaneId) {
+        pane.classList.remove('hidden');
+      } else {
+        pane.classList.add('hidden');
+      }
+    }
+  });
+
+  // 2. Update pill buttons active state
+  const allPills = document.querySelectorAll('.desk-pill');
+  allPills.forEach(pill => {
+    pill.classList.remove('active');
+  });
+
+  const activePill = document.getElementById(DESK_CONFIGS[targetDesk]?.pillId);
+  if (activePill) {
+    activePill.classList.add('active');
+  }
+
+  // 3. Update active desk label indicator
+  const labelEl = document.getElementById('activeDeskLabel');
+  if (labelEl) {
+    labelEl.textContent = DESK_CONFIGS[targetDesk]?.label || 'Operations Desk';
+  }
+
+  // 4. Update drawer active badges
+  const drawerOpsBadge = document.getElementById('drawerOpsBadge');
+  if (drawerOpsBadge) {
+    drawerOpsBadge.textContent = targetDesk === 'operations' ? 'Active' : '';
+    if (targetDesk === 'operations') {
+      drawerOpsBadge.classList.remove('hidden');
+    } else {
+      drawerOpsBadge.classList.add('hidden');
+    }
+  }
+
+  // 5. Persist selection
+  try {
+    sessionStorage.setItem('sym_admin_active_desk', targetDesk);
+  } catch (e) {}
+
+  // 6. Smoothly scroll to target section if provided
+  if (targetSectionId) {
+    const cleanId = targetSectionId.replace(/^#/, '');
+    setTimeout(() => {
+      const el = document.getElementById(cleanId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 80);
+  }
+}
+
+function navigateToSection(sectionId) {
+  const cleanId = sectionId.replace(/^#/, '');
+  const desk = SECTION_DESK_MAP[cleanId] || 'operations';
+  switchDesk(desk, cleanId);
+}
+
+// Export globally on window
+window.switchDesk = switchDesk;
+window.navigateToSection = navigateToSection;
+
+function initDeskSwitcher() {
+  // Bind click handlers to pill buttons
+  document.getElementById('deskPillOperations')?.addEventListener('click', () => switchDesk('operations'));
+  document.getElementById('deskPillLedgers')?.addEventListener('click', () => switchDesk('ledgers'));
+  document.getElementById('deskPillRisk')?.addEventListener('click', () => switchDesk('risk'));
+  document.getElementById('deskPillGovernance')?.addEventListener('click', () => switchDesk('governance'));
+  document.getElementById('deskPillExecutive')?.addEventListener('click', () => switchDesk('executive'));
+  document.getElementById('deskPillAll')?.addEventListener('click', () => switchDesk('all'));
+
+  // Restore saved desk or default to operations
+  let savedDesk = 'operations';
+  try {
+    savedDesk = sessionStorage.getItem('sym_admin_active_desk') || 'operations';
+  } catch (e) {}
+
+  // Check URL hash if opened with #targetSection
+  if (typeof window !== 'undefined' && window.location && window.location.hash) {
+    const hashId = window.location.hash.replace('#', '');
+    if (SECTION_DESK_MAP[hashId]) {
+      navigateToSection(hashId);
+      return;
+    }
+  }
+
+  switchDesk(savedDesk);
+}
+
 let _adminModulesInitialized = false;
 function initAllAdminModules() {
   if (_adminModulesInitialized) return;
@@ -4663,6 +4814,11 @@ function initAllAdminModules() {
     initStaffAuditListeners();
   } catch (err) {
     console.error('[Admin] Error in initStaffAuditListeners:', err);
+  }
+  try {
+    initDeskSwitcher();
+  } catch (err) {
+    console.error('[Admin] Error in initDeskSwitcher:', err);
   }
 }
 
