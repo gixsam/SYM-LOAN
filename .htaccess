@@ -1,0 +1,42 @@
+# SYM EMPIRE PLATFORM (S.E.P.) — Hostinger LiteSpeed / Apache Routing Engine
+DirectoryIndex public/index.html index.html index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # 1. Route Root URL directly to public/index.html
+    RewriteRule ^$ public/index.html [L]
+
+    # 2. Route /admin directly to public/admin.html
+    RewriteRule ^admin/?$ public/admin.html [L]
+
+    # 3. Route /uploads/ directly to public/uploads/
+    RewriteRule ^uploads/(.*)$ public/uploads/$1 [L]
+
+    # 4. Route /js/ and /css/ directly to public/
+    RewriteRule ^js/(.*)$ public/js/$1 [L]
+    RewriteRule ^css/(.*)$ public/css/$1 [L]
+
+    # 5. Fallback for any other file existing inside public/
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteCond %{DOCUMENT_ROOT}/public%{REQUEST_URI} -f [OR]
+    RewriteCond %{DOCUMENT_ROOT}/public%{REQUEST_URI} -d
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Security Protection: Block sensitive configuration files from web access
+<FilesMatch "^\.env|\.git|package\.json|package-lock\.json|NOTE\.md|server\.js">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# MIME type configuration & caching
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+</IfModule>
