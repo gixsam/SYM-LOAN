@@ -18,6 +18,46 @@
 
 ---
 
+### [Update-055] — Phase 6: Smart NID OCR Extractor, In-Line Email OTP Verification, Locked Live Biometric Selfie & Permanent Profile Lockdown (2026-09-18)
+**Type:** Automated OCR Document Recognition, FinTech Identity Verification, In-Line Email OTP Drawer, One-Click Immutable Biometric Selfie, Submission Lockdown, Executive Matching Desk  
+**Status:** ✅ COMPLETED, TESTED & DUAL-SYNCED ACROSS WORKPLACES  
+
+#### Objectives & Implementation Details:
+1. **Smart NID OCR Extractor (Tesseract.js & Bangladesh Regex Engine):**
+   - Integrated client-side optical character recognition via `Tesseract.js` CDN with a live percentage progress indicator.
+   - Engineered `parseBangladeshNid(text)` to automatically parse:
+     - **Full Legal Name:** Extracts English name following `Name:` or capitalized Bangladeshi name formats (e.g. `MD. ...`, `MOHAMMED ...`).
+     - **Date of Birth:** Detects word-based (`12 Apr 1998`) or numeric date formats and standardizes to `YYYY-MM-DD` for HTML5 date pickers.
+     - **National ID Number:** Matches 10-digit Smart NID, 13-digit, or 17-digit numeric patterns.
+   - Extracted credentials auto-populate the form with `EXTRACTED ✨` badges for client review and verification.
+2. **Strictly Locked Mobile Number:**
+   - Phone input is permanently locked to the Telegram registration number (`readonly`, `select-none`, `cursor-not-allowed`).
+   - Server enforces that phone numbers can never be tampered with or modified via client inputs.
+3. **In-Line Email OTP Verification Drawer:**
+   - Client enters email, clicks `[ Verify ]`, which triggers an in-line slide-out drawer with a 5-minute countdown (`05:00`).
+   - Dispatches a 6-digit OTP passcode via Hostinger SMTP / nodemailer.
+   - Upon verification via `/api/kyc/verify-email-otp`, the badge shifts to `VERIFIED ✅`, the input locks to `readOnly`, and the checklist checkmark turns active.
+4. **One-Click Immutable Live Biometric Selfie Capture:**
+   - Real-time device camera viewfinder with face oval alignment guide (`#faceGuideOverlay`).
+   - High-fidelity canvas capture mirrored to match the selfie viewfinder, with fallback native camera file picker for restricted webviews.
+   - **One-Click Permanent Lock:** Once snapped and saved, camera tracks are immediately shut down, viewfinder replaced with `#kycSelfieImg`, action buttons hidden, and `#selfiePermanentLockedNotice` displayed.
+   - Server endpoint `POST /api/kyc/upload-selfie` strictly rejects any retake or replacement attempts with `HTTP 403 Forbidden` (`Live biometric selfie is already recorded and permanently locked`).
+5. **Permanent Profile Lockdown on Submission:**
+   - Pre-submission validation verifies that NID Front, NID Back, Email OTP, Live Selfie, Name, DOB, and NID Number are fully completed.
+   - Upon `POST /api/kyc/submit`, profile status becomes `PENDING` with `locked: true`.
+   - Client frontend executes `lockAllKycInputs(true)` to permanently lock all text boxes and file uploaders, displaying `#kycImmutabilityNotice`.
+   - Backend `saveKycDraft` blocks any modifications to submitted/verified profiles.
+6. **Executive Admin KYC Matching Desk (`admin.html` & `admin.js`):**
+   - Side-by-side split screen inspection desk (`#kycInspectModal`) displaying NID Front, NID Back, Live Selfie, and all extracted credentials with high-res lightbox links.
+   - Quick rejection preset buttons (`Blurry NID`, `Selfie Mismatch`, `Data Mismatch`, `Incomplete Card`).
+   - 1-Click Approval (`[ Approve & Unlock Loans ]`) setting status to `VERIFIED` and immediately unlocking loan requests for the client.
+7. **Markup Integrity Fix:**
+   - Corrected closing `</div>` tag for `#kycInspectModal` before `#adminSettingsModal` in `public/admin.html`.
+8. **Automated Verification:**
+   - Executed full test suite verifying NID upload, Email OTP request & verify, live selfie upload, retake rejection (403), final submission, post-submission modification rejection (403), and Admin 1-Click approval.
+
+---
+
 ### [Update-054] — Seamless Admin Cross-Panel Inspection Mode, Auto-Bypass & Test Money Request Engine (2026-09-18)
 **Type:** Cross-Panel Admin Inspection Mode, Zero-Friction Navigation, KYC Gatekeeper Bypass for Testing, Desktop Gatekeeper Adaptor  
 **Status:** ✅ COMPLETED, TESTED & DUAL-SYNCED ACROSS WORKPLACES  

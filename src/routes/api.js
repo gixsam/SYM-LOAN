@@ -622,6 +622,14 @@ router.post('/kyc/upload-selfie', uploadKycDocs.single('live_selfie'), async (re
     return res.status(400).json({ success: false, message: 'client_id is required.' });
   }
 
+  const currentKyc = kycManager.getKycProfile(clientId);
+  if (currentKyc && currentKyc.live_selfie_url && currentKyc.status !== 'REJECTED') {
+    return res.status(403).json({
+      success: false,
+      message: 'Live biometric selfie is already recorded and permanently locked. Retakes are strictly prohibited under compliance policy.',
+    });
+  }
+
   let selfieUrl = null;
   if (req.file) {
     selfieUrl = `/uploads/kyc/${req.file.filename}`;
