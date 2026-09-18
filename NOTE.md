@@ -11,7 +11,7 @@
 > **GitHub Repository:** [`https://github.com/gixsam/SYM-LOAN`](https://github.com/gixsam/SYM-LOAN)  
 > **Database Cloud Tenant:** Supabase Instance (`SYM-LOAN` / `gypqeknsxfljdvmycylv` in AWS `ap-northeast-2`)  
 > **Database Direct Host:** `db.gypqeknsxfljdvmycylv.supabase.co`  
-> **Telegram Bot:** `@money_loan_bot` (Live Token: `8846454332:AAGl0VAri-CNPRcDCAjJvsHOcA00BJo6hhI`)  
+> **Telegram Bot:** `@money_loan_bot` (Token: `[PROTECTED IN .ENV — Never commit plain tokens]`)  
 > **Technology Stack:** Node.js, Express, Supabase (PostgreSQL), Multer, jsPDF, node-telegram-bot-api, node-cron, CORS, Helmet, dotenv, HTML5, Tailwind CSS, FontAwesome 6, Cloudflare Tunnel  
 > **Live Local Server:** `http://localhost:5000` (Client: `/`, Admin: `/admin`)  
 > **Last Synchronized:** 2026-09-18 13:25 Local Time  
