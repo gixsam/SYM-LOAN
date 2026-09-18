@@ -24,6 +24,9 @@ const express       = require('express');
 const { supabaseAdmin } = require('../lib/supabase');
 const loanSettings  = require('../lib/loanSettings');
 const { runDeadlineStrikeCheck } = require('../cron/deadlineStrikeEngine');
+const otpManager    = require('../lib/otpManager');
+const { sendTelegramOtp } = require('../bot/index');
+const { uploadAvatar } = require('../lib/uploader');
 
 const router = express.Router();
 
@@ -245,11 +248,132 @@ router.get('/budgets', async (req, res) => {
   res.json({ success: true, data });
 });
 
-// ─── Manual Cron Trigger (Admin) ──────────────────────────────────────────────
-router.post('/cron/trigger', async (req, res) => {
-  console.log('[API] Manual strike engine trigger requested.');
-  res.json({ success: true, message: 'Strike engine triggered. Check server logs for results.' });
-  runDeadlineStrikeCheck();
+// ─── Client Authentication & Free Telegram OTP ───────────────────────────────
+
+// POST /api/auth/request-otp — Send instant 6-digit OTP via Telegram @money_loan_bot
+router.post('/auth/request-otp', async (req, res) => {
+  const phone_number = req.body.phone_number || req.body.phone;
+  if (!phone_number) {
+    return res.status(400).json({ success: false, message: 'Phone number is required.' });
+  }
+
+  const cleanPhone = phone_number.trim();
+
+  // Find client
+  const { data: client, error } = await supabaseAdmin
+    .from('client_profiles')
+    .select('*')
+    .or(`phone_number.eq.${cleanPhone},phone_number.eq.+${cleanPhone.replace(/^\+/, '')}`)
+    .maybeSingle();
+
+  if (error || !client) {
+    return res.status(404).json({
+      success: false,
+      message: 'No registered client found with this phone number. Please start @money_loan_bot on Telegram first to verify your account.',
+      bot_url: 'https://t.me/money_loan_bot'
+    });
+  }
+
+  // Generate 6-digit OTP
+  const otpRes = otpManager.generateOtp(client.phone_number);
+  if (!otpRes.success) {
+    return res.status(429).json({ success: false, message: otpRes.error, waitSeconds: otpRes.waitSeconds });
+  }
+
+  // Extract Telegram Chat ID from profile admin_note
+  let telegramChatId = null;
+  const match = (client.admin_note || '').match(/Telegram ID:\s*(\d+)/i);
+  if (match && match[1]) {
+    telegramChatId = match[1];
+  }
+
+  let sentViaTelegram = false;
+  if (telegramChatId) {
+    sentViaTelegram = await sendTelegramOtp(telegramChatId, otpRes.code, 'SYM LOAN Portal Login');
+  }
+
+  return res.json({
+    success: true,
+    message: sentViaTelegram 
+      ? 'A 6-digit OTP has been sent directly to your Telegram account.' 
+      : 'A 6-digit OTP has been generated. (Open @money_loan_bot on Telegram)',
+    sentViaTelegram,
+    phone_number: client.phone_number,
+    // Provide preview fallback if telegram messaging failed
+    preview_code: !sentViaTelegram ? otpRes.code : undefined,
+  });
+});
+
+// POST /api/auth/verify-otp — Validate OTP and establish client session
+router.post('/auth/verify-otp', async (req, res) => {
+  const phone_number = req.body.phone_number || req.body.phone;
+  const { code } = req.body;
+  if (!phone_number || !code) {
+    return res.status(400).json({ success: false, message: 'Phone number and 6-digit OTP code are required.' });
+  }
+
+  const cleanPhone = phone_number.trim();
+  const verifyRes = otpManager.verifyOtp(cleanPhone, code);
+
+  if (!verifyRes.valid) {
+    return res.status(401).json({ success: false, message: verifyRes.message });
+  }
+
+  // Fetch verified profile
+  const { data: client, error } = await supabaseAdmin
+    .from('client_profiles')
+    .select('*')
+    .or(`phone_number.eq.${cleanPhone},phone_number.eq.+${cleanPhone.replace(/^\+/, '')}`)
+    .maybeSingle();
+
+  if (error || !client) {
+    return res.status(404).json({ success: false, message: 'Client profile not found.' });
+  }
+
+  const limits = loanSettings.getLimitsForClient(client.id);
+
+  return res.json({
+    success: true,
+    message: 'Login successful! Account verified.',
+    client,
+    limits,
+  });
+});
+
+// ─── Client Profile Avatar Upload ─────────────────────────────────────────────
+router.post('/clients/:id/avatar', uploadAvatar.single('avatar_image'), async (req, res) => {
+  const clientId = req.params.id;
+  let avatarUrl = null;
+
+  if (req.file) {
+    avatarUrl = `/uploads/avatars/${req.file.filename}`;
+  } else if (req.body?.preset || req.body?.preset_url) {
+    avatarUrl = req.body.preset || req.body.preset_url;
+  }
+
+  if (!avatarUrl) {
+    return res.status(400).json({ success: false, message: 'No avatar image file or preset provided.' });
+  }
+
+  // Store avatar in nid_url (or avatar column)
+  const { data: updated, error } = await supabaseAdmin
+    .from('client_profiles')
+    .update({ nid_url: avatarUrl })
+    .eq('id', clientId)
+    .select()
+    .single();
+
+  if (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+
+  return res.json({
+    success: true,
+    message: 'Profile picture updated successfully.',
+    avatar_url: avatarUrl,
+    client: updated,
+  });
 });
 
 module.exports = router;
+

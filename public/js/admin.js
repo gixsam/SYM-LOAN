@@ -80,6 +80,42 @@ const DOM = {
   // Clients list
   clientsTableBody: document.getElementById('clientsTableBody'),
   clientsCount: document.getElementById('clientsCount'),
+
+  // Hamburger Drawer
+  hamburgerBtn: document.getElementById('hamburgerBtn'),
+  closeDrawerBtn: document.getElementById('closeDrawerBtn'),
+  drawerBackdrop: document.getElementById('drawerBackdrop'),
+  adminDrawer: document.getElementById('adminDrawer'),
+
+  // Historical Cash Adjustment Modal
+  adjustCashModal: document.getElementById('adjustCashModal'),
+  closeAdjustCashModalBtn: document.getElementById('closeAdjustCashModalBtn'),
+  adjustCashForm: document.getElementById('adjustCashForm'),
+  adjustLedgerId: document.getElementById('adjustLedgerId'),
+  adjustClientSubtitle: document.getElementById('adjustClientSubtitle'),
+  adjustCurrentBalance: document.getElementById('adjustCurrentBalance'),
+  adjustAmount: document.getElementById('adjustAmount'),
+  adjustNewBalance: document.getElementById('adjustNewBalance'),
+  adjustMemo: document.getElementById('adjustMemo'),
+  submitAdjustBtn: document.getElementById('submitAdjustBtn'),
+
+  // Master Client Spreadsheet
+  spreadsheetTableBody: document.getElementById('spreadsheetTableBody'),
+  spreadsheetSearch: document.getElementById('spreadsheetSearch'),
+  downloadSpreadsheetCsvBtn: document.getElementById('downloadSpreadsheetCsvBtn'),
+
+  // Admin Telegram OTP
+  openAdminOtpBtn: document.getElementById('openAdminOtpBtn'),
+  adminOtpModal: document.getElementById('adminOtpModal'),
+  closeAdminOtpModalBtn: document.getElementById('closeAdminOtpModalBtn'),
+  adminOtpStep1: document.getElementById('adminOtpStep1'),
+  adminOtpStep2: document.getElementById('adminOtpStep2'),
+  adminEmailInput: document.getElementById('adminEmailInput'),
+  sendAdminOtpBtn: document.getElementById('sendAdminOtpBtn'),
+  adminOtpCodeInput: document.getElementById('adminOtpCodeInput'),
+  adminOtpTimerText: document.getElementById('adminOtpTimerText'),
+  resendAdminOtpBtn: document.getElementById('resendAdminOtpBtn'),
+  verifyAdminOtpBtn: document.getElementById('verifyAdminOtpBtn'),
 };
 
 function initAdmin() {
@@ -101,6 +137,7 @@ async function loadAllData() {
     await fetchClients();
     await fetchLoans();
     await fetchHistoricalLedgers();
+    await fetchMasterSpreadsheet();
     DOM.authStatusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center';
     DOM.authStatusBadge.innerHTML = '<i class="fas fa-shield-alt mr-1.5"></i> Authenticated';
   } catch (err) {
@@ -386,12 +423,120 @@ async function fetchHistoricalLedgers() {
             </span>
           </td>
           <td class="py-2.5 px-3 text-[10px] text-slate-500">${new Date(item.created_at).toLocaleDateString()}</td>
+          <td class="py-2.5 px-3 text-right">
+            <button onclick="openAdjustCashModal('${item.id}', '${item.old_name.replace(/'/g, "\\'")}', ${item.historical_balance})" class="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold border border-amber-500/30 text-[10px] transition cursor-pointer">
+              <i class="fas fa-edit mr-1"></i> Adjust (+/-)
+            </button>
+          </td>
         </tr>
       `).join('');
     }
   } catch (err) {
     console.error('Failed to load historical ledgers:', err);
   }
+}
+
+// ─── Adjust Cash Functions ───────────────────────────────────────────────────
+let ACTIVE_ADJUST_RECORD = null;
+
+window.openAdjustCashModal = function(id, name, currentBalance) {
+  ACTIVE_ADJUST_RECORD = { id, name, currentBalance: parseFloat(currentBalance) || 0 };
+  DOM.adjustLedgerId.value = id;
+  DOM.adjustClientSubtitle.textContent = `Client: ${name}`;
+  DOM.adjustCurrentBalance.textContent = `৳${ACTIVE_ADJUST_RECORD.currentBalance.toLocaleString()}`;
+  DOM.adjustAmount.value = '500';
+  DOM.adjustMemo.value = '';
+  updateProjectedNewBalance();
+  DOM.adjustCashModal.classList.remove('hidden');
+};
+
+function updateProjectedNewBalance() {
+  if (!ACTIVE_ADJUST_RECORD) return;
+  const type = document.querySelector('input[name="adjustType"]:checked')?.value || 'ADD';
+  const delta = parseFloat(DOM.adjustAmount.value) || 0;
+  const current = ACTIVE_ADJUST_RECORD.currentBalance;
+  const projected = type === 'ADD' ? (current + delta) : (current - delta);
+  DOM.adjustNewBalance.textContent = `৳${Math.round(projected).toLocaleString()}`;
+}
+
+// ─── Master Client Spreadsheet API ───────────────────────────────────────────
+let SPREADSHEET_CACHE = [];
+
+async function fetchMasterSpreadsheet() {
+  try {
+    const res = await fetch('/api/admin/clients/master-spreadsheet', { headers: getHeaders() });
+    const json = await res.json();
+    if (res.ok && json.success) {
+      SPREADSHEET_CACHE = json.rows || [];
+      renderSpreadsheetTable(SPREADSHEET_CACHE);
+    }
+  } catch (err) {
+    console.error('Failed to load master spreadsheet:', err);
+  }
+}
+
+function renderSpreadsheetTable(rows) {
+  if (!DOM.spreadsheetTableBody) return;
+  if (!rows || rows.length === 0) {
+    DOM.spreadsheetTableBody.innerHTML = `
+      <tr>
+        <td colspan="8" class="p-6 text-center text-slate-500">No client records found.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  DOM.spreadsheetTableBody.innerHTML = rows.map(r => {
+    const statusColor = r.status === 'ACTIVE' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
+                        r.status === 'BLOCKED' ? 'text-rose-400 bg-rose-500/10 border-rose-500/30' :
+                        'text-amber-400 bg-amber-500/10 border-amber-500/30';
+    return `
+      <tr class="border-b border-white/5 hover:bg-white/[0.03] transition">
+        <td class="py-2.5 px-3 font-bold text-white">${r.name}</td>
+        <td class="py-2.5 px-3 font-mono text-slate-300">${r.phone_number}</td>
+        <td class="py-2.5 px-3">
+          <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${statusColor}">${r.status}</span>
+        </td>
+        <td class="py-2.5 px-3 font-mono text-center">
+          <span class="px-2 py-0.5 rounded text-[10px] font-bold ${r.strikes_count > 0 ? 'bg-rose-500/20 text-rose-400' : 'text-slate-400'}">${r.strikes_count}/3</span>
+        </td>
+        <td class="py-2.5 px-3 font-mono font-bold text-amber-400">৳${parseFloat(r.historical_debt || 0).toLocaleString()}</td>
+        <td class="py-2.5 px-3 font-mono text-slate-300">৳${parseFloat(r.total_borrowed || 0).toLocaleString()}</td>
+        <td class="py-2.5 px-3 font-mono font-black text-emerald-400">৳${parseFloat(r.net_outstanding || 0).toLocaleString()}</td>
+        <td class="py-2.5 px-3 text-[11px] text-slate-500">${r.created_at ? new Date(r.created_at).toLocaleDateString() : '—'}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function downloadSpreadsheetCsv() {
+  if (!SPREADSHEET_CACHE || SPREADSHEET_CACHE.length === 0) {
+    alert('No client data to export.');
+    return;
+  }
+
+  const headers = ['Client Name', 'Phone Number', 'Status', 'Strikes Count', 'Historical Debt (BDT)', 'Total Borrowed (BDT)', 'Net Outstanding (BDT)', 'Joined Date'];
+  const rows = SPREADSHEET_CACHE.map(r => [
+    `"${(r.name || '').replace(/"/g, '""')}"`,
+    `"${(r.phone_number || '').replace(/"/g, '""')}"`,
+    `"${r.status || 'ACTIVE'}"`,
+    r.strikes_count || 0,
+    r.historical_debt || 0,
+    r.total_borrowed || 0,
+    r.net_outstanding || 0,
+    `"${r.created_at ? new Date(r.created_at).toISOString().split('T')[0] : ''}"`
+  ]);
+
+  const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const dateStr = new Date().toISOString().split('T')[0];
+  link.setAttribute('href', url);
+  link.setAttribute('download', `SYM_LOAN_Master_Spreadsheet_${dateStr}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 // ─── Setup Event Listeners ────────────────────────────────────────────────────
@@ -406,6 +551,7 @@ function setupEvents() {
     fetchLoans();
     fetchClients();
     fetchHistoricalLedgers();
+    fetchMasterSpreadsheet();
   });
 
   DOM.closeModalBtn.addEventListener('click', () => {
@@ -614,6 +760,204 @@ function setupEvents() {
       alert(`Error: ${err.message}`);
     }
   });
+
+  // ─── Hamburger Drawer Events ───
+  if (DOM.hamburgerBtn) {
+    DOM.hamburgerBtn.addEventListener('click', () => {
+      DOM.adminDrawer?.classList.remove('-translate-x-full');
+      DOM.drawerBackdrop?.classList.remove('hidden');
+    });
+  }
+
+  const closeDrawer = () => {
+    DOM.adminDrawer?.classList.add('-translate-x-full');
+    DOM.drawerBackdrop?.classList.add('hidden');
+  };
+
+  if (DOM.closeDrawerBtn) DOM.closeDrawerBtn.addEventListener('click', closeDrawer);
+  if (DOM.drawerBackdrop) DOM.drawerBackdrop.addEventListener('click', closeDrawer);
+  document.querySelectorAll('.drawer-link').forEach(link => {
+    link.addEventListener('click', closeDrawer);
+  });
+
+  // ─── Adjust Cash Events ───
+  if (DOM.closeAdjustCashModalBtn) {
+    DOM.closeAdjustCashModalBtn.addEventListener('click', () => {
+      DOM.adjustCashModal?.classList.add('hidden');
+    });
+  }
+
+  if (DOM.adjustAmount) {
+    DOM.adjustAmount.addEventListener('input', updateProjectedNewBalance);
+  }
+
+  document.querySelectorAll('input[name="adjustType"]').forEach(r => {
+    r.addEventListener('change', updateProjectedNewBalance);
+  });
+
+  if (DOM.adjustCashForm) {
+    DOM.adjustCashForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!ACTIVE_ADJUST_RECORD) return;
+
+      const type = document.querySelector('input[name="adjustType"]:checked')?.value || 'ADD';
+      const amount = parseFloat(DOM.adjustAmount.value);
+      const memo = DOM.adjustMemo.value.trim();
+
+      DOM.submitAdjustBtn.disabled = true;
+      DOM.submitAdjustBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Saving...';
+
+      try {
+        const res = await fetch(`/api/admin/historical-ledgers/${ACTIVE_ADJUST_RECORD.id}/adjust-cash`, {
+          method: 'POST',
+          headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type, amount, memo }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.message);
+
+        alert(`✅ Cash customized successfully! New balance: ৳${parseFloat(json.ledger.historical_balance).toLocaleString()}`);
+        DOM.adjustCashModal?.classList.add('hidden');
+        await fetchHistoricalLedgers();
+        await fetchMasterSpreadsheet();
+      } catch (err) {
+        alert(`Adjustment Error: ${err.message}`);
+      } finally {
+        DOM.submitAdjustBtn.disabled = false;
+        DOM.submitAdjustBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Save Cash Adjustment';
+      }
+    });
+  }
+
+  // ─── Spreadsheet Search & Export ───
+  if (DOM.spreadsheetSearch) {
+    DOM.spreadsheetSearch.addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      if (!q) {
+        renderSpreadsheetTable(SPREADSHEET_CACHE);
+      } else {
+        const filtered = SPREADSHEET_CACHE.filter(r => 
+          (r.name && r.name.toLowerCase().includes(q)) || 
+          (r.phone_number && r.phone_number.includes(q)) ||
+          (r.status && r.status.toLowerCase().includes(q))
+        );
+        renderSpreadsheetTable(filtered);
+      }
+    });
+  }
+
+  if (DOM.downloadSpreadsheetCsvBtn) {
+    DOM.downloadSpreadsheetCsvBtn.addEventListener('click', downloadSpreadsheetCsv);
+  }
+
+  // ─── Admin Telegram OTP Events ───
+  let adminOtpCountdownInterval = null;
+  function startAdminOtpTimer(sec = 300) {
+    clearInterval(adminOtpCountdownInterval);
+    let remaining = sec;
+    DOM.resendAdminOtpBtn.disabled = true;
+    const tick = () => {
+      const m = String(Math.floor(remaining / 60)).padStart(2, '0');
+      const s = String(remaining % 60).padStart(2, '0');
+      DOM.adminOtpTimerText.textContent = `Expires in ${m}:${s}`;
+      if (remaining <= 0) {
+        clearInterval(adminOtpCountdownInterval);
+        DOM.adminOtpTimerText.textContent = 'Code expired';
+        DOM.resendAdminOtpBtn.disabled = false;
+      }
+      remaining--;
+    };
+    tick();
+    adminOtpCountdownInterval = setInterval(tick, 1000);
+  }
+
+  if (DOM.openAdminOtpBtn) {
+    DOM.openAdminOtpBtn.addEventListener('click', () => {
+      DOM.adminOtpStep2?.classList.add('hidden');
+      DOM.adminOtpStep1?.classList.remove('hidden');
+      DOM.adminOtpModal?.classList.remove('hidden');
+    });
+  }
+
+  if (DOM.closeAdminOtpModalBtn) {
+    DOM.closeAdminOtpModalBtn.addEventListener('click', () => {
+      clearInterval(adminOtpCountdownInterval);
+      DOM.adminOtpModal?.classList.add('hidden');
+    });
+  }
+
+  async function requestAdminOtp() {
+    const email = DOM.adminEmailInput.value.trim();
+    if (!email) {
+      alert('Please enter your admin email.');
+      return;
+    }
+
+    DOM.sendAdminOtpBtn.disabled = true;
+    DOM.sendAdminOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Sending OTP...';
+
+    try {
+      const res = await fetch('/api/admin/auth/request-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message);
+
+      DOM.adminOtpStep1?.classList.add('hidden');
+      DOM.adminOtpStep2?.classList.remove('hidden');
+      DOM.adminOtpCodeInput.value = '';
+      DOM.adminOtpCodeInput.focus();
+      startAdminOtpTimer(json.expires_in || 300);
+    } catch (err) {
+      alert(`OTP Request Failed: ${err.message}`);
+    } finally {
+      DOM.sendAdminOtpBtn.disabled = false;
+      DOM.sendAdminOtpBtn.innerHTML = '<i class="fab fa-telegram-plane mr-2"></i> Send Telegram OTP';
+    }
+  }
+
+  if (DOM.sendAdminOtpBtn) DOM.sendAdminOtpBtn.addEventListener('click', requestAdminOtp);
+  if (DOM.resendAdminOtpBtn) DOM.resendAdminOtpBtn.addEventListener('click', requestAdminOtp);
+
+  if (DOM.verifyAdminOtpBtn) {
+    DOM.verifyAdminOtpBtn.addEventListener('click', async () => {
+      const email = DOM.adminEmailInput.value.trim();
+      const code = DOM.adminOtpCodeInput.value.trim();
+
+      if (!code || code.length < 6) {
+        alert('Please enter the 6-digit code received via Telegram.');
+        return;
+      }
+
+      DOM.verifyAdminOtpBtn.disabled = true;
+      DOM.verifyAdminOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Authenticating...';
+
+      try {
+        const res = await fetch('/api/admin/auth/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, code }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.message);
+
+        clearInterval(adminOtpCountdownInterval);
+        ADMIN_KEY = json.admin_key;
+        sessionStorage.setItem('sep_admin_key', ADMIN_KEY);
+        DOM.adminKeyInput.value = ADMIN_KEY;
+        DOM.adminOtpModal?.classList.add('hidden');
+        alert('✅ Admin 2FA Verified! Executive access granted.');
+        await loadAllData();
+      } catch (err) {
+        alert(`Authentication Error: ${err.message}`);
+      } finally {
+        DOM.verifyAdminOtpBtn.disabled = false;
+        DOM.verifyAdminOtpBtn.innerHTML = '<i class="fas fa-lock-open mr-2"></i> Verify & Authenticate';
+      }
+    });
+  }
 }
 
 document.addEventListener('DOMContentLoaded', initAdmin);

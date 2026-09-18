@@ -69,10 +69,9 @@ app.use(express.static(path.join(__dirname, '../public')));
 // ─── Admin API Routes (Exempt from Mobile-only gate, requires Admin Key) ───────
 app.use('/api/admin', adminApiRouter);
 
-// ─── Mobile-Only Gate for Client API ──────────────────────────────────────────
-// Exempt health and public config endpoints for uptime and app bootstrap
+// Exempt health, limits, and auth OTP endpoints for app bootstrap
 app.use('/api', (req, res, next) => {
-  if (req.path === '/health' || req.path === '/config/limits') {
+  if (req.path === '/health' || req.path === '/config/limits' || req.path.startsWith('/auth/')) {
     return next();
   }
   verifyMobileDeviceOnly(req, res, next);

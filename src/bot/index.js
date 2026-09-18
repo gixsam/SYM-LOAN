@@ -254,10 +254,34 @@ bot.catch((err) => {
   console.error('[Bot] Unhandled error:', err.message || err);
 });
 
-// ─── Start Polling Engine ─────────────────────────────────────────────────────
+/**
+ * Send an OTP code to a specific Telegram Chat ID
+ */
+async function sendTelegramOtp(chatId, code, purpose = 'User Login') {
+  if (!bot || !chatId) {
+    console.warn('[Bot] Cannot send Telegram OTP: bot or chatId missing.');
+    return false;
+  }
+  try {
+    const text = 
+      `🔐 <b>SYM EMPIRE PLATFORM (S.E.P.)</b>\n` +
+      `<b>SYM LOAN Security Verification</b>\n\n` +
+      `Your one-time verification code (OTP) for <b>${escapeHtml(purpose)}</b> is:\n\n` +
+      `👉 <code>${code}</code> 👈\n\n` +
+      `⏳ <i>This code expires in 5 minutes. Do not share it with anyone.</i>`;
+
+    await bot.api.sendMessage({ chat_id: chatId, text, parse_mode: 'HTML' });
+    console.log(`[Bot] ✅ Telegram OTP sent to chat ${chatId} for ${purpose}`);
+    return true;
+  } catch (err) {
+    console.error(`[Bot] ❌ Failed to send Telegram OTP to chat ${chatId}:`, err.message);
+    return false;
+  }
+}
+
 function startBot() {
   bot.startPolling();
   console.log('[Bot] ✅ @money_loan_bot polling started.');
 }
 
-module.exports = { bot, startBot };
+module.exports = { bot, startBot, sendTelegramOtp };

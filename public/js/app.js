@@ -24,6 +24,26 @@ const DOM = {
   phoneError: document.getElementById('phoneError'),
   logoutBtn: document.getElementById('logoutBtn'),
 
+  // Telegram OTP Elements
+  loginStepPhone: document.getElementById('loginStepPhone'),
+  loginStepOtp: document.getElementById('loginStepOtp'),
+  sendClientOtpBtn: document.getElementById('sendClientOtpBtn'),
+  clientOtpInput: document.getElementById('clientOtpInput'),
+  clientOtpTimer: document.getElementById('clientOtpTimer'),
+  resendClientOtpBtn: document.getElementById('resendClientOtpBtn'),
+  verifyClientOtpBtn: document.getElementById('verifyClientOtpBtn'),
+  backToPhoneBtn: document.getElementById('backToPhoneBtn'),
+
+  // Avatar Elements
+  avatarTriggerBtn: document.getElementById('avatarTriggerBtn'),
+  clientAvatarImg: document.getElementById('clientAvatarImg'),
+  clientAvatarText: document.getElementById('clientAvatarText'),
+  avatarModal: document.getElementById('avatarModal'),
+  closeAvatarModalBtn: document.getElementById('closeAvatarModalBtn'),
+  avatarFileInput: document.getElementById('avatarFileInput'),
+  uploadAvatarBtn: document.getElementById('uploadAvatarBtn'),
+  avatarFeedback: document.getElementById('avatarFeedback'),
+
   // Form elements
   loanForm: document.getElementById('loanForm'),
   amountSlider: document.getElementById('amountSlider'),
@@ -218,11 +238,41 @@ function updateCalculatedDuration() {
   }
 }
 
+const PRESET_ICONS = {
+  'preset:sovereign_gold': '👑',
+  'preset:platinum_shield': '🛡️',
+  'preset:diamond_investor': '💎',
+  'preset:cyber_blue': '⚡',
+  'preset:royal_lion': '🦁',
+  'preset:golden_eagle': '🦅',
+};
+
+function renderAvatar(avatarVal, name) {
+  if (!DOM.clientAvatarText || !DOM.clientAvatarImg) return;
+
+  if (avatarVal && (avatarVal.startsWith('/uploads/') || avatarVal.startsWith('http'))) {
+    DOM.clientAvatarImg.src = avatarVal;
+    DOM.clientAvatarImg.classList.remove('hidden');
+    DOM.clientAvatarText.classList.add('hidden');
+  } else if (avatarVal && PRESET_ICONS[avatarVal]) {
+    DOM.clientAvatarImg.classList.add('hidden');
+    DOM.clientAvatarText.textContent = PRESET_ICONS[avatarVal];
+    DOM.clientAvatarText.className = 'text-xl';
+    DOM.clientAvatarText.classList.remove('hidden');
+  } else {
+    DOM.clientAvatarImg.classList.add('hidden');
+    DOM.clientAvatarText.textContent = (name || 'SYM').slice(0, 3).toUpperCase();
+    DOM.clientAvatarText.className = 'text-xs font-black';
+    DOM.clientAvatarText.classList.remove('hidden');
+  }
+}
+
 // ─── Render Client Profile UI ─────────────────────────────────────────────────
 function renderClientUI(client) {
   DOM.clientName.textContent = client.name || 'Client';
   DOM.clientPhone.textContent = client.phone_number || '';
   DOM.clientIdText.textContent = client.id ? client.id.slice(0, 13) + '...' : '—';
+  renderAvatar(client.avatar_url || client.nid_url, client.name);
 
   // Status pill
   const status = client.status || 'ACTIVE';
@@ -423,13 +473,235 @@ function setupEventListeners() {
     }
   });
 
-  // Logout / Switch client
+    // Logout / Switch client
   DOM.logoutBtn.addEventListener('click', () => {
     localStorage.removeItem('sep_loan_client');
     STATE.client = null;
     DOM.phoneInput.value = '';
+    DOM.loginStepOtp?.classList.add('hidden');
+    DOM.loginStepPhone?.classList.remove('hidden');
+    DOM.phoneError?.classList.add('hidden');
     openLoginModal();
   });
+
+  // ─── Avatar Customization Handlers ───
+  if (DOM.avatarTriggerBtn) {
+    DOM.avatarTriggerBtn.addEventListener('click', () => {
+      if (!STATE.client) {
+        openLoginModal();
+        return;
+      }
+      DOM.avatarFeedback.classList.add('hidden');
+      DOM.avatarFileInput.value = '';
+      DOM.uploadAvatarBtn.classList.add('hidden');
+      DOM.avatarModal.classList.remove('hidden');
+    });
+  }
+
+  if (DOM.closeAvatarModalBtn) {
+    DOM.closeAvatarModalBtn.addEventListener('click', () => {
+      DOM.avatarModal.classList.add('hidden');
+    });
+  }
+
+  if (DOM.avatarFileInput) {
+    DOM.avatarFileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        DOM.uploadAvatarBtn.classList.remove('hidden');
+      } else {
+        DOM.uploadAvatarBtn.classList.add('hidden');
+      }
+    });
+  }
+
+  if (DOM.uploadAvatarBtn) {
+    DOM.uploadAvatarBtn.addEventListener('click', async () => {
+      const file = DOM.avatarFileInput.files[0];
+      if (!file || !STATE.client) return;
+
+      DOM.uploadAvatarBtn.disabled = true;
+      DOM.uploadAvatarBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Uploading...';
+
+      try {
+        const formData = new FormData();
+        formData.append('avatar_image', file);
+
+        const res = await fetch(`/api/clients/${STATE.client.id}/avatar`, {
+          method: 'POST',
+          body: formData,
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.message);
+
+        STATE.client.nid_url = json.avatar_url;
+        saveClient(STATE.client);
+        renderAvatar(json.avatar_url, STATE.client.name);
+
+        DOM.avatarFeedback.className = 'text-xs font-bold text-center p-2 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+        DOM.avatarFeedback.textContent = '✅ Profile picture updated successfully!';
+        DOM.avatarFeedback.classList.remove('hidden');
+        setTimeout(() => {
+          DOM.avatarModal.classList.add('hidden');
+        }, 1200);
+      } catch (err) {
+        DOM.avatarFeedback.className = 'text-xs font-bold text-center p-2 rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/30';
+        DOM.avatarFeedback.textContent = `❌ ${err.message}`;
+        DOM.avatarFeedback.classList.remove('hidden');
+      } finally {
+        DOM.uploadAvatarBtn.disabled = false;
+        DOM.uploadAvatarBtn.innerHTML = '<i class="fas fa-cloud-upload-alt mr-2"></i> Save Uploaded Photo';
+      }
+    });
+  }
+
+  // VIP Preset buttons
+  document.querySelectorAll('.preset-avatar-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!STATE.client) return;
+      const preset = btn.dataset.preset;
+      try {
+        const res = await fetch(`/api/clients/${STATE.client.id}/avatar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ preset }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.message);
+
+        STATE.client.nid_url = json.avatar_url;
+        saveClient(STATE.client);
+        renderAvatar(json.avatar_url, STATE.client.name);
+
+        DOM.avatarFeedback.className = 'text-xs font-bold text-center p-2 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+        DOM.avatarFeedback.textContent = '✅ Selected VIP Preset applied!';
+        DOM.avatarFeedback.classList.remove('hidden');
+        setTimeout(() => {
+          DOM.avatarModal.classList.add('hidden');
+        }, 1200);
+      } catch (err) {
+        DOM.avatarFeedback.className = 'text-xs font-bold text-center p-2 rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/30';
+        DOM.avatarFeedback.textContent = `❌ ${err.message}`;
+        DOM.avatarFeedback.classList.remove('hidden');
+      }
+    });
+  });
+
+  // ─── Telegram OTP Flow ───
+  let clientOtpInterval = null;
+  function startClientOtpCountdown(sec = 300) {
+    clearInterval(clientOtpInterval);
+    let remaining = sec;
+    DOM.resendClientOtpBtn.disabled = true;
+    const tick = () => {
+      const m = String(Math.floor(remaining / 60)).padStart(2, '0');
+      const s = String(remaining % 60).padStart(2, '0');
+      DOM.clientOtpTimer.textContent = `Expires in ${m}:${s}`;
+      if (remaining <= 0) {
+        clearInterval(clientOtpInterval);
+        DOM.clientOtpTimer.textContent = 'Code expired';
+        DOM.resendClientOtpBtn.disabled = false;
+      }
+      remaining--;
+    };
+    tick();
+    clientOtpInterval = setInterval(tick, 1000);
+  }
+
+  async function requestClientOtp() {
+    const phone = DOM.phoneInput.value.trim();
+    if (!phone) {
+      DOM.phoneError.textContent = 'Please enter your phone number.';
+      DOM.phoneError.classList.remove('hidden');
+      return;
+    }
+
+    DOM.sendClientOtpBtn.disabled = true;
+    DOM.sendClientOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Sending OTP...';
+    DOM.phoneError.classList.add('hidden');
+
+    try {
+      const res = await fetch('/api/auth/request-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message);
+
+      DOM.loginStepPhone.classList.add('hidden');
+      DOM.loginStepOtp.classList.remove('hidden');
+      DOM.clientOtpInput.value = '';
+      DOM.clientOtpInput.focus();
+      startClientOtpCountdown(json.expires_in || 300);
+    } catch (err) {
+      DOM.phoneError.textContent = err.message;
+      DOM.phoneError.classList.remove('hidden');
+    } finally {
+      DOM.sendClientOtpBtn.disabled = false;
+      DOM.sendClientOtpBtn.innerHTML = '<i class="fab fa-telegram-plane mr-2"></i> Send Telegram OTP';
+    }
+  }
+
+  if (DOM.sendClientOtpBtn) {
+    DOM.sendClientOtpBtn.addEventListener('click', requestClientOtp);
+  }
+
+  if (DOM.resendClientOtpBtn) {
+    DOM.resendClientOtpBtn.addEventListener('click', requestClientOtp);
+  }
+
+  if (DOM.backToPhoneBtn) {
+    DOM.backToPhoneBtn.addEventListener('click', () => {
+      clearInterval(clientOtpInterval);
+      DOM.loginStepOtp.classList.add('hidden');
+      DOM.loginStepPhone.classList.remove('hidden');
+      DOM.phoneError.classList.add('hidden');
+    });
+  }
+
+  if (DOM.verifyClientOtpBtn) {
+    DOM.verifyClientOtpBtn.addEventListener('click', async () => {
+      const phone = DOM.phoneInput.value.trim();
+      const code = DOM.clientOtpInput.value.trim();
+
+      if (!code || code.length < 6) {
+        DOM.phoneError.textContent = 'Please enter the 6-digit code sent to Telegram.';
+        DOM.phoneError.classList.remove('hidden');
+        return;
+      }
+
+      DOM.verifyClientOtpBtn.disabled = true;
+      DOM.verifyClientOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Verifying...';
+      DOM.phoneError.classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/auth/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, code }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.message);
+
+        clearInterval(clientOtpInterval);
+        saveClient(json.client);
+        closeLoginModal();
+        renderClientUI(json.client);
+        if (json.limits) {
+          applyLimits(json.limits);
+        } else {
+          await fetchLimits(json.client.id);
+        }
+        await fetchClientLoans(json.client.id);
+      } catch (err) {
+        DOM.phoneError.textContent = err.message;
+        DOM.phoneError.classList.remove('hidden');
+      } finally {
+        DOM.verifyClientOtpBtn.disabled = false;
+        DOM.verifyClientOtpBtn.innerHTML = '<i class="fas fa-lock-open mr-2"></i> Verify & Enter Portal';
+      }
+    });
+  }
 
   // Close receipt lightbox
   const closeReceiptBtn = document.getElementById('closeClientReceiptBtn');

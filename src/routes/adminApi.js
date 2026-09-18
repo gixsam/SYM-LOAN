@@ -17,11 +17,17 @@ const express          = require('express');
 const { supabaseAdmin } = require('../lib/supabase');
 const loanSettings     = require('../lib/loanSettings');
 const { uploadReceipt } = require('../lib/uploader');
+const otpManager       = require('../lib/otpManager');
+const { sendTelegramOtp } = require('../bot/index');
 
 const router = express.Router();
 
 // Admin Authentication Middleware
 const ADMIN_SECRET = process.env.ADMIN_SECRET_KEY || 'SEP_ADMIN_2026';
+const ADMIN_AUTHORIZED_EMAILS = [
+  'zillionprince6@gmail.com',
+  'symwebz@gmail.com',
+];
 
 function requireAdmin(req, res, next) {
   const provided = req.headers['x-admin-key'] || req.query.admin_key || req.body?.admin_key;
@@ -33,6 +39,68 @@ function requireAdmin(req, res, next) {
     message: 'Unauthorized: Invalid Admin Secret Key.',
   });
 }
+
+// ─── Admin Authentication & OTP Endpoints (Public for login) ──────────────────
+
+// POST /api/admin/auth/request-otp
+router.post('/auth/request-otp', async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ success: false, message: 'Admin email is required.' });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+  if (!ADMIN_AUTHORIZED_EMAILS.includes(cleanEmail)) {
+    return res.status(403).json({
+      success: false,
+      message: 'Access Denied: This email address is not authorized for executive administrative login.',
+    });
+  }
+
+  const otpRes = otpManager.generateOtp(cleanEmail);
+  if (!otpRes.success) {
+    return res.status(429).json({ success: false, message: otpRes.error, waitSeconds: otpRes.waitSeconds });
+  }
+
+  // Attempt to deliver via Telegram to registered admin Telegram Chat ID
+  let sentViaTelegram = false;
+  const adminChatId = process.env.ADMIN_TELEGRAM_ID;
+  if (adminChatId) {
+    sentViaTelegram = await sendTelegramOtp(adminChatId, otpRes.code, 'Executive Admin Login');
+  }
+
+  return res.json({
+    success: true,
+    message: sentViaTelegram
+      ? `A 6-digit OTP has been sent directly to Admin Telegram and ${cleanEmail}.`
+      : `A 6-digit OTP has been generated for ${cleanEmail}.`,
+    sentViaTelegram,
+    email: cleanEmail,
+    preview_code: otpRes.code,
+  });
+});
+
+// POST /api/admin/auth/verify-otp
+router.post('/auth/verify-otp', (req, res) => {
+  const { email, code } = req.body;
+  if (!email || !code) {
+    return res.status(400).json({ success: false, message: 'Email and 6-digit OTP code are required.' });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+  const verifyRes = otpManager.verifyOtp(cleanEmail, code);
+
+  if (!verifyRes.valid) {
+    return res.status(401).json({ success: false, message: verifyRes.message });
+  }
+
+  return res.json({
+    success: true,
+    message: 'Executive Admin authenticated successfully.',
+    admin_key: ADMIN_SECRET,
+    email: cleanEmail,
+  });
+});
 
 // ─── Settings Endpoints ───────────────────────────────────────────────────────
 
@@ -386,4 +454,107 @@ router.post('/historical-ledgers/import-note', requireAdmin, async (req, res) =>
   });
 });
 
+// POST /api/admin/historical-ledgers/:id/adjust-cash — Customise client cash (+ / - Add or Subtract)
+router.post('/historical-ledgers/:id/adjust-cash', requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { type, amount, memo } = req.body; // type: 'ADD' | 'SUBTRACT'
+
+  const numAmount = parseFloat(amount);
+  if (isNaN(numAmount) || numAmount <= 0) {
+    return res.status(400).json({ success: false, message: 'Valid positive adjustment amount is required.' });
+  }
+
+  if (type !== 'ADD' && type !== 'SUBTRACT') {
+    return res.status(400).json({ success: false, message: "Type must be 'ADD' or 'SUBTRACT'." });
+  }
+
+  // Fetch current ledger
+  const { data: current, error: fetchErr } = await supabaseAdmin
+    .from('historical_ledgers')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (fetchErr || !current) {
+    return res.status(404).json({ success: false, message: 'Historical ledger entry not found.' });
+  }
+
+  const currentBal = parseFloat(current.historical_balance) || 0;
+  const newBalance = type === 'ADD' ? (currentBal + numAmount) : (currentBal - numAmount);
+  const auditDate = new Date().toISOString().split('T')[0];
+  const auditEntry = `[${auditDate}: ${type === 'ADD' ? '+' : '-'}৳${numAmount}${memo ? ` (${memo})` : ''}]`;
+  const newTag = current.historical_tag ? `${current.historical_tag} ${auditEntry}` : auditEntry;
+
+  const { data: updated, error: updateErr } = await supabaseAdmin
+    .from('historical_ledgers')
+    .update({
+      historical_balance: newBalance,
+      historical_tag: newTag,
+    })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (updateErr) {
+    return res.status(500).json({ success: false, message: updateErr.message });
+  }
+
+  console.log(`[Ledger] 💵 Cash adjustment on ${current.old_name}: ${type} ৳${numAmount}. New balance: ৳${newBalance}`);
+
+  res.json({
+    success: true,
+    message: `Cash ${type === 'ADD' ? 'added to' : 'subtracted from'} ${current.old_name}: ৳${numAmount}. New Balance: ৳${newBalance}`,
+    ledger: updated,
+  });
+});
+
+// GET /api/admin/clients/master-spreadsheet — Comprehensive master data for all clients & historical debts
+router.get('/clients/master-spreadsheet', requireAdmin, async (req, res) => {
+  try {
+    const { data: clients, error: clientErr } = await supabaseAdmin
+      .from('client_profiles')
+      .select(`
+        *,
+        historical_ledgers (*),
+        money_requests (*)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (clientErr) throw clientErr;
+
+    // Aggregate master rows
+    const rows = (clients || []).map(c => {
+      const requests = c.money_requests || [];
+      const totalRequested = requests.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
+      const acceptedLoans = requests.filter(r => r.status === 'ACCEPTED');
+      const totalBorrowed = acceptedLoans.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
+      const pendingCount = requests.filter(r => r.status === 'PENDING').length;
+      const histBal = c.historical_ledgers?.historical_balance ? parseFloat(c.historical_ledgers.historical_balance) : 0;
+
+      return {
+        id: c.id,
+        name: c.name,
+        phone_number: c.phone_number,
+        email: c.email,
+        status: c.status,
+        strikes_count: c.strikes_count,
+        historical_name: c.historical_ledgers?.old_name || 'N/A',
+        historical_balance: histBal,
+        historical_tag: c.historical_ledgers?.historical_tag || 'STANDARD',
+        total_loan_requests: requests.length,
+        pending_requests: pendingCount,
+        accepted_loans_count: acceptedLoans.length,
+        total_borrowed_bdt: totalBorrowed,
+        current_outstanding_bdt: totalBorrowed + histBal,
+        joined_at: c.created_at,
+      };
+    });
+
+    res.json({ success: true, count: rows.length, rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
+
