@@ -147,6 +147,11 @@
           <i class="fas fa-clipboard-check text-emerald-400 w-5"></i>
           <span>Loan Application Review</span>
         </a>
+        <a href="#repaymentsDeskSection" class="drawer-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition">
+          <i class="fas fa-hand-holding-usd text-emerald-400 w-5"></i>
+          <span>Repayments Settlement Desk</span>
+          <span id="repaymentsPendingDrawerBadge" class="ml-auto px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">0</span>
+        </a>
         <a href="#historicalLedgerSection" class="drawer-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition">
           <i class="fas fa-sticky-note text-amber-400 w-5"></i>
           <span>Copy and Paste from Google Notes</span>
@@ -276,6 +281,91 @@
             <tr>
               <td colspan="7" class="p-6 text-center text-slate-500 text-xs">
                 <i class="fas fa-spinner fa-spin mr-2"></i> Loading KYC submissions...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ─── PHASE 9: CLIENT REPAYMENTS & SETTLEMENT DESK ─────────────────────── -->
+    <div id="repaymentsDeskSection" class="glass-card p-6 border-emerald-500/40 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-base border border-emerald-500/30">
+            <i class="fas fa-hand-holding-usd"></i>
+          </div>
+          <div>
+            <h2 class="text-base font-extrabold text-white flex items-center">
+              Repayments & Reconciliation Desk
+              <span id="repaymentsPendingCounterBadge" class="ml-2 text-[10px] font-mono bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30 font-bold">0 PENDING</span>
+            </h2>
+            <p class="text-[11px] text-slate-400">Audit client repayments, match TrxIDs and receipt screenshots, and 1-click issue zero-liability clearance</p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Status Filter Tabs -->
+          <div class="flex items-center bg-black/40 p-0.5 rounded-lg border border-white/10 text-xs">
+            <button type="button" class="rep-filter-btn px-2.5 py-1 rounded-md font-bold transition bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 cursor-pointer" data-status="ALL">All</button>
+            <button type="button" class="rep-filter-btn px-2.5 py-1 rounded-md font-bold transition text-slate-400 hover:text-white cursor-pointer" data-status="PENDING_REVIEW">Pending</button>
+            <button type="button" class="rep-filter-btn px-2.5 py-1 rounded-md font-bold transition text-slate-400 hover:text-white cursor-pointer" data-status="VERIFIED">Verified</button>
+            <button type="button" class="rep-filter-btn px-2.5 py-1 rounded-md font-bold transition text-slate-400 hover:text-white cursor-pointer" data-status="REJECTED">Rejected</button>
+          </div>
+
+          <button type="button" id="refreshRepaymentsBtn" class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition flex items-center cursor-pointer">
+            <i class="fas fa-sync-alt mr-1.5"></i> Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Strip -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+        <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+          <div class="text-[10px] font-extrabold text-amber-400 uppercase flex items-center">
+            <i class="fas fa-hourglass-half mr-1"></i> Pending Audit
+          </div>
+          <div class="text-base sm:text-lg font-mono font-black text-amber-300 mt-1" id="repMetricPending">0 (৳ 0)</div>
+        </div>
+        <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+          <div class="text-[10px] font-extrabold text-emerald-400 uppercase flex items-center">
+            <i class="fas fa-check-double mr-1"></i> Verified & Settled
+          </div>
+          <div class="text-base sm:text-lg font-mono font-black text-emerald-300 mt-1" id="repMetricVerified">0 (৳ 0)</div>
+        </div>
+        <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30">
+          <div class="text-[10px] font-extrabold text-rose-400 uppercase flex items-center">
+            <i class="fas fa-times-circle mr-1"></i> Rejected
+          </div>
+          <div class="text-base sm:text-lg font-mono font-black text-rose-300 mt-1" id="repMetricRejected">0</div>
+        </div>
+        <div class="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
+          <div class="text-[10px] font-extrabold text-cyan-400 uppercase flex items-center">
+            <i class="fas fa-vault mr-1"></i> Total Discharged
+          </div>
+          <div class="text-base sm:text-lg font-mono font-black text-cyan-300 mt-1" id="repMetricTotalSettled">৳ 0</div>
+        </div>
+      </div>
+
+      <!-- Repayments Table -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead>
+            <tr class="border-b border-white/10 text-[11px] font-mono text-slate-400 uppercase bg-[#0d1527]">
+              <th class="py-2.5 px-3">Ref / Submitted</th>
+              <th class="py-2.5 px-3">Client & Contact</th>
+              <th class="py-2.5 px-3">Loan Ref & Principal</th>
+              <th class="py-2.5 px-3">Amount Paid</th>
+              <th class="py-2.5 px-3">Method & Sender</th>
+              <th class="py-2.5 px-3">TrxID / Proof</th>
+              <th class="py-2.5 px-3">Status</th>
+              <th class="py-2.5 px-3 text-right">Reconciliation Actions</th>
+            </tr>
+          </thead>
+          <tbody id="repaymentsTableBody">
+            <tr>
+              <td colspan="8" class="p-6 text-center text-slate-500">
+                <i class="fas fa-spinner fa-spin mr-2"></i> Loading repayments ledger...
               </td>
             </tr>
           </tbody>
@@ -1764,6 +1854,32 @@
       <div class="pt-3 border-t border-white/10 flex justify-end shrink-0">
         <button type="button" id="termsModalOkBtn" class="btn-gold px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer">
           I Understand & Agree
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── REPAYMENT RECEIPT LIGHTBOX MODAL ─────────────────────────────────── -->
+  <div id="adminRepaymentReceiptModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="max-w-2xl w-full glass-card p-5 space-y-4 relative border-emerald-500/40 shadow-2xl flex flex-col max-h-[92vh]">
+      <div class="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
+        <div class="flex items-center space-x-2">
+          <i class="fas fa-receipt text-emerald-400"></i>
+          <h3 class="text-sm font-extrabold text-white" id="adminReceiptModalTitle">Payment Receipt Proof</h3>
+        </div>
+        <button type="button" id="closeAdminRepaymentReceiptBtn" class="text-slate-400 hover:text-white text-lg p-1 cursor-pointer">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="overflow-auto flex-1 flex items-center justify-center bg-black/80 rounded-xl p-2 border border-white/5">
+        <img id="adminRepaymentReceiptImg" src="" alt="Repayment Screenshot" class="max-h-[68vh] w-auto object-contain rounded-lg shadow-lg">
+      </div>
+      <div class="flex items-center justify-between pt-2 border-t border-white/10 shrink-0 text-xs">
+        <a id="adminRepaymentReceiptOpenLink" href="#" target="_blank" class="text-emerald-400 hover:underline flex items-center">
+          <i class="fas fa-external-link-alt mr-1.5"></i> Open Full Image In New Tab
+        </a>
+        <button type="button" onclick="document.getElementById('adminRepaymentReceiptModal').classList.add('hidden')" class="px-4 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 font-bold transition cursor-pointer">
+          Close Preview
         </button>
       </div>
     </div>

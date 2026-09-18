@@ -356,6 +356,7 @@ async function loadAllData() {
     await fetchClients();
     await fetchKycList();
     await fetchLoans();
+    await fetchRepayments();
     await fetchHistoricalLedgers();
     await fetchMasterSpreadsheet();
     await fetchUpcomingRepaymentsAnalytics();
@@ -846,7 +847,22 @@ async function fetchNotifications() {
     if (!json.success) return;
 
     const notifs = json.notifications || [];
-    const count = json.total_pending !== undefined ? json.total_pending : notifs.length;
+    const repPending = json.pending_repayments || [];
+
+    // Combine repayments into alerts tray
+    const allNotifs = [...notifs];
+    repPending.forEach(r => {
+      allNotifs.push({
+        id: 'rep-' + r.id,
+        type: 'REPAYMENT',
+        title: `Repayment Audit: ৳${parseFloat(r.amount_paid).toLocaleString()} (${r.payout_method})`,
+        client_name: r.client_name,
+        phone_number: r.client_phone || r.sender_number,
+        time_ago: new Date(r.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      });
+    });
+
+    const count = json.count !== undefined ? json.count : (json.total_pending !== undefined ? json.total_pending : allNotifs.length);
 
     if (DOM.adminNotifBadge) {
       DOM.adminNotifBadge.textContent = count;
@@ -861,8 +877,13 @@ async function fetchNotifications() {
       DOM.notifTrayCountBadge.textContent = `${count} PENDING`;
     }
 
+    const repDrawerBadge = document.getElementById('repaymentsPendingDrawerBadge');
+    const repCounterBadge = document.getElementById('repaymentsPendingCounterBadge');
+    if (repDrawerBadge) repDrawerBadge.textContent = repPending.length;
+    if (repCounterBadge) repCounterBadge.textContent = `${repPending.length} PENDING`;
+
     if (DOM.notificationList) {
-      if (notifs.length === 0) {
+      if (allNotifs.length === 0) {
         DOM.notificationList.innerHTML = `
           <div class="py-6 text-center text-slate-500 text-xs">
             <i class="fas fa-bell-slash text-base mb-1 block opacity-40"></i>
@@ -870,10 +891,19 @@ async function fetchNotifications() {
           </div>
         `;
       } else {
-        DOM.notificationList.innerHTML = notifs.map(n => {
+        DOM.notificationList.innerHTML = allNotifs.map(n => {
           const isKyc = n.type === 'KYC';
-          const icon = isKyc ? 'fa-id-card text-amber-400' : 'fa-file-invoice-dollar text-emerald-400';
-          const targetSection = isKyc ? '#kycReviewSection' : '#loanInboxSection';
+          const isRep = n.type === 'REPAYMENT';
+          let icon = 'fa-file-invoice-dollar text-emerald-400';
+          let targetSection = '#loanInboxSection';
+          if (isKyc) {
+            icon = 'fa-id-card text-amber-400';
+            targetSection = '#kycReviewSection';
+          } else if (isRep) {
+            icon = 'fa-hand-holding-usd text-emerald-400';
+            targetSection = '#repaymentsDeskSection';
+          }
+
           return `
             <div class="p-2.5 rounded-lg bg-black/40 hover:bg-white/5 border border-white/5 transition flex items-start justify-between space-x-2">
               <div class="flex items-start space-x-2.5">
@@ -898,6 +928,200 @@ async function fetchNotifications() {
     // Background polling silent catch
   }
 }
+
+// ─── Phase 9: Repayments & Settlement Desk ────────────────────────────────────
+let REPAYMENTS_CACHE = [];
+let ACTIVE_REPAYMENT_FILTER = 'ALL';
+
+async function fetchRepayments(status = ACTIVE_REPAYMENT_FILTER) {
+  try {
+    const url = status && status !== 'ALL' 
+      ? `/api/admin/repayments?status=${encodeURIComponent(status)}`
+      : '/api/admin/repayments';
+
+    const res = await fetch(url, { headers: getHeaders() });
+    if (!res.ok) return;
+    const json = await res.json();
+    if (!json.success) return;
+
+    REPAYMENTS_CACHE = json.data || [];
+    const stats = json.stats || { pending: 0, verified: 0, rejected: 0, total_settled_amount: 0, total_pending_amount: 0 };
+
+    // Update Quick Metric Pills
+    const repPendingEl = document.getElementById('repMetricPending');
+    const repVerifiedEl = document.getElementById('repMetricVerified');
+    const repRejectedEl = document.getElementById('repMetricRejected');
+    const repSettledEl = document.getElementById('repMetricTotalSettled');
+    const repCounterBadge = document.getElementById('repaymentsPendingCounterBadge');
+    const repDrawerBadge = document.getElementById('repaymentsPendingDrawerBadge');
+
+    if (repPendingEl) repPendingEl.textContent = `${stats.pending} (৳ ${stats.total_pending_amount.toLocaleString()})`;
+    if (repVerifiedEl) repVerifiedEl.textContent = `${stats.verified} (৳ ${stats.total_settled_amount.toLocaleString()})`;
+    if (repRejectedEl) repRejectedEl.textContent = `${stats.rejected}`;
+    if (repSettledEl) repSettledEl.textContent = `৳ ${stats.total_settled_amount.toLocaleString()}`;
+    if (repCounterBadge) repCounterBadge.textContent = `${stats.pending} PENDING`;
+    if (repDrawerBadge) repDrawerBadge.textContent = stats.pending;
+
+    renderRepaymentsTable(REPAYMENTS_CACHE);
+  } catch (err) {
+    console.error('Failed to fetch repayments:', err);
+  }
+}
+
+function renderRepaymentsTable(list) {
+  const tbody = document.getElementById('repaymentsTableBody');
+  if (!tbody) return;
+
+  if (!list || list.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" class="p-6 text-center text-slate-500 text-xs">
+          <i class="fas fa-hand-holding-usd text-2xl mb-1.5 block opacity-40"></i>
+          No repayment records found for the selected filter.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = list.map(r => {
+    let statusBadge = '';
+    if (r.status === 'VERIFIED') {
+      statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center w-fit"><i class="fas fa-check-circle mr-1 text-emerald-400"></i> Settled</span>`;
+    } else if (r.status === 'REJECTED') {
+      statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center w-fit"><i class="fas fa-times-circle mr-1 text-rose-400"></i> Rejected</span>`;
+    } else {
+      statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center w-fit"><i class="fas fa-hourglass-half mr-1 text-amber-400 animate-spin"></i> In Review</span>`;
+    }
+
+    const dateFormatted = new Date(r.submitted_at).toLocaleDateString();
+    const timeFormatted = new Date(r.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    return `
+      <tr class="border-b border-white/5 hover:bg-white/[0.02] text-xs transition">
+        <td class="py-3 px-3">
+          <div class="font-mono text-amber-400 font-bold">#SEP-RP-${r.id.slice(0, 6).toUpperCase()}</div>
+          <div class="text-[10px] text-slate-400">${dateFormatted} ${timeFormatted}</div>
+        </td>
+        <td class="py-3 px-3">
+          <div class="font-bold text-white">${escapeHtml(r.client_name)}</div>
+          <div class="font-mono text-[11px] text-emerald-400">${escapeHtml(r.client_phone || '—')}</div>
+        </td>
+        <td class="py-3 px-3">
+          <div class="font-mono text-slate-300">#${r.loan_id.slice(0, 8)}</div>
+          <div class="text-[10px] text-slate-400">Principal: <b class="text-slate-200">৳${parseFloat(r.loan_amount || 0).toLocaleString()}</b></div>
+        </td>
+        <td class="py-3 px-3">
+          <div class="font-black text-emerald-400 font-mono text-sm">৳${parseFloat(r.amount_paid).toLocaleString()}</div>
+        </td>
+        <td class="py-3 px-3">
+          <span class="font-bold text-white">${escapeHtml(r.payout_method)}</span>
+          <div class="font-mono text-[10px] text-slate-400">${escapeHtml(r.sender_number || '—')}</div>
+        </td>
+        <td class="py-3 px-3">
+          <div class="font-mono font-bold text-amber-300 text-[11px] select-all">${escapeHtml(r.trx_id || 'N/A')}</div>
+          ${r.receipt_image_url ? `
+            <button onclick="viewRepaymentReceipt('${r.receipt_image_url}', '${r.trx_id}')" class="mt-1 px-2 py-0.5 rounded bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/30 text-[10px] font-bold transition flex items-center cursor-pointer">
+              <i class="fas fa-image mr-1 text-blue-400"></i> View Proof
+            </button>
+          ` : '<span class="text-[10px] text-slate-500">No receipt photo</span>'}
+        </td>
+        <td class="py-3 px-3">
+          ${statusBadge}
+        </td>
+        <td class="py-3 px-3 text-right">
+          <div class="flex items-center justify-end space-x-1.5">
+            ${r.status === 'PENDING_REVIEW' ? `
+              <button onclick="approveRepayment('${r.id}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[10px] font-black uppercase tracking-wider transition shadow flex items-center cursor-pointer" title="Verify & Issue Clearance">
+                <i class="fas fa-check-circle mr-1"></i> Verify & Settle
+              </button>
+              <button onclick="rejectRepayment('${r.id}')" class="px-2 py-1 bg-rose-600/80 hover:bg-rose-600 text-white rounded text-[10px] font-bold transition flex items-center cursor-pointer" title="Reject Submission">
+                <i class="fas fa-times mr-1"></i> Reject
+              </button>
+            ` : ''}
+
+            ${r.status === 'VERIFIED' ? `
+              <button onclick="adminDownloadClearanceCertificate('${r.loan_id}', '${r.id}')" class="px-2.5 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded text-[10px] font-bold transition flex items-center cursor-pointer" title="Download Official Clearance Certificate">
+                <i class="fas fa-certificate mr-1.5 text-emerald-400"></i> Certificate 📜
+              </button>
+            ` : ''}
+
+            ${r.status === 'REJECTED' ? `
+              <span class="text-[10px] text-slate-400 italic max-w-[120px] truncate block" title="${escapeHtml(r.admin_note || '')}">
+                ${escapeHtml(r.admin_note || 'Rejected')}
+              </span>
+            ` : ''}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+window.approveRepayment = async function(id) {
+  const adminNote = prompt('Enter audit settlement remarks (or leave as default):', 'Verified & settled by Administrator');
+  if (adminNote === null) return; // cancelled
+
+  try {
+    const res = await fetch(`/api/admin/repayments/${id}/approve`, {
+      method: 'POST',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ admin_note: adminNote }),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    alert(`✅ Repayment approved! Loan marked as REPAID.\nClearance Ref: ${json.clearance_hash}`);
+    await fetchRepayments();
+    await fetchLoans();
+    await fetchMasterSpreadsheet();
+    await fetchNotifications();
+  } catch (err) {
+    alert(`Approval Error: ${err.message}`);
+  }
+};
+
+window.rejectRepayment = async function(id) {
+  const reason = prompt('Please specify the reason for rejection (this will be sent to the client):', 'Transaction proof or TrxID could not be verified');
+  if (reason === null) return;
+
+  try {
+    const res = await fetch(`/api/admin/repayments/${id}/reject`, {
+      method: 'POST',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason }),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    alert('⚠️ Repayment rejected.');
+    await fetchRepayments();
+    await fetchNotifications();
+  } catch (err) {
+    alert(`Rejection Error: ${err.message}`);
+  }
+};
+
+window.viewRepaymentReceipt = function(url, trxId) {
+  const modal = document.getElementById('adminRepaymentReceiptModal');
+  const img = document.getElementById('adminRepaymentReceiptImg');
+  const title = document.getElementById('adminReceiptModalTitle');
+  const link = document.getElementById('adminRepaymentReceiptOpenLink');
+
+  if (modal && img) {
+    img.src = url;
+    if (title) title.textContent = `Payment Receipt Proof — TrxID: ${trxId || 'N/A'}`;
+    if (link) link.href = url;
+    modal.classList.remove('hidden');
+  }
+};
+
+window.adminDownloadClearanceCertificate = function(loanId, repaymentId) {
+  const loan = LOANS_CACHE.find(l => l.id === loanId) || { id: loanId, amount: 0 };
+  const client = loan.client_profiles || { name: 'Client', phone_number: '—' };
+  const repayment = REPAYMENTS_CACHE.find(r => r.id === repaymentId) || {};
+  window.generateClearanceCertificatePdf(loan, client, repayment);
+};
 
 // ─── KYC Identity Verification Admin Desk ────────────────────────────────────
 async function fetchKycList() {
@@ -1173,6 +1397,27 @@ function setupEvents() {
     fetchHistoricalLedgers();
     fetchMasterSpreadsheet();
     fetchKycList();
+    fetchRepayments();
+  });
+
+  // Repayments Desk Events (Phase 9)
+  document.getElementById('refreshRepaymentsBtn')?.addEventListener('click', () => {
+    fetchRepayments(ACTIVE_REPAYMENT_FILTER);
+  });
+
+  document.querySelectorAll('.rep-filter-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('.rep-filter-btn').forEach(b => {
+        b.className = 'rep-filter-btn px-2.5 py-1 rounded-md font-bold transition text-slate-400 hover:text-white cursor-pointer';
+      });
+      e.currentTarget.className = 'rep-filter-btn px-2.5 py-1 rounded-md font-bold transition bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 cursor-pointer';
+      ACTIVE_REPAYMENT_FILTER = e.currentTarget.dataset.status;
+      fetchRepayments(ACTIVE_REPAYMENT_FILTER);
+    });
+  });
+
+  document.getElementById('closeAdminRepaymentReceiptBtn')?.addEventListener('click', () => {
+    document.getElementById('adminRepaymentReceiptModal')?.classList.add('hidden');
   });
 
   DOM.closeModalBtn.addEventListener('click', () => {

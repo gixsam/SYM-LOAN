@@ -602,15 +602,31 @@ function renderClientUI(client) {
   }
 }
 
-// ─── Fetch Client Loans ───────────────────────────────────────────────────────
+// ─── Fetch Client Loans & Repayments ───────────────────────────────────────────
 async function fetchClientLoans(clientId) {
   try {
-    const res = await fetch(`/api/clients/${clientId}/loans`, { headers: getAuthHeaders() });
-    const json = await res.json();
-    if (res.ok && json.success) {
-      STATE.loans = json.data || [];
-      renderLoans(STATE.loans);
+    const [loansRes, repRes] = await Promise.all([
+      fetch(`/api/clients/${clientId}/loans`, { headers: getAuthHeaders() }),
+      fetch(`/api/clients/${clientId}/repayments`, { headers: getAuthHeaders() }).catch(() => null)
+    ]);
+    
+    if (loansRes.ok) {
+      const json = await loansRes.json();
+      if (json.success) {
+        STATE.loans = json.data || [];
+      }
     }
+
+    if (repRes && repRes.ok) {
+      const repJson = await repRes.json();
+      if (repJson.success) {
+        STATE.repayments = repJson.data || [];
+      }
+    } else {
+      STATE.repayments = [];
+    }
+
+    renderLoans(STATE.loans);
   } catch (err) {
     console.error('Failed to fetch loans:', err);
   }
@@ -629,12 +645,20 @@ function renderLoans(loans) {
     return;
   }
 
+  const repaymentsList = STATE.repayments || [];
+
   DOM.loansContainer.innerHTML = loans.map(loan => {
     let statusClass = 'bg-amber-500/20 text-amber-400 border-amber-500/30';
     let icon = 'fa-clock';
+    let statusLabel = loan.status;
+
     if (loan.status === 'ACCEPTED') {
       statusClass = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
       icon = 'fa-check-circle';
+    } else if (loan.status === 'REPAID') {
+      statusClass = 'bg-teal-500/20 text-teal-300 border-teal-500/30';
+      icon = 'fa-certificate';
+      statusLabel = 'SETTLED & REPAID';
     } else if (loan.status === 'DECLINED') {
       statusClass = 'bg-rose-500/20 text-rose-400 border-rose-500/30';
       icon = 'fa-times-circle';
@@ -642,6 +666,9 @@ function renderLoans(loans) {
 
     const isOverdue = loan.status === 'ACCEPTED' && new Date(loan.deadline_date) < new Date();
     const d = loan.disbursement || {};
+
+    // Check if there is an active pending repayment for this loan
+    const pendingRepayment = repaymentsList.find(r => r.loan_id === loan.id && r.status === 'PENDING_REVIEW');
 
     // Method badge
     let methodBadge = '';
@@ -686,7 +713,7 @@ function renderLoans(loans) {
             <span class="text-xs font-mono text-slate-400">#${loan.id.slice(0, 6)}</span>
           </div>
           <span class="px-2 py-0.5 rounded text-xs font-bold border uppercase flex items-center ${statusClass}">
-            <i class="fas ${icon} mr-1"></i> ${loan.status}
+            <i class="fas ${icon} mr-1"></i> ${statusLabel}
           </span>
         </div>
 
@@ -700,8 +727,8 @@ function renderLoans(loans) {
 
         ${methodBadge}
 
-        <!-- Actions: Receipt Preview & PDF Voucher Download -->
-        <div class="mt-3 pt-2.5 border-t border-white/5 flex items-center justify-end space-x-2">
+        <!-- Actions: Repayment, Vouchers, Clearance Certificates -->
+        <div class="mt-3 pt-2.5 border-t border-white/5 flex flex-wrap items-center justify-end gap-2">
           ${d.receipt_url ? `
             <button onclick="openClientReceiptModal('${d.receipt_url}')" class="px-2.5 py-1 rounded bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 text-[11px] font-bold border border-blue-500/30 flex items-center">
               <i class="fas fa-image mr-1.5"></i> Payment Proof
@@ -711,6 +738,22 @@ function renderLoans(loans) {
           ${loan.status === 'ACCEPTED' ? `
             <button onclick="clientDownloadVoucher('${loan.id}')" class="px-2.5 py-1 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 text-[11px] font-bold border border-amber-500/30 flex items-center">
               <i class="fas fa-file-pdf mr-1.5 text-amber-400"></i> Voucher (PDF)
+            </button>
+
+            ${pendingRepayment ? `
+              <span class="px-2.5 py-1 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[11px] font-mono font-bold flex items-center">
+                <i class="fas fa-hourglass-half mr-1.5 text-cyan-400 animate-spin"></i> Audit Pending
+              </span>
+            ` : `
+              <button onclick="openClientRepayModal('${loan.id}')" class="px-2.5 py-1 rounded bg-emerald-500 hover:bg-emerald-400 text-black font-black text-[11px] flex items-center transition shadow">
+                <i class="fas fa-hand-holding-usd mr-1.5"></i> Make Repayment
+              </button>
+            `}
+          ` : ''}
+
+          ${loan.status === 'REPAID' ? `
+            <button onclick="clientDownloadClearanceCertificate('${loan.id}')" class="px-3 py-1 rounded-lg bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 text-emerald-300 border border-emerald-500/40 text-[11px] font-black flex items-center transition shadow">
+              <i class="fas fa-certificate mr-1.5 text-emerald-400"></i> Clearance Certificate (PDF) 📜
             </button>
           ` : ''}
         </div>
@@ -736,6 +779,137 @@ window.clientDownloadVoucher = function(loanId) {
   if (!loan) return;
   window.generateLoanVoucherPdf(loan, STATE.client || { name: 'Client' });
 };
+
+window.clientDownloadClearanceCertificate = function(loanId) {
+  const loan = STATE.loans.find(l => l.id === loanId);
+  if (!loan) return;
+  const rep = (STATE.repayments || []).find(r => r.loan_id === loanId && r.status === 'VERIFIED');
+  window.generateClearanceCertificatePdf(loan, STATE.client || { name: 'Client' }, rep || {});
+};
+
+window.openClientRepayModal = function(loanId) {
+  const loan = STATE.loans.find(l => l.id === loanId);
+  if (!loan) return;
+
+  const modal = document.getElementById('clientRepayModal');
+  if (!modal) return;
+
+  const loanRefEl = document.getElementById('repayModalLoanRef');
+  const loanAmtEl = document.getElementById('repayModalLoanAmount');
+  const deadlineEl = document.getElementById('repayModalDeadline');
+  const loanIdInput = document.getElementById('repayLoanId');
+  const clientIdInput = document.getElementById('repayClientId');
+  const amountInput = document.getElementById('repayAmountInput');
+  const senderPhoneInput = document.getElementById('repaySenderNumberInput');
+  const noticeEl = document.getElementById('repayFormNotice');
+
+  if (loanRefEl) loanRefEl.textContent = `#SEP-LN-${loan.id.slice(0, 8).toUpperCase()}`;
+  if (deadlineEl) deadlineEl.textContent = loan.deadline_date || 'N/A';
+
+  const amountVal = parseFloat(loan.amount) || 0;
+  if (loanAmtEl) loanAmtEl.textContent = `৳${amountVal.toLocaleString()}`;
+  if (amountInput) amountInput.value = amountVal;
+
+  if (loanIdInput) loanIdInput.value = loan.id;
+  if (clientIdInput) clientIdInput.value = STATE.client?.id || loan.client_id || '';
+
+  if (senderPhoneInput && STATE.client?.phone_number) {
+    senderPhoneInput.value = STATE.client.phone_number;
+  }
+
+  if (noticeEl) {
+    noticeEl.classList.add('hidden');
+    noticeEl.textContent = '';
+  }
+
+  modal.classList.remove('hidden');
+};
+
+window.closeClientRepayModal = function() {
+  const modal = document.getElementById('clientRepayModal');
+  if (modal) modal.classList.add('hidden');
+};
+
+async function handleClientRepaymentSubmit(e) {
+  e.preventDefault();
+  const notice = document.getElementById('repayFormNotice');
+  const btn = document.getElementById('submitRepaymentBtn');
+  const form = document.getElementById('clientRepaymentForm');
+
+  const loanId = document.getElementById('repayLoanId')?.value;
+  const clientId = document.getElementById('repayClientId')?.value;
+  const method = document.getElementById('repayMethodSelect')?.value;
+  const amount = document.getElementById('repayAmountInput')?.value;
+  const senderNumber = document.getElementById('repaySenderNumberInput')?.value;
+  const trxId = document.getElementById('repayTrxIdInput')?.value;
+  const note = document.getElementById('repayNoteInput')?.value;
+  const fileInput = document.getElementById('repayReceiptFileInput');
+
+  if (!loanId || !clientId) {
+    if (notice) {
+      notice.className = 'p-2.5 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs block';
+      notice.textContent = 'Missing active loan or client identification. Please re-login.';
+      notice.classList.remove('hidden');
+    }
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('loan_id', loanId);
+  formData.append('client_id', clientId);
+  formData.append('payout_method', method);
+  formData.append('amount_paid', amount);
+  formData.append('sender_number', senderNumber);
+  formData.append('trx_id', trxId);
+  if (note) formData.append('client_note', note);
+  if (STATE.client?.name) formData.append('client_name', STATE.client.name);
+  if (STATE.client?.phone_number) formData.append('client_phone', STATE.client.phone_number);
+
+  if (fileInput && fileInput.files && fileInput.files[0]) {
+    formData.append('receipt_image', fileInput.files[0]);
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Submitting Repayment...';
+  }
+
+  try {
+    const res = await fetch('/api/repayments', {
+      method: 'POST',
+      body: formData,
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message || 'Repayment submission failed.');
+
+    if (notice) {
+      notice.className = 'p-2.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs block';
+      notice.textContent = '✅ Repayment submitted successfully! Sent to executive desk for audit.';
+      notice.classList.remove('hidden');
+    }
+
+    if (STATE.client?.id) {
+      await fetchClientLoans(STATE.client.id);
+      await fetchClientNotifications();
+    }
+
+    setTimeout(() => {
+      closeClientRepayModal();
+      if (form) form.reset();
+    }, 1800);
+  } catch (err) {
+    if (notice) {
+      notice.className = 'p-2.5 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs block';
+      notice.textContent = `Submission Error: ${err.message}`;
+      notice.classList.remove('hidden');
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Submit Repayment For Audit';
+    }
+  }
+}
 
 // ─── Portal View Tab Switcher ────────────────────────────────────────────────
 function switchTab(tabName) {
@@ -2220,6 +2394,10 @@ function setupEventListeners() {
       DOM.submitBtn.innerHTML = 'Submit Money Request <i class="fas fa-paper-plane ml-2"></i>';
     }
   });
+
+  // ─── Repayment Modal & Form Events (Phase 9) ───
+  document.getElementById('closeClientRepayModalBtn')?.addEventListener('click', closeClientRepayModal);
+  document.getElementById('clientRepaymentForm')?.addEventListener('submit', handleClientRepaymentSubmit);
 }
 
 // ─── Progressive Web App (PWA) & Offline Service Worker Registration ───────

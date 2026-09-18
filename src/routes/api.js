@@ -28,9 +28,10 @@ const loanSettings  = require('../lib/loanSettings');
 const { runDeadlineStrikeCheck } = require('../cron/deadlineStrikeEngine');
 const otpManager    = require('../lib/otpManager');
 const { sendTelegramOtp } = require('../bot/index');
-const { uploadAvatar, uploadKycDocs } = require('../lib/uploader');
+const { uploadAvatar, uploadKycDocs, uploadReceipt } = require('../lib/uploader');
 const kycManager    = require('../lib/kycManager');
 const emailService  = require('../lib/emailService');
+const repaymentManager = require('../lib/repaymentManager');
 
 const router = express.Router();
 
@@ -100,7 +101,11 @@ router.get('/client/notifications', async (req, res) => {
     }
 
     if (!client) {
-      return res.json({ success: true, count: 0, unread_count: 0, notifications: [] });
+      if (clientId) {
+        client = { id: clientId, name: 'Client' };
+      } else {
+        return res.json({ success: true, count: 0, unread_count: 0, notifications: [] });
+      }
     }
 
     const notifications = [];
@@ -200,6 +205,52 @@ router.get('/client/notifications', async (req, res) => {
         }
       });
     }
+
+    // 3. Check Repayments Status
+    try {
+      const repayments = repaymentManager.getRepayments({ client_id: client.id });
+      if (repayments && repayments.length > 0) {
+        repayments.slice(0, 5).forEach(rep => {
+          if (rep.status === 'VERIFIED') {
+            notifications.push({
+              id: 'rep-' + rep.id,
+              type: 'REPAYMENT_VERIFIED',
+              title: `Repayment Verified & Settled! 📜`,
+              message: `Your payment of ৳${parseFloat(rep.amount_paid).toLocaleString()} (${rep.payout_method} TrxID: ${rep.trx_id}) is verified. Zero-liability clearance certificate issued!`,
+              icon: 'fa-certificate',
+              color: 'text-emerald-400',
+              badge: 'SETTLED',
+              time_ago: rep.verified_at ? new Date(rep.verified_at).toLocaleDateString() : 'Recent',
+              is_unread: false
+            });
+          } else if (rep.status === 'REJECTED') {
+            notifications.push({
+              id: 'rep-' + rep.id,
+              type: 'REPAYMENT_REJECTED',
+              title: `Repayment Verification Notice ⚠️`,
+              message: rep.admin_note || `Repayment of ৳${parseFloat(rep.amount_paid).toLocaleString()} could not be verified.`,
+              icon: 'fa-exclamation-triangle',
+              color: 'text-rose-400',
+              badge: 'REJECTED',
+              time_ago: rep.rejected_at ? new Date(rep.rejected_at).toLocaleDateString() : 'Recent',
+              is_unread: true
+            });
+          } else if (rep.status === 'PENDING_REVIEW') {
+            notifications.push({
+              id: 'rep-' + rep.id,
+              type: 'REPAYMENT_PENDING',
+              title: `Repayment Audit Pending ⏳`,
+              message: `Payment of ৳${parseFloat(rep.amount_paid).toLocaleString()} (TrxID: ${rep.trx_id}) is currently in the executive audit queue.`,
+              icon: 'fa-hourglass-half',
+              color: 'text-cyan-400',
+              badge: 'AUDITING',
+              time_ago: rep.submitted_at ? new Date(rep.submitted_at).toLocaleDateString() : 'Recent',
+              is_unread: false
+            });
+          }
+        });
+      }
+    } catch (_) {}
 
     const unreadCount = notifications.filter(n => n.is_unread).length;
     res.json({
@@ -732,6 +783,98 @@ router.post('/kyc/submit', async (req, res) => {
     });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// ─── Phase 9: Client Repayments Gateway & Submission ─────────────────────────
+
+// Helper middleware for optional receipt screenshot upload
+function handleRepaymentUpload(req, res, next) {
+  if (req.is('multipart/form-data')) {
+    return uploadReceipt.single('receipt_image')(req, res, (err) => {
+      if (err) {
+        return res.status(400).json({ success: false, message: err.message });
+      }
+      next();
+    });
+  }
+  next();
+}
+
+// POST /api/repayments — Self-service client repayment submission
+router.post('/repayments', handleRepaymentUpload, async (req, res) => {
+  try {
+    const {
+      loan_id,
+      client_id,
+      amount_paid,
+      payout_method,
+      sender_number,
+      trx_id,
+      client_note,
+      loan_amount,
+      client_name,
+      client_phone
+    } = req.body;
+
+    let receipt_image_url = null;
+    if (req.file) {
+      receipt_image_url = `/uploads/receipts/${req.file.filename}`;
+    } else if (req.body.receipt_image_url) {
+      receipt_image_url = req.body.receipt_image_url;
+    }
+
+    const repayment = await repaymentManager.createRepayment({
+      loan_id,
+      client_id,
+      amount_paid,
+      payout_method,
+      sender_number,
+      trx_id,
+      receipt_image_url,
+      client_note,
+      loan_amount,
+      client_name,
+      client_phone
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Repayment submitted successfully. It has been queued for administrative audit.',
+      repayment
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/clients/:id/repayments — Get client's repayment history
+router.get('/clients/:id/repayments', (req, res) => {
+  try {
+    const repayments = repaymentManager.getRepayments({ client_id: req.params.id });
+    res.json({
+      success: true,
+      count: repayments.length,
+      data: repayments
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/repayments/:id — View single repayment
+router.get('/repayments/:id', (req, res) => {
+  try {
+    const repayment = repaymentManager.getRepaymentById(req.params.id);
+    if (!repayment) {
+      return res.status(404).json({ success: false, message: 'Repayment not found.' });
+    }
+    res.json({
+      success: true,
+      repayment
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

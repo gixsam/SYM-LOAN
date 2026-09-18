@@ -22,6 +22,7 @@ const { sendTelegramOtp } = require('../bot/index');
 const kycManager       = require('../lib/kycManager');
 const expenseManager   = require('../lib/expenseManager');
 const executiveSuiteManager = require('../lib/executiveSuiteManager');
+const repaymentManager = require('../lib/repaymentManager');
 
 const router = express.Router();
 
@@ -308,13 +309,17 @@ router.get('/notifications', requireAdmin, async (req, res) => {
       }
     });
 
-    const totalCount = (pendingLoans || []).length + pendingKyc.length;
+    // 3. Fetch pending repayments
+    const pendingRepayments = repaymentManager.getRepayments({ status: 'PENDING_REVIEW' });
+
+    const totalCount = (pendingLoans || []).length + pendingKyc.length + pendingRepayments.length;
 
     res.json({
       success: true,
       count: totalCount,
       pending_loans: pendingLoans || [],
       pending_kyc: pendingKyc,
+      pending_repayments: pendingRepayments,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -1039,6 +1044,60 @@ router.post('/executive-suite/alarms', requireAdmin, (req, res) => {
 router.delete('/executive-suite/alarms/:id', requireAdmin, (req, res) => {
   const removed = executiveSuiteManager.deleteAlarm(req.params.id);
   res.json({ success: true, message: 'Alarm removed.', removed });
+});
+
+// ─── Phase 9: Admin Repayments Reconciliation Desk ───────────────────────────
+
+// GET /api/admin/repayments — List all repayments with filtering and stats
+router.get('/repayments', requireAdmin, (req, res) => {
+  try {
+    const status = req.query.status || 'ALL';
+    const clientId = req.query.client_id;
+    const loanId = req.query.loan_id;
+
+    const list = repaymentManager.getRepayments({
+      status: status !== 'ALL' ? status : undefined,
+      client_id: clientId,
+      loan_id: loanId,
+    });
+
+    const stats = repaymentManager.getStats();
+
+    res.json({
+      success: true,
+      count: list.length,
+      stats,
+      data: list,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/admin/repayments/:id/approve — Verify, settle loan & issue clearance
+router.post('/repayments/:id/approve', requireAdmin, async (req, res) => {
+  try {
+    const result = await repaymentManager.approveRepayment(
+      req.params.id,
+      req.body?.admin_note || 'Verified and settled by Administrator'
+    );
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/admin/repayments/:id/reject — Reject repayment with reason
+router.post('/repayments/:id/reject', requireAdmin, async (req, res) => {
+  try {
+    const result = await repaymentManager.rejectRepayment(
+      req.params.id,
+      req.body?.reason || 'Transaction proof or TrxID could not be verified'
+    );
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
 });
 
 module.exports = router;

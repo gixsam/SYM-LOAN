@@ -1210,6 +1210,162 @@
     </div>
   </div>
 
+  <!-- ─── PHASE 9: CLIENT SELF-SERVICE REPAYMENT MODAL ─────────────────────── -->
+  <div id="clientRepayModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="max-w-lg w-full glass-card p-6 space-y-4 relative border-emerald-500/40 shadow-2xl max-h-[92vh] flex flex-col">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-base border border-emerald-500/30">
+            <i class="fas fa-hand-holding-usd"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-extrabold text-white flex items-center">
+              Make Loan Repayment
+              <span class="ml-2 text-[10px] font-mono bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">SELF-SERVICE</span>
+            </h3>
+            <p class="text-[11px] text-slate-400">SYM EMPIRE PLATFORM (S.E.P.) Direct Settlement</p>
+          </div>
+        </div>
+        <button type="button" id="closeClientRepayModalBtn" class="text-slate-400 hover:text-white text-lg p-1 cursor-pointer">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="overflow-y-auto space-y-4 pr-1 text-xs text-slate-300 flex-1">
+        <!-- Loan Particulars Card -->
+        <div class="p-3.5 rounded-xl bg-black/50 border border-white/10 flex items-center justify-between">
+          <div>
+            <span class="text-[10px] uppercase font-mono text-slate-400 block">Loan Reference</span>
+            <span id="repayModalLoanRef" class="text-xs font-mono font-bold text-amber-400">#SEP-LN-—</span>
+            <div class="text-[10px] text-slate-400 mt-0.5">
+              Due Date: <b id="repayModalDeadline" class="text-slate-200">—</b>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] uppercase font-mono text-slate-400 block">Total Due</span>
+            <span id="repayModalLoanAmount" class="text-lg font-black text-emerald-400 font-mono">৳0</span>
+          </div>
+        </div>
+
+        <!-- Official Receiving Accounts Information Strip with 1-Click Copy -->
+        <div class="p-3.5 rounded-xl bg-gradient-to-br from-amber-500/10 via-black/40 to-emerald-500/10 border border-amber-500/20 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-extrabold text-amber-300 uppercase tracking-wide flex items-center">
+              <i class="fas fa-university mr-1.5 text-amber-400"></i> Official S.E.P. Receiving Accounts
+            </span>
+            <span class="text-[10px] text-slate-400">Send exact amount</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+            <!-- bKash -->
+            <div class="p-2 rounded-lg bg-black/60 border border-pink-500/30 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-pink-400 block text-[10px]">bKash (Personal)</span>
+                <span class="font-mono font-bold text-white text-xs">01612669922</span>
+              </div>
+              <button type="button" onclick="navigator.clipboard.writeText('01612669922'); this.innerHTML='<i class=\'fas fa-check text-emerald-400\'></i>'; setTimeout(() => this.innerHTML='<i class=\'fas fa-copy\'></i>', 1500);" class="p-1.5 text-slate-400 hover:text-white transition" title="Copy Number">
+                <i class="fas fa-copy"></i>
+              </button>
+            </div>
+
+            <!-- Nagad -->
+            <div class="p-2 rounded-lg bg-black/60 border border-orange-500/30 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-orange-400 block text-[10px]">Nagad (Personal)</span>
+                <span class="font-mono font-bold text-white text-xs">01612669922</span>
+              </div>
+              <button type="button" onclick="navigator.clipboard.writeText('01612669922'); this.innerHTML='<i class=\'fas fa-check text-emerald-400\'></i>'; setTimeout(() => this.innerHTML='<i class=\'fas fa-copy\'></i>', 1500);" class="p-1.5 text-slate-400 hover:text-white transition" title="Copy Number">
+                <i class="fas fa-copy"></i>
+              </button>
+            </div>
+
+            <!-- Rocket -->
+            <div class="p-2 rounded-lg bg-black/60 border border-purple-500/30 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-purple-400 block text-[10px]">Rocket (Personal)</span>
+                <span class="font-mono font-bold text-white text-xs">016126699224</span>
+              </div>
+              <button type="button" onclick="navigator.clipboard.writeText('016126699224'); this.innerHTML='<i class=\'fas fa-check text-emerald-400\'></i>'; setTimeout(() => this.innerHTML='<i class=\'fas fa-copy\'></i>', 1500);" class="p-1.5 text-slate-400 hover:text-white transition" title="Copy Number">
+                <i class="fas fa-copy"></i>
+              </button>
+            </div>
+
+            <!-- Bank Wire -->
+            <div class="p-2 rounded-lg bg-black/60 border border-cyan-500/30 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-cyan-400 block text-[10px]">Bank Wire (DBBL)</span>
+                <span class="font-mono font-bold text-white text-xs">123-456-78901</span>
+              </div>
+              <button type="button" onclick="navigator.clipboard.writeText('12345678901'); this.innerHTML='<i class=\'fas fa-check text-emerald-400\'></i>'; setTimeout(() => this.innerHTML='<i class=\'fas fa-copy\'></i>', 1500);" class="p-1.5 text-slate-400 hover:text-white transition" title="Copy Account">
+                <i class="fas fa-copy"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Repayment Submission Form -->
+        <form id="clientRepaymentForm" class="space-y-3">
+          <input type="hidden" id="repayLoanId">
+          <input type="hidden" id="repayClientId">
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="text-[11px] font-bold text-slate-300 block mb-1">Repayment Channel *</label>
+              <select id="repayMethodSelect" required class="w-full bg-black/60 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400 cursor-pointer">
+                <option value="BKASH" selected>bKash Send Money</option>
+                <option value="NAGAD">Nagad Send Money</option>
+                <option value="ROCKET">Rocket Transfer</option>
+                <option value="BANK WIRE">Bank Wire / Transfer</option>
+                <option value="CASH">Hand-to-Hand Cash</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="text-[11px] font-bold text-slate-300 block mb-1">Amount Paid (৳) *</label>
+              <input type="number" id="repayAmountInput" required min="1" step="1" class="w-full bg-black/60 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono font-bold focus:outline-none focus:border-emerald-400">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="text-[11px] font-bold text-slate-300 block mb-1">Sender Mobile / Account *</label>
+              <input type="text" id="repaySenderNumberInput" placeholder="e.g. 017xxxxxxxx" required class="w-full bg-black/60 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-400">
+            </div>
+
+            <div>
+              <label class="text-[11px] font-bold text-slate-300 block mb-1">Transaction ID (TrxID) *</label>
+              <input type="text" id="repayTrxIdInput" placeholder="e.g. BL8291X0K" required class="w-full bg-black/60 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono font-bold uppercase focus:outline-none focus:border-emerald-400">
+            </div>
+          </div>
+
+          <div>
+            <label class="text-[11px] font-bold text-slate-300 block mb-1">
+              Payment Screenshot Receipt (Optional but Recommended)
+            </label>
+            <input type="file" id="repayReceiptFileInput" accept="image/*" class="w-full bg-black/60 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-300 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[11px] file:font-bold file:bg-emerald-500/20 file:text-emerald-300 hover:file:bg-emerald-500/30 cursor-pointer">
+            <span class="text-[10px] text-slate-500 mt-0.5 block">Attaching an authentic screenshot guarantees swift 1-click administrative clearance.</span>
+          </div>
+
+          <div>
+            <label class="text-[11px] font-bold text-slate-300 block mb-1">Remarks / Note (Optional)</label>
+            <input type="text" id="repayNoteInput" placeholder="e.g. Settling full loan via personal bKash" class="w-full bg-black/60 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400">
+          </div>
+
+          <!-- Status Notice Area -->
+          <div id="repayFormNotice" class="hidden p-2.5 rounded-xl text-xs"></div>
+
+          <div class="pt-2">
+            <button type="submit" id="submitRepaymentBtn" class="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center transition cursor-pointer shadow-lg shadow-emerald-500/20">
+              <i class="fas fa-check-circle mr-2"></i> Submit Repayment For Audit
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Tesseract.js Optical Character Recognition (OCR) Engine -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <!-- Client Application Script -->

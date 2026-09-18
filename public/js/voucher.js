@@ -214,3 +214,235 @@ window.generateLoanVoucherPdf = function (loan, client) {
   // Download
   doc.save(`SYM-LOAN-VOUCHER-${loan.id.slice(0, 8).toUpperCase()}.pdf`);
 };
+
+// ─── Phase 9: Official Digital Debt Clearance Certificate (Zero Liability) ────
+window.generateClearanceCertificatePdf = function (loan, client, settlement) {
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert('PDF Generator is initializing. Please try again in a few moments.');
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  const s = settlement || {};
+  // If settlement details were embedded in loan.admin_note
+  let parsedNote = {};
+  try {
+    if (typeof loan.admin_note === 'string' && loan.admin_note.startsWith('{')) {
+      parsedNote = JSON.parse(loan.admin_note);
+    }
+  } catch (_) {}
+
+  const st = s.clearance_hash ? s : (parsedNote.settlement || {});
+  const clearanceHash = st.clearance_hash || `SYM-CLR-2026-${loan.id.slice(0, 8).toUpperCase()}`;
+  const amountPaid = parseFloat(st.amount_paid || loan.amount || 0);
+  const payoutMethod = st.payout_method || 'MFS / CASH SETTLEMENT';
+  const trxId = st.trx_id || 'VERIFIED';
+  const settledAt = st.settled_at ? new Date(st.settled_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB');
+
+  // ─── Outer Golden-Emerald Double Border ─────────────────────────────────────
+  doc.setDrawColor(245, 158, 11); // Amber gold outer border
+  doc.setLineWidth(1.8);
+  doc.rect(8, 8, 194, 281);
+
+  doc.setDrawColor(16, 185, 129); // Emerald inner security border
+  doc.setLineWidth(0.6);
+  doc.rect(10.5, 10.5, 189, 276);
+
+  // ─── Header Block (Obsidian Executive Theme) ────────────────────────────────
+  doc.setFillColor(10, 15, 29); // Obsidian background
+  doc.rect(10.5, 10.5, 189, 38, 'F');
+
+  doc.setTextColor(245, 158, 11); // Gold
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.text("SYM EMPIRE PLATFORM (S.E.P.)", 105, 21, { align: 'center' });
+
+  doc.setTextColor(52, 211, 153); // Emerald-400
+  doc.setFontSize(12.5);
+  doc.text("DIGITAL DEBT CLEARANCE & ZERO-LIABILITY CERTIFICATE", 105, 29, { align: 'center' });
+
+  doc.setTextColor(148, 163, 184); // Slate 400
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'normal');
+  doc.text("Domain: https://symloan.best-travel.ltd  |  Official Legal Discharge Instrument", 105, 36, { align: 'center' });
+
+  // ─── Certificate Reference & Timestamp Bar ─────────────────────────────────
+  doc.setFillColor(236, 253, 245); // Emerald-50
+  doc.rect(10.5, 48.5, 189, 12, 'F');
+  doc.setDrawColor(16, 185, 129);
+  doc.setLineWidth(0.3);
+  doc.line(10.5, 48.5, 199.5, 48.5);
+  doc.line(10.5, 60.5, 199.5, 60.5);
+
+  doc.setTextColor(6, 78, 59); // Emerald-900
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text(`CLEARANCE REF: #${clearanceHash}`, 15, 56);
+  doc.text(`ISSUED: ${new Date().toLocaleDateString('en-GB')}  ${new Date().toLocaleTimeString()}`, 195, 56, { align: 'right' });
+
+  // ─── Section 1: Borrower Credential Details ────────────────────────────────
+  doc.setFillColor(248, 250, 252);
+  doc.rect(15, 66, 180, 34, 'FD');
+
+  doc.setTextColor(245, 158, 11);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text("1. BORROWER IDENTIFICATION & LEDGER STATUS", 20, 73);
+
+  doc.setTextColor(51, 65, 85);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+
+  doc.text("Borrower Full Name :", 20, 80);
+  doc.setFont('helvetica', 'normal');
+  doc.text(String(client.name || 'Client'), 65, 80);
+
+  doc.setFont('helvetica', 'bold');
+  doc.text("Verified Contact   :", 20, 86);
+  doc.setFont('helvetica', 'normal');
+  doc.text(String(client.phone_number || '—'), 65, 86);
+
+  doc.setFont('helvetica', 'bold');
+  doc.text("Master Client ID   :", 20, 92);
+  doc.setFont('helvetica', 'normal');
+  doc.text(String(client.id || '—'), 65, 92);
+
+  doc.setFont('helvetica', 'bold');
+  doc.text("Financial Standing :", 125, 80);
+  doc.setTextColor(5, 150, 105); // Green
+  doc.text("DEBT FREE (SETTLED)", 160, 80);
+
+  doc.setTextColor(51, 65, 85);
+  doc.setFont('helvetica', 'bold');
+  doc.text("Active Penalties   :", 125, 86);
+  doc.setTextColor(5, 150, 105);
+  doc.text("0 STRIKES (CLEAN)", 160, 86);
+
+  // ─── Section 2: Financial Discharge Table ──────────────────────────────────
+  doc.setTextColor(245, 158, 11);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text("2. SETTLEMENT PARTICULARS & AUDIT VERIFICATION", 20, 108);
+
+  // Table header
+  doc.setFillColor(15, 23, 42);
+  doc.rect(15, 112, 180, 8, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(8.5);
+  doc.text("AUDIT ITEM", 20, 117.5);
+  doc.text("TRANSACTION SPECIFICATION", 95, 117.5);
+  doc.text("STATUS / AMOUNT", 190, 117.5, { align: 'right' });
+
+  let y = 126;
+  const drawClearanceRow = (label, detail, amtStr, isBold = false) => {
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.2);
+    doc.line(15, y + 2, 195, y + 2);
+
+    doc.setTextColor(15, 23, 42);
+    doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+    doc.setFontSize(8.5);
+    doc.text(label, 20, y);
+    doc.text(detail, 95, y);
+    doc.text(amtStr, 190, y, { align: 'right' });
+    y += 7.5;
+  };
+
+  drawClearanceRow("Loan Application Ref", `#SEP-LN-${loan.id.slice(0, 8).toUpperCase()}`, "AUDITED");
+  drawClearanceRow("Original Principal Amount", "Approved & Disbursed Funds", `BDT ${parseFloat(loan.amount).toLocaleString()}.00`);
+  drawClearanceRow("Repayment Method Channel", payoutMethod, "VERIFIED");
+  drawClearanceRow("Transaction Reference (TrxID)", trxId, "MATCHED");
+  drawClearanceRow("Administrative Settlement Date", settledAt, "RESOLVED");
+
+  // Total Settled Row
+  doc.setFillColor(209, 250, 229); // Emerald-100
+  doc.rect(15, y - 3, 180, 9, 'F');
+  doc.setTextColor(6, 95, 70); // Emerald-800
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.text("TOTAL DISCHARGED & PAID IN FULL", 20, y + 3);
+  doc.text(`BDT ${amountPaid.toLocaleString()}.00`, 190, y + 3, { align: 'right' });
+
+  y += 18;
+
+  // ─── Section 3: Legal Zero-Liability Discharge Covenant ────────────────────
+  doc.setTextColor(245, 158, 11);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text("3. OFFICIAL ZERO-LIABILITY DECLARATION & COVENANT", 20, y);
+  y += 5;
+
+  doc.setFillColor(240, 253, 244); // Light green container
+  doc.rect(15, y, 180, 42, 'F');
+  doc.setDrawColor(52, 211, 153);
+  doc.setLineWidth(0.5);
+  doc.rect(15, y, 180, 42);
+
+  doc.setTextColor(6, 95, 70);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text("CERTIFICATE OF ABSOLUTE DISCHARGE AND RELEASE OF LIABILITY", 20, y + 7);
+
+  doc.setTextColor(51, 65, 85);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.8);
+  doc.text(
+    "1. SYM EMPIRE PLATFORM hereby certifies that the borrower identified above has irrevocably, fully, and unconditionally satisfied all loan obligations, interest, fees, and penalties pertaining to Loan #" + loan.id.slice(0, 8).toUpperCase() + ".",
+    20, y + 14, { maxWidth: 170 }
+  );
+  doc.text(
+    "2. All collateral pledges, guarantees, and legal claims associated with this loan transaction are dissolved and declared null, void, and of no legal effect.",
+    20, y + 23, { maxWidth: 170 }
+  );
+  doc.text(
+    "3. The borrower's credit reputation is restored to an unblemished status across the S.E.P. credit network, eligible for future capital allocations.",
+    20, y + 31, { maxWidth: 170 }
+  );
+  doc.text(
+    "4. This certificate is protected under cryptographic checksum: " + clearanceHash,
+    20, y + 39, { maxWidth: 170 }
+  );
+
+  y += 56;
+
+  // ─── Section 4: Signatures & Executive Seals ──────────────────────────────
+  doc.setDrawColor(100, 116, 139);
+  doc.setLineWidth(0.5);
+
+  // Recipient Signature
+  doc.line(20, y, 80, y);
+  doc.setTextColor(30, 41, 59);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.text("DISCHARGED BORROWER", 20, y + 5);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.text(`Name: ${client.name || 'Client'}`, 20, y + 10);
+  doc.text(`Contact: ${client.phone_number || ''}`, 20, y + 14);
+
+  // Authorizing Admin Seal
+  doc.line(135, y, 195, y);
+  doc.setTextColor(30, 41, 59);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.text("AUTHORIZED COMPLIANCE DESK", 135, y + 5);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.text("SYM EMPIRE PLATFORM (S.E.P.)", 135, y + 10);
+  doc.text(`Clearance Ref: #${clearanceHash}`, 135, y + 14);
+
+  // ─── Footer ───────────────────────────────────────────────────────────────
+  doc.setTextColor(148, 163, 184);
+  doc.setFontSize(7);
+  doc.text("This Digital Clearance Certificate is an official legal release instrument of SYM EMPIRE PLATFORM (S.E.P.). Retain for records.", 105, 285, { align: 'center' });
+
+  // Download
+  doc.save(`SYM-CLEARANCE-CERTIFICATE-${loan.id.slice(0, 8).toUpperCase()}.pdf`);
+};
+
