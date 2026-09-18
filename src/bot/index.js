@@ -270,11 +270,13 @@ async function sendTelegramOtp(chatId, code, purpose = 'User Login') {
       `👉 <code>${code}</code> 👈\n\n` +
       `⏳ <i>This code expires in 5 minutes. Do not share it with anyone.</i>`;
 
-    await bot.api.sendMessage({ chat_id: chatId, text, parse_mode: 'HTML' });
+    const sendPromise = bot.api.sendMessage({ chat_id: chatId, text, parse_mode: 'HTML' });
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Telegram timeout')), 4000));
+    await Promise.race([sendPromise, timeoutPromise]);
     console.log(`[Bot] ✅ Telegram OTP sent to chat ${chatId} for ${purpose}`);
     return true;
   } catch (err) {
-    console.error(`[Bot] ❌ Failed to send Telegram OTP to chat ${chatId}:`, err.message);
+    console.error(`[Bot] ⚠️ Telegram OTP dispatch note for chat ${chatId}:`, err.message);
     return false;
   }
 }

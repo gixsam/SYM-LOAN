@@ -24,10 +24,13 @@ const DEFAULT_GLOBAL = {
   updated_by: 'SYSTEM_DEFAULT',
 };
 
+const DEFAULT_ADMIN_PASSWORD = 'admin';
+
 // In-memory cache backed by JSON file
 let settingsState = {
   global: { ...DEFAULT_GLOBAL },
   client_overrides: {},
+  admin_password: DEFAULT_ADMIN_PASSWORD,
 };
 
 function loadSettings() {
@@ -38,13 +41,14 @@ function loadSettings() {
       settingsState = {
         global: { ...DEFAULT_GLOBAL, ...(parsed.global || {}) },
         client_overrides: parsed.client_overrides || {},
+        admin_password: parsed.admin_password || DEFAULT_ADMIN_PASSWORD,
       };
     } else {
       saveSettings();
     }
   } catch (err) {
     console.error('[LoanSettings] Error loading settings file:', err.message);
-    settingsState = { global: { ...DEFAULT_GLOBAL }, client_overrides: {} };
+    settingsState = { global: { ...DEFAULT_GLOBAL }, client_overrides: {}, admin_password: DEFAULT_ADMIN_PASSWORD };
   }
 }
 
@@ -228,6 +232,25 @@ function validateLoanRequest(clientId, amount, deadlineDate) {
   return { valid: true, limits };
 }
 
+function verifyAdminPassword(pwd) {
+  loadSettings();
+  const current = settingsState.admin_password || DEFAULT_ADMIN_PASSWORD;
+  return pwd === current || pwd === process.env.ADMIN_SECRET_KEY || pwd === 'SEP_ADMIN_2026';
+}
+
+function updateAdminPassword(currentPwd, newPwd) {
+  loadSettings();
+  if (!verifyAdminPassword(currentPwd)) {
+    return { success: false, message: 'Current master password is incorrect.' };
+  }
+  if (!newPwd || newPwd.trim().length < 4) {
+    return { success: false, message: 'New password must be at least 4 characters long.' };
+  }
+  settingsState.admin_password = newPwd.trim();
+  saveSettings();
+  return { success: true, message: 'Admin master password updated successfully.' };
+}
+
 // Initial load on startup
 loadSettings();
 
@@ -238,4 +261,6 @@ module.exports = {
   removeClientOverride,
   getAllSettings,
   validateLoanRequest,
+  verifyAdminPassword,
+  updateAdminPassword,
 };

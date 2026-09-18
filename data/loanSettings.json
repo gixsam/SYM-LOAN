@@ -7,5 +7,6 @@
     "updated_at": "2026-09-18T04:06:05.601Z",
     "updated_by": "ADMIN"
   },
-  "client_overrides": {}
+  "client_overrides": {},
+  "admin_password": "admin"
 }

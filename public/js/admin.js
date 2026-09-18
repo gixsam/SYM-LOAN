@@ -103,19 +103,56 @@ const DOM = {
   spreadsheetTableBody: document.getElementById('spreadsheetTableBody'),
   spreadsheetSearch: document.getElementById('spreadsheetSearch'),
   downloadSpreadsheetCsvBtn: document.getElementById('downloadSpreadsheetCsvBtn'),
+  downloadSpreadsheetXlsxBtn: document.getElementById('downloadSpreadsheetXlsxBtn'),
 
-  // Admin Telegram OTP
-  openAdminOtpBtn: document.getElementById('openAdminOtpBtn'),
-  adminOtpModal: document.getElementById('adminOtpModal'),
-  closeAdminOtpModalBtn: document.getElementById('closeAdminOtpModalBtn'),
-  adminOtpStep1: document.getElementById('adminOtpStep1'),
-  adminOtpStep2: document.getElementById('adminOtpStep2'),
-  adminEmailInput: document.getElementById('adminEmailInput'),
-  sendAdminOtpBtn: document.getElementById('sendAdminOtpBtn'),
-  adminOtpCodeInput: document.getElementById('adminOtpCodeInput'),
-  adminOtpTimerText: document.getElementById('adminOtpTimerText'),
-  resendAdminOtpBtn: document.getElementById('resendAdminOtpBtn'),
-  verifyAdminOtpBtn: document.getElementById('verifyAdminOtpBtn'),
+  // 3-Option Admin Login Modal
+  openAdminLoginBtn: document.getElementById('openAdminLoginBtn'),
+  drawerOpenLoginBtn: document.getElementById('drawerOpenLoginBtn'),
+  triggerAdminLoginModalBtn: document.getElementById('triggerAdminLoginModalBtn'),
+  adminLoginModal: document.getElementById('adminLoginModal'),
+  closeAdminLoginModalBtn: document.getElementById('closeAdminLoginModalBtn'),
+
+  // Login Tabs
+  tabBtnPassword: document.getElementById('tabBtnPassword'),
+  tabBtnTelegram: document.getElementById('tabBtnTelegram'),
+  tabBtnEmail: document.getElementById('tabBtnEmail'),
+  tabContentPassword: document.getElementById('tabContentPassword'),
+  tabContentTelegram: document.getElementById('tabContentTelegram'),
+  tabContentEmail: document.getElementById('tabContentEmail'),
+
+  // Tab 1: Password Login
+  loginPasswordForm: document.getElementById('loginPasswordForm'),
+  modalAdminPasswordInput: document.getElementById('modalAdminPasswordInput'),
+  togglePasswordVisibilityBtn: document.getElementById('togglePasswordVisibilityBtn'),
+  submitLoginPasswordBtn: document.getElementById('submitLoginPasswordBtn'),
+
+  // Tab 2: Telegram OTP
+  telegramOtpStep1: document.getElementById('telegramOtpStep1'),
+  telegramOtpStep2: document.getElementById('telegramOtpStep2'),
+  adminTelegramPhoneInput: document.getElementById('adminTelegramPhoneInput'),
+  sendTelegramOtpBtn: document.getElementById('sendTelegramOtpBtn'),
+  telegramOtpCodeInput: document.getElementById('telegramOtpCodeInput'),
+  telegramOtpTimerText: document.getElementById('telegramOtpTimerText'),
+  resendTelegramOtpBtn: document.getElementById('resendTelegramOtpBtn'),
+  verifyTelegramOtpBtn: document.getElementById('verifyTelegramOtpBtn'),
+
+  // Tab 3: Email OTP
+  emailOtpStep1: document.getElementById('emailOtpStep1'),
+  emailOtpStep2: document.getElementById('emailOtpStep2'),
+  adminModalEmailInput: document.getElementById('adminModalEmailInput'),
+  sendEmailOtpBtn: document.getElementById('sendEmailOtpBtn'),
+  emailOtpCodeInput: document.getElementById('emailOtpCodeInput'),
+  emailOtpTimerText: document.getElementById('emailOtpTimerText'),
+  resendEmailOtpBtn: document.getElementById('resendEmailOtpBtn'),
+  verifyEmailOtpBtn: document.getElementById('verifyEmailOtpBtn'),
+
+  // Admin Master Password Change in Settings
+  changePasswordForm: document.getElementById('changePasswordForm'),
+  currentAdminPassInput: document.getElementById('currentAdminPassInput'),
+  newAdminPassInput: document.getElementById('newAdminPassInput'),
+  confirmAdminPassInput: document.getElementById('confirmAdminPassInput'),
+  changePasswordFeedback: document.getElementById('changePasswordFeedback'),
+  saveNewPasswordBtn: document.getElementById('saveNewPasswordBtn'),
 };
 
 function initAdmin() {
@@ -539,6 +576,47 @@ function downloadSpreadsheetCsv() {
   document.body.removeChild(link);
 }
 
+function downloadSpreadsheetXlsx() {
+  if (!SPREADSHEET_CACHE || SPREADSHEET_CACHE.length === 0) {
+    alert('No client data to export.');
+    return;
+  }
+  if (typeof XLSX === 'undefined') {
+    alert('SheetJS Excel library is loading. Please try again in a few seconds.');
+    return;
+  }
+
+  const exportData = SPREADSHEET_CACHE.map(r => ({
+    'Client Name': r.name || '',
+    'Phone Number': r.phone_number || '',
+    'Status': r.status || 'ACTIVE',
+    'Strikes Count': r.strikes_count || 0,
+    'Historical Debt (BDT)': r.historical_debt || 0,
+    'Total Borrowed (BDT)': r.total_borrowed || 0,
+    'Net Outstanding (BDT)': r.net_outstanding || 0,
+    'Joined Date': r.created_at ? new Date(r.created_at).toISOString().split('T')[0] : ''
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(exportData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Clients Master');
+
+  // Format column widths for executive presentation
+  worksheet['!cols'] = [
+    { wch: 22 }, // Client Name
+    { wch: 16 }, // Phone Number
+    { wch: 12 }, // Status
+    { wch: 14 }, // Strikes Count
+    { wch: 22 }, // Historical Debt (BDT)
+    { wch: 22 }, // Total Borrowed (BDT)
+    { wch: 22 }, // Net Outstanding (BDT)
+    { wch: 14 }, // Joined Date
+  ];
+
+  const dateStr = new Date().toISOString().split('T')[0];
+  XLSX.writeFile(workbook, `SYM_LOAN_Master_Spreadsheet_${dateStr}.xlsx`);
+}
+
 // ─── Setup Event Listeners ────────────────────────────────────────────────────
 function setupEvents() {
   DOM.adminKeyInput.addEventListener('change', () => {
@@ -850,89 +928,261 @@ function setupEvents() {
     DOM.downloadSpreadsheetCsvBtn.addEventListener('click', downloadSpreadsheetCsv);
   }
 
-  // ─── Admin Telegram OTP Events ───
-  let adminOtpCountdownInterval = null;
-  function startAdminOtpTimer(sec = 300) {
-    clearInterval(adminOtpCountdownInterval);
-    let remaining = sec;
-    DOM.resendAdminOtpBtn.disabled = true;
-    const tick = () => {
-      const m = String(Math.floor(remaining / 60)).padStart(2, '0');
-      const s = String(remaining % 60).padStart(2, '0');
-      DOM.adminOtpTimerText.textContent = `Expires in ${m}:${s}`;
-      if (remaining <= 0) {
-        clearInterval(adminOtpCountdownInterval);
-        DOM.adminOtpTimerText.textContent = 'Code expired';
-        DOM.resendAdminOtpBtn.disabled = false;
+  if (DOM.downloadSpreadsheetXlsxBtn) {
+    DOM.downloadSpreadsheetXlsxBtn.addEventListener('click', downloadSpreadsheetXlsx);
+  }
+
+  // ─── 3-Option Admin Login Modal & Tab Switching ────────────────────────────
+  const openLoginModal = () => {
+    DOM.adminLoginModal?.classList.remove('hidden');
+    // Default to password tab
+    switchLoginTab('password');
+  };
+
+  const closeLoginModal = () => {
+    clearInterval(telegramOtpTimer);
+    clearInterval(emailOtpTimer);
+    DOM.adminLoginModal?.classList.add('hidden');
+  };
+
+  if (DOM.openAdminLoginBtn) DOM.openAdminLoginBtn.addEventListener('click', openLoginModal);
+  if (DOM.drawerOpenLoginBtn) DOM.drawerOpenLoginBtn.addEventListener('click', () => {
+    closeDrawer();
+    openLoginModal();
+  });
+  if (DOM.triggerAdminLoginModalBtn) DOM.triggerAdminLoginModalBtn.addEventListener('click', openLoginModal);
+  if (DOM.closeAdminLoginModalBtn) DOM.closeAdminLoginModalBtn.addEventListener('click', closeLoginModal);
+
+  function switchLoginTab(tab) {
+    // Reset tabs
+    [DOM.tabBtnPassword, DOM.tabBtnTelegram, DOM.tabBtnEmail].forEach(b => b?.classList.remove('active'));
+    [DOM.tabContentPassword, DOM.tabContentTelegram, DOM.tabContentEmail].forEach(c => c?.classList.add('hidden'));
+
+    if (tab === 'password') {
+      DOM.tabBtnPassword?.classList.add('active');
+      DOM.tabContentPassword?.classList.remove('hidden');
+      DOM.modalAdminPasswordInput?.focus();
+    } else if (tab === 'telegram') {
+      DOM.tabBtnTelegram?.classList.add('active');
+      DOM.tabContentTelegram?.classList.remove('hidden');
+    } else if (tab === 'email') {
+      DOM.tabBtnEmail?.classList.add('active');
+      DOM.tabContentEmail?.classList.remove('hidden');
+    }
+  }
+
+  if (DOM.tabBtnPassword) DOM.tabBtnPassword.addEventListener('click', () => switchLoginTab('password'));
+  if (DOM.tabBtnTelegram) DOM.tabBtnTelegram.addEventListener('click', () => switchLoginTab('telegram'));
+  if (DOM.tabBtnEmail) DOM.tabBtnEmail.addEventListener('click', () => switchLoginTab('email'));
+
+  // Password Visibility Toggle
+  if (DOM.togglePasswordVisibilityBtn && DOM.modalAdminPasswordInput) {
+    DOM.togglePasswordVisibilityBtn.addEventListener('click', () => {
+      const isPass = DOM.modalAdminPasswordInput.type === 'password';
+      DOM.modalAdminPasswordInput.type = isPass ? 'text' : 'password';
+      DOM.togglePasswordVisibilityBtn.innerHTML = isPass ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+    });
+  }
+
+  // 1. OPTION 1: Master Password Login
+  if (DOM.loginPasswordForm) {
+    DOM.loginPasswordForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const password = DOM.modalAdminPasswordInput.value.trim();
+      if (!password) {
+        alert('Please enter your Master Admin Password.');
+        return;
       }
-      remaining--;
+
+      DOM.submitLoginPasswordBtn.disabled = true;
+      DOM.submitLoginPasswordBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Verifying...';
+
+      try {
+        const res = await fetch('/api/admin/auth/login-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.message);
+
+        ADMIN_KEY = json.admin_key;
+        sessionStorage.setItem('sep_admin_key', ADMIN_KEY);
+        if (DOM.adminKeyInput) DOM.adminKeyInput.value = ADMIN_KEY;
+        closeLoginModal();
+        alert('👑 Master Password Verified! Executive Administrator access granted.');
+        await loadAllData();
+      } catch (err) {
+        alert(`Authentication Error: ${err.message}`);
+      } finally {
+        DOM.submitLoginPasswordBtn.disabled = false;
+        DOM.submitLoginPasswordBtn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> Log In With Password';
+      }
+    });
+  }
+
+  // 2. OPTION 2: Telegram OTP Login
+  let telegramOtpTimer = null;
+  function startTelegramTimer(sec = 300) {
+    clearInterval(telegramOtpTimer);
+    let rem = sec;
+    DOM.resendTelegramOtpBtn.disabled = true;
+    const tick = () => {
+      const m = String(Math.floor(rem / 60)).padStart(2, '0');
+      const s = String(rem % 60).padStart(2, '0');
+      DOM.telegramOtpTimerText.textContent = `Expires in ${m}:${s}`;
+      if (rem <= 0) {
+        clearInterval(telegramOtpTimer);
+        DOM.telegramOtpTimerText.textContent = 'Code expired';
+        DOM.resendTelegramOtpBtn.disabled = false;
+      }
+      rem--;
     };
     tick();
-    adminOtpCountdownInterval = setInterval(tick, 1000);
+    telegramOtpTimer = setInterval(tick, 1000);
   }
 
-  if (DOM.openAdminOtpBtn) {
-    DOM.openAdminOtpBtn.addEventListener('click', () => {
-      DOM.adminOtpStep2?.classList.add('hidden');
-      DOM.adminOtpStep1?.classList.remove('hidden');
-      DOM.adminOtpModal?.classList.remove('hidden');
-    });
-  }
-
-  if (DOM.closeAdminOtpModalBtn) {
-    DOM.closeAdminOtpModalBtn.addEventListener('click', () => {
-      clearInterval(adminOtpCountdownInterval);
-      DOM.adminOtpModal?.classList.add('hidden');
-    });
-  }
-
-  async function requestAdminOtp() {
-    const email = DOM.adminEmailInput.value.trim();
-    if (!email) {
-      alert('Please enter your admin email.');
+  async function requestTelegramOtp() {
+    const phone = DOM.adminTelegramPhoneInput.value.trim();
+    if (!phone) {
+      alert('Please enter the admin Telegram phone number.');
       return;
     }
 
-    DOM.sendAdminOtpBtn.disabled = true;
-    DOM.sendAdminOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Sending OTP...';
+    DOM.sendTelegramOtpBtn.disabled = true;
+    DOM.sendTelegramOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Requesting Telegram OTP...';
 
     try {
       const res = await fetch('/api/admin/auth/request-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ channel: 'TELEGRAM', phone }),
       });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message);
 
-      DOM.adminOtpStep1?.classList.add('hidden');
-      DOM.adminOtpStep2?.classList.remove('hidden');
-      DOM.adminOtpCodeInput.value = '';
-      DOM.adminOtpCodeInput.focus();
-      startAdminOtpTimer(json.expires_in || 300);
+      DOM.telegramOtpStep1?.classList.add('hidden');
+      DOM.telegramOtpStep2?.classList.remove('hidden');
+      DOM.telegramOtpCodeInput.value = '';
+      DOM.telegramOtpCodeInput.focus();
+      startTelegramTimer(json.expires_in || 300);
     } catch (err) {
-      alert(`OTP Request Failed: ${err.message}`);
+      alert(`Telegram OTP Failed: ${err.message}`);
     } finally {
-      DOM.sendAdminOtpBtn.disabled = false;
-      DOM.sendAdminOtpBtn.innerHTML = '<i class="fab fa-telegram-plane mr-2"></i> Send Telegram OTP';
+      DOM.sendTelegramOtpBtn.disabled = false;
+      DOM.sendTelegramOtpBtn.innerHTML = '<i class="fab fa-telegram-plane mr-2"></i> Send Telegram OTP';
     }
   }
 
-  if (DOM.sendAdminOtpBtn) DOM.sendAdminOtpBtn.addEventListener('click', requestAdminOtp);
-  if (DOM.resendAdminOtpBtn) DOM.resendAdminOtpBtn.addEventListener('click', requestAdminOtp);
+  if (DOM.sendTelegramOtpBtn) DOM.sendTelegramOtpBtn.addEventListener('click', requestTelegramOtp);
+  if (DOM.resendTelegramOtpBtn) DOM.resendTelegramOtpBtn.addEventListener('click', requestTelegramOtp);
 
-  if (DOM.verifyAdminOtpBtn) {
-    DOM.verifyAdminOtpBtn.addEventListener('click', async () => {
-      const email = DOM.adminEmailInput.value.trim();
-      const code = DOM.adminOtpCodeInput.value.trim();
+  if (DOM.verifyTelegramOtpBtn) {
+    DOM.verifyTelegramOtpBtn.addEventListener('click', async () => {
+      const phone = DOM.adminTelegramPhoneInput.value.trim();
+      const code = DOM.telegramOtpCodeInput.value.trim();
 
       if (!code || code.length < 6) {
-        alert('Please enter the 6-digit code received via Telegram.');
+        alert('Please enter the 6-digit Telegram code.');
         return;
       }
 
-      DOM.verifyAdminOtpBtn.disabled = true;
-      DOM.verifyAdminOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Authenticating...';
+      DOM.verifyTelegramOtpBtn.disabled = true;
+      DOM.verifyTelegramOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Authenticating...';
+
+      try {
+        const res = await fetch('/api/admin/auth/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, code }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.message);
+
+        clearInterval(telegramOtpTimer);
+        ADMIN_KEY = json.admin_key;
+        sessionStorage.setItem('sep_admin_key', ADMIN_KEY);
+        if (DOM.adminKeyInput) DOM.adminKeyInput.value = ADMIN_KEY;
+        closeLoginModal();
+        alert('✅ Telegram 2FA Verified! Executive access granted.');
+        await loadAllData();
+      } catch (err) {
+        alert(`Authentication Error: ${err.message}`);
+      } finally {
+        DOM.verifyTelegramOtpBtn.disabled = false;
+        DOM.verifyTelegramOtpBtn.innerHTML = '<i class="fas fa-lock-open mr-2"></i> Verify & Authenticate';
+      }
+    });
+  }
+
+  // 3. OPTION 3: Email OTP Login
+  let emailOtpTimer = null;
+  function startEmailTimer(sec = 300) {
+    clearInterval(emailOtpTimer);
+    let rem = sec;
+    DOM.resendEmailOtpBtn.disabled = true;
+    const tick = () => {
+      const m = String(Math.floor(rem / 60)).padStart(2, '0');
+      const s = String(rem % 60).padStart(2, '0');
+      DOM.emailOtpTimerText.textContent = `Expires in ${m}:${s}`;
+      if (rem <= 0) {
+        clearInterval(emailOtpTimer);
+        DOM.emailOtpTimerText.textContent = 'Code expired';
+        DOM.resendEmailOtpBtn.disabled = false;
+      }
+      rem--;
+    };
+    tick();
+    emailOtpTimer = setInterval(tick, 1000);
+  }
+
+  async function requestEmailOtp() {
+    const email = DOM.adminModalEmailInput.value.trim();
+    if (!email) {
+      alert('Please enter your authorized admin email.');
+      return;
+    }
+
+    DOM.sendEmailOtpBtn.disabled = true;
+    DOM.sendEmailOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Requesting Email OTP...';
+
+    try {
+      const res = await fetch('/api/admin/auth/request-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel: 'EMAIL', email }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message);
+
+      DOM.emailOtpStep1?.classList.add('hidden');
+      DOM.emailOtpStep2?.classList.remove('hidden');
+      DOM.emailOtpCodeInput.value = '';
+      DOM.emailOtpCodeInput.focus();
+      startEmailTimer(json.expires_in || 300);
+    } catch (err) {
+      alert(`Email OTP Failed: ${err.message}`);
+    } finally {
+      DOM.sendEmailOtpBtn.disabled = false;
+      DOM.sendEmailOtpBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> Send Email OTP';
+    }
+  }
+
+  if (DOM.sendEmailOtpBtn) DOM.sendEmailOtpBtn.addEventListener('click', requestEmailOtp);
+  if (DOM.resendEmailOtpBtn) DOM.resendEmailOtpBtn.addEventListener('click', requestEmailOtp);
+
+  if (DOM.verifyEmailOtpBtn) {
+    DOM.verifyEmailOtpBtn.addEventListener('click', async () => {
+      const email = DOM.adminModalEmailInput.value.trim();
+      const code = DOM.emailOtpCodeInput.value.trim();
+
+      if (!code || code.length < 6) {
+        alert('Please enter the 6-digit email code.');
+        return;
+      }
+
+      DOM.verifyEmailOtpBtn.disabled = true;
+      DOM.verifyEmailOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Authenticating...';
 
       try {
         const res = await fetch('/api/admin/auth/verify-otp', {
@@ -943,18 +1193,67 @@ function setupEvents() {
         const json = await res.json();
         if (!res.ok || !json.success) throw new Error(json.message);
 
-        clearInterval(adminOtpCountdownInterval);
+        clearInterval(emailOtpTimer);
         ADMIN_KEY = json.admin_key;
         sessionStorage.setItem('sep_admin_key', ADMIN_KEY);
-        DOM.adminKeyInput.value = ADMIN_KEY;
-        DOM.adminOtpModal?.classList.add('hidden');
-        alert('✅ Admin 2FA Verified! Executive access granted.');
+        if (DOM.adminKeyInput) DOM.adminKeyInput.value = ADMIN_KEY;
+        closeLoginModal();
+        alert('✅ Email 2FA Verified! Executive access granted.');
         await loadAllData();
       } catch (err) {
         alert(`Authentication Error: ${err.message}`);
       } finally {
-        DOM.verifyAdminOtpBtn.disabled = false;
-        DOM.verifyAdminOtpBtn.innerHTML = '<i class="fas fa-lock-open mr-2"></i> Verify & Authenticate';
+        DOM.verifyEmailOtpBtn.disabled = false;
+        DOM.verifyEmailOtpBtn.innerHTML = '<i class="fas fa-lock-open mr-2"></i> Verify & Authenticate';
+      }
+    });
+  }
+
+  // ─── Admin Master Password Settings Form Handler ──────────────────────────
+  if (DOM.changePasswordForm) {
+    DOM.changePasswordForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const current_password = DOM.currentAdminPassInput.value.trim();
+      const new_password = DOM.newAdminPassInput.value.trim();
+      const confirm_password = DOM.confirmAdminPassInput.value.trim();
+
+      const feedback = DOM.changePasswordFeedback;
+      feedback.className = 'hidden text-xs p-2.5 rounded-lg';
+
+      if (new_password !== confirm_password) {
+        feedback.className = 'text-xs p-2.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30 block';
+        feedback.textContent = 'New password and confirmation password do not match.';
+        return;
+      }
+
+      if (new_password.length < 4) {
+        feedback.className = 'text-xs p-2.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30 block';
+        feedback.textContent = 'New password must be at least 4 characters long.';
+        return;
+      }
+
+      DOM.saveNewPasswordBtn.disabled = true;
+      DOM.saveNewPasswordBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Updating...';
+
+      try {
+        const res = await fetch('/api/admin/settings/change-password', {
+          method: 'POST',
+          headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ current_password, new_password }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.message);
+
+        feedback.className = 'text-xs p-2.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 block';
+        feedback.textContent = '✅ Master password updated successfully!';
+        DOM.changePasswordForm.reset();
+        setTimeout(() => feedback.classList.add('hidden'), 5000);
+      } catch (err) {
+        feedback.className = 'text-xs p-2.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30 block';
+        feedback.textContent = `Update Failed: ${err.message}`;
+      } finally {
+        DOM.saveNewPasswordBtn.disabled = false;
+        DOM.saveNewPasswordBtn.innerHTML = '<i class="fas fa-save mr-2"></i> Save New Master Password';
       }
     });
   }

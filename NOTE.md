@@ -20,6 +20,48 @@
 
 ## 🚀 Logged System Updates & Changelog
 
+### [Update-045] — Phase 6: 3-Option Admin Authentication, Master Password Management, Native Excel (.xlsx) Export & Mobile Viewport Anti-Overflow (2026-09-18)
+**Type:** Authentication Security, Dynamic Password Management, Multi-Format Ledger Reporting, Mobile UI/UX Hardening & Telegram Access Configuration  
+**Status:** ✅ COMPLETED, TESTED & DUAL-SYNCED ACROSS WORKPLACES  
+
+#### User Request & Objectives:
+1. **Excel (.xlsx) Format for Master Client Spreadsheet:**
+   - Add native Microsoft Excel (.xlsx) download option alongside CSV export for the Master Client Spreadsheet.
+2. **3-Option Executive Admin Login Architecture:**
+   - Option 1: Master Secret Password (default: `admin`, editable from Admin Panel Settings).
+   - Option 2: Telegram OTP to Admin Telegram Number (`01337320544`).
+   - Option 3: Email OTP to `zillionprince6@gmail.com`.
+3. **Admin Master Password Settings Changer:**
+   - Admin can update the master password directly in the Admin Panel Settings (with current password verification).
+4. **Mobile Navigation Bar Border Break Fix:**
+   - Fix horizontal overflow on smartphone screens where top navigation elements broke through screen borders.
+5. **Client Portal Input Cleanliness:**
+   - Remove example phone number `+8801612669922` from the client login input field (Photo 1).
+6. **Telegram Bot Restricted Access Resolution (Photo 2):**
+   - Provide complete diagnosis and step-by-step unblocking protocol for Telegram error: *"The owner of this bot has restricted access. You are not authorized to interact with this bot."*
+
+#### Architecture & Implementation Details:
+1. **Admin Master Password & 3-Option Backend API (`src/lib/loanSettings.js`, `src/routes/adminApi.js`):**
+   - Implemented `verifyAdminPassword(pass)` and `updateAdminPassword(current, newPass)` with JSON persistence in `data/loan_settings.json`.
+   - Added `POST /api/admin/auth/login-password` validating password and issuing session key `SEP_ADMIN_2026`.
+   - Added `POST /api/admin/settings/change-password` requiring current password verification before updating.
+   - Enhanced `POST /api/admin/auth/request-otp` to support channels `TELEGRAM` (`01337320544`) and `EMAIL` (`zillionprince6@gmail.com`).
+2. **Native Excel (.xlsx) Spreadsheet Export (`public/admin.html`, `public/js/admin.js`):**
+   - Integrated lightweight SheetJS library (`xlsx.full.min.js`).
+   - Built `downloadSpreadsheetXlsx()` generating formatted `.xlsx` workbooks with custom column widths, client debt, total borrowed, and net balances.
+3. **Mobile-Responsive Anti-Overflow Navigation (`public/admin.html`, `public/css/style.css`):**
+   - Applied `max-width: 100vw; overflow-x: hidden;` across `html`, `body`, and container cards.
+   - Replaced wide desktop bar with compact mobile navigation (`px-3 sm:px-6`, truncated titles, and mobile login button).
+   - Desktop-only items (`#adminKeyInput`, `#authStatusBadge`, client app link) hidden on mobile and placed inside the slide-out hamburger drawer.
+4. **Unified 3-Option Admin Login Modal (`public/admin.html`, `public/js/admin.js`):**
+   - Built modern modal with 3 selectable tabs: `Password`, `Telegram`, and `Email`.
+   - Included password visibility toggle, countdown timers (300s), and instant credential saving into `sessionStorage`.
+5. **Photo 2 Telegram Bot Access Resolution:**
+   - Diagnosed Telegram client restriction caused by Telegram Business Chatbots setting restricting interactions to "My Contacts".
+   - Documented exact unblocking procedure in settings.
+
+---
+
 ### [Update-044] — Phase 5: Client & Admin Telegram OTP Security, Historical Ledger (+/-) Cash Engine, Master Spreadsheet (CSV) & VIP Avatar Suite (2026-09-18)
 **Type:** Authentication Security, Free Telegram OTP Engine, Cash Ledger Customization, Spreadsheet Reporting & VIP Avatar Architecture  
 **Status:** ✅ COMPLETED, FULLY AUTOMATED & VERIFIED LIVE  

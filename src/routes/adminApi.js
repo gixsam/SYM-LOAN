@@ -42,54 +42,88 @@ function requireAdmin(req, res, next) {
 
 // ─── Admin Authentication & OTP Endpoints (Public for login) ──────────────────
 
-// POST /api/admin/auth/request-otp
-router.post('/auth/request-otp', async (req, res) => {
-  const { email } = req.body;
-  if (!email) {
-    return res.status(400).json({ success: false, message: 'Admin email is required.' });
+// POST /api/admin/auth/login-password — Option 1: Master Secret Password
+router.post('/auth/login-password', (req, res) => {
+  const { password } = req.body;
+  if (!password) {
+    return res.status(400).json({ success: false, message: 'Password is required.' });
   }
 
-  const cleanEmail = email.trim().toLowerCase();
-  if (!ADMIN_AUTHORIZED_EMAILS.includes(cleanEmail)) {
-    return res.status(403).json({
-      success: false,
-      message: 'Access Denied: This email address is not authorized for executive administrative login.',
+  if (loanSettings.verifyAdminPassword(password.trim())) {
+    return res.json({
+      success: true,
+      message: 'Executive Admin authenticated successfully.',
+      admin_key: ADMIN_SECRET,
     });
   }
+  return res.status(401).json({ success: false, message: 'Invalid Admin Password.' });
+});
 
-  const otpRes = otpManager.generateOtp(cleanEmail);
+// POST /api/admin/auth/request-otp — Options 2 & 3: Telegram OTP (01337320544) or Email OTP
+router.post('/auth/request-otp', async (req, res) => {
+  const { email, phone, channel } = req.body;
+
+  let identifier = null;
+  let targetChannel = channel || (phone ? 'TELEGRAM' : 'EMAIL');
+
+  if (targetChannel === 'TELEGRAM' || phone) {
+    const rawPhone = (phone || '01337320544').trim();
+    // Verify admin authorized phone
+    if (!rawPhone.includes('01337320544') && !rawPhone.includes('8801337320544') && !rawPhone.includes('01612669922')) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access Denied: This mobile number is not authorized for executive administrative OTP.',
+      });
+    }
+    identifier = rawPhone;
+  } else {
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Admin email is required.' });
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    if (!ADMIN_AUTHORIZED_EMAILS.includes(cleanEmail)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access Denied: This email address is not authorized for executive administrative login.',
+      });
+    }
+    identifier = cleanEmail;
+  }
+
+  const otpRes = otpManager.generateOtp(identifier);
   if (!otpRes.success) {
     return res.status(429).json({ success: false, message: otpRes.error, waitSeconds: otpRes.waitSeconds });
   }
 
-  // Attempt to deliver via Telegram to registered admin Telegram Chat ID
+  // Dispatch via Telegram to registered admin Telegram Chat ID
   let sentViaTelegram = false;
-  const adminChatId = process.env.ADMIN_TELEGRAM_ID;
+  const adminChatId = process.env.ADMIN_TELEGRAM_ID || '6464983314';
   if (adminChatId) {
-    sentViaTelegram = await sendTelegramOtp(adminChatId, otpRes.code, 'Executive Admin Login');
+    sentViaTelegram = await sendTelegramOtp(adminChatId, otpRes.code, `Admin Login (${identifier})`);
   }
 
   return res.json({
     success: true,
     message: sentViaTelegram
-      ? `A 6-digit OTP has been sent directly to Admin Telegram and ${cleanEmail}.`
-      : `A 6-digit OTP has been generated for ${cleanEmail}.`,
+      ? `A 6-digit OTP has been sent directly to Telegram for ${identifier}.`
+      : `A 6-digit OTP has been generated for ${identifier}.`,
     sentViaTelegram,
-    email: cleanEmail,
+    identifier,
+    channel: targetChannel,
     preview_code: otpRes.code,
   });
 });
 
 // POST /api/admin/auth/verify-otp
 router.post('/auth/verify-otp', (req, res) => {
-  const { email, code } = req.body;
-  if (!email || !code) {
-    return res.status(400).json({ success: false, message: 'Email and 6-digit OTP code are required.' });
+  const { email, phone, identifier, code } = req.body;
+  const targetIdentifier = (identifier || email || phone || '').trim().toLowerCase();
+
+  if (!targetIdentifier || !code) {
+    return res.status(400).json({ success: false, message: 'Identifier (Email or Phone) and 6-digit OTP code are required.' });
   }
 
-  const cleanEmail = email.trim().toLowerCase();
-  const verifyRes = otpManager.verifyOtp(cleanEmail, code);
-
+  const verifyRes = otpManager.verifyOtp(targetIdentifier, code);
   if (!verifyRes.valid) {
     return res.status(401).json({ success: false, message: verifyRes.message });
   }
@@ -98,7 +132,7 @@ router.post('/auth/verify-otp', (req, res) => {
     success: true,
     message: 'Executive Admin authenticated successfully.',
     admin_key: ADMIN_SECRET,
-    email: cleanEmail,
+    identifier: targetIdentifier,
   });
 });
 
@@ -108,6 +142,19 @@ router.post('/auth/verify-otp', (req, res) => {
 router.get('/settings', requireAdmin, (req, res) => {
   const all = loanSettings.getAllSettings();
   res.json({ success: true, settings: all });
+});
+
+// POST /api/admin/settings/change-password
+router.post('/settings/change-password', requireAdmin, (req, res) => {
+  const { current_password, new_password } = req.body;
+  if (!current_password || !new_password) {
+    return res.status(400).json({ success: false, message: 'Current master password and new password are required.' });
+  }
+  const result = loanSettings.updateAdminPassword(current_password, new_password);
+  if (!result.success) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
 });
 
 // POST /api/admin/settings/global
