@@ -3,32 +3,54 @@
  * src/app.js
  * SYM EMPIRE PLATFORM (S.E.P.) — Express Application Factory
  *
- * Configures and exports the Express app.
- * Does NOT call app.listen() — that is done in server.js.
+ * Configures:
+ *   - Security headers (Helmet with relaxed CSP for CDN resources)
+ *   - CORS whitelist
+ *   - Static public assets (HTML, CSS, JS)
+ *   - Mobile-only gate on client routes
+ *   - Admin API & Panel routes (accessible with admin key)
+ *   - REST API routes
  */
 
-const express                  = require('express');
-const cors                     = require('cors');
-const helmet                   = require('helmet');
-const verifyMobileDeviceOnly   = require('./middleware/verifyMobileDeviceOnly');
-const apiRouter                = require('./routes/api');
+const express                = require('express');
+const cors                   = require('cors');
+const helmet                 = require('helmet');
+const path                   = require('path');
+const verifyMobileDeviceOnly = require('./middleware/verifyMobileDeviceOnly');
+const apiRouter              = require('./routes/api');
+const adminApiRouter         = require('./routes/adminApi');
 require('dotenv').config();
 
 const app = express();
 
 // ─── Security Headers ─────────────────────────────────────────────────────────
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc:  ["'self'", "'unsafe-inline'", 'https://cdn.tailwindcss.com', 'https://cdnjs.cloudflare.com'],
+        styleSrc:   ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com'],
+        fontSrc:    ["'self'", 'https://fonts.gstatic.com', 'https://cdnjs.cloudflare.com'],
+        imgSrc:     ["'self'", 'data:', 'https:'],
+        connectSrc: ["'self'", 'https://gypqeknsxfljdvmycylv.supabase.co'],
+      },
+    },
+  })
+);
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
-app.use(cors({
-  origin: [
-    'https://symloan.best-travel.ltd',
-    'http://127.0.0.1:5000',   // local dev
-    'http://localhost:5000',
-  ],
-  methods:     ['GET', 'POST', 'PATCH', 'DELETE'],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: [
+      'https://symloan.best-travel.ltd',
+      'http://127.0.0.1:5000',
+      'http://localhost:5000',
+    ],
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    credentials: true,
+  })
+);
 
 // ─── Body Parsing ─────────────────────────────────────────────────────────────
 app.use(express.json());
@@ -41,24 +63,34 @@ app.use((req, _res, next) => {
   next();
 });
 
-// ─── Mobile-Only Gate ─────────────────────────────────────────────────────────
-// Apply to all /api routes. Health check is exempted for server monitors.
+// ─── Static Public Files ──────────────────────────────────────────────────────
+app.use(express.static(path.join(__dirname, '../public')));
+
+// ─── Admin API Routes (Exempt from Mobile-only gate, requires Admin Key) ───────
+app.use('/api/admin', adminApiRouter);
+
+// ─── Mobile-Only Gate for Client API ──────────────────────────────────────────
+// Exempt health and public config endpoints for uptime and app bootstrap
 app.use('/api', (req, res, next) => {
-  if (req.path === '/health') return next(); // allow uptime monitors
+  if (req.path === '/health' || req.path === '/config/limits') {
+    return next();
+  }
   verifyMobileDeviceOnly(req, res, next);
 });
 
-// ─── API Routes ───────────────────────────────────────────────────────────────
+// ─── Client API Routes ────────────────────────────────────────────────────────
 app.use('/api', apiRouter);
 
-// ─── Root ─────────────────────────────────────────────────────────────────────
+// ─── Admin Panel Route ────────────────────────────────────────────────────────
+app.get('/admin', (_req, res) => {
+  res.sendFile(path.join(__dirname, '../public/admin.html'));
+});
+
+// ─── Client Root Route ────────────────────────────────────────────────────────
 app.get('/', (req, res) => {
-  res.json({
-    platform: 'SYM EMPIRE PLATFORM (S.E.P.)',
-    service:  'SYM LOAN',
-    domain:   process.env.ROUTING_ENDPOINT_DOMAIN,
-    api:      '/api/health',
-  });
+  // Mobile devices get the full client portal
+  // Desktop devices get the mobile gate warning or portal in dev mode
+  res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
 // ─── 404 Handler ─────────────────────────────────────────────────────────────

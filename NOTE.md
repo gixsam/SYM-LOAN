@@ -11,28 +11,80 @@
 > **Database Cloud Tenant:** Supabase Instance (`SYM-LOAN` / `gypqeknsxfljdvmycylv` in AWS `ap-northeast-2`)  
 > **Database Direct Host:** `db.gypqeknsxfljdvmycylv.supabase.co`  
 > **Telegram Bot:** `@money_loan_bot` (Live Token: `8846454332:AAGl0VAri-CNPRcDCAjJvsHOcA00BJo6hhI`)  
-> **Technology Stack:** Node.js, Express, Supabase (PostgreSQL), node-telegram-bot-api, node-cron, CORS, Helmet, dotenv, HTML5, Tailwind CSS  
-> **Live Local Server:** `http://localhost:5000`  
-> **Last Synchronized:** 2026-09-18 09:41 Local Time  
+> **Technology Stack:** Node.js, Express, Supabase (PostgreSQL), node-telegram-bot-api, node-cron, CORS, Helmet, dotenv, HTML5, Tailwind CSS, FontAwesome 6  
+> **Live Local Server:** `http://localhost:5000` (Client: `/`, Admin: `/admin`)  
+> **Last Synchronized:** 2026-09-18 09:58 Local Time  
 
 ---
 
 ## 🚀 Logged System Updates & Changelog
 
+### [Update-040] — STEP 3 Completed: Premium Mobile Web Portal & Executive Admin Limits Engine (2026-09-18)
+**Type:** Major Frontend Engineering, Dynamic Admin Controls & Validation Security  
+**Status:** ✅ COMPLETED & FULLY VERIFIED  
+
+#### User Request & Objectives:
+1. Deliver **STEP 3**: Build a professional, premium, high-contrast mobile web application for [`https://symloan.best-travel.ltd`](https://symloan.best-travel.ltd).
+2. Implement **Dynamic Deadline Duration**: Admin can adjust allowed start duration to finish duration anytime for anyone. Clients must choose deadlines strictly within this admin-governed duration window.
+3. Implement **Dynamic Money Request Limits**: Admin can change Minimum and Maximum money request amounts anytime for anyone. Clients must submit loan requests strictly between these bounds.
+
+#### Architectural Execution & Accomplishments:
+
+1. **Dynamic Loan Limits Engine (`src/lib/loanSettings.js`):**
+   * Built persistent settings engine managing global system boundaries and per-client tailored overrides.
+   * Calculates dynamic calendar dates (`min_date` = today + min_days, `max_date` = today + max_days).
+   * Implemented `validateLoanRequest(clientId, amount, deadlineDate)` enforcing strict bounds before any database insertion.
+
+2. **Executive Admin API Suite (`src/routes/adminApi.js`):**
+   * `GET /api/admin/settings` — Retrieves global boundaries and all client override configurations.
+   * `POST /api/admin/settings/global` — Updates global min/max amounts and start/finish duration days anytime.
+   * `POST /api/admin/settings/client/:id` — Tailors custom loan limits and duration windows for specific clients.
+   * `DELETE /api/admin/settings/client/:id` — Resets client overrides back to global boundaries.
+   * `GET /api/admin/clients` — Client directory with real-time active limits and strike counters.
+   * `GET /api/admin/loans` — Master loan applications inbox.
+   * `POST /api/admin/loans/:id/decision` — One-click loan review decisions (`ACCEPTED` / `DECLINED`).
+   * Protected with `x-admin-key` header (`SEP_ADMIN_2026`), allowing admin access from desktop and mobile alike.
+
+3. **Client API & Validation Upgrades (`src/routes/api.js`):**
+   * `GET /api/config/limits` — Public/client endpoint returning active min/max boundaries and calculated calendar dates.
+   * `GET /api/clients/lookup/phone` — Looks up client profile and active limits by verified Telegram phone number.
+   * `POST /api/loans` — Strictly enforces admin constraints. Returns `400 Bad Request` if amount is below min or above max, or if deadline date falls outside the admin duration window.
+   * Blocks clients with `status === 'BLOCKED'`.
+
+4. **Premium High-Contrast Mobile Web App (`public/index.html`, `public/js/app.js`, `public/css/style.css`):**
+   * **Visual Aesthetic:** Obsidian dark canvas (`#070b14`), glowing gold (`#f59e0b`), emerald (`#10b981`), and deep indigo glassmorphic cards.
+   * **Header & Identity Banner:** Verified client badge, active status pill, live strike meter (3 dots: green/red).
+   * **Admin-Governed Form:**
+     * Displays active admin limits banner with dates and days range.
+     * Interactive amount range slider synchronized with number input.
+     * Smart date picker automatically locked between `min_date` and `max_date`.
+     * Live duration calculation badge displaying selected duration days.
+     * Instant submission with error feedback and success animations.
+   * **Live Loan Ledger:** Displays active loans, status pills (`PENDING`, `ACCEPTED`, `DECLINED`), and overdue warning alerts.
+   * **Telegram Bridge:** Quick action button to launch `@money_loan_bot`.
+
+5. **Executive Admin Dashboard (`public/admin.html`, `public/js/admin.js`):**
+   * Real-time KPI cards: Loan Applications count, Registered Clients count, Daily Strike Scheduler status.
+   * Instant Global Boundaries editor (Min/Max Amount, Min/Max Days).
+   * Per-Client Custom Overrides manager with client selector.
+   * Loan Review Inbox with one-click **Accept** / **Decline** actions.
+   * Client Accounts & Strike Register with one-click strike reset.
+
+#### Verification & Test Matrix:
+* `GET /api/config/limits` ➜ Returned active boundaries and auto-calculated dates (`min_date: 2026-09-23`, `max_date: 2026-11-02`).
+* Under Min Amount Test (৳500 vs ৳1,000 min) ➜ Intercepted with `400 Bad Request`.
+* Over Max Amount Test (৳50,000 vs ৳30,000 max) ➜ Intercepted with `400 Bad Request`.
+* Out-of-bounds Deadline Test (Tomorrow vs 5 days min) ➜ Intercepted with `400 Bad Request`.
+* Valid Loan Test (৳5,000 for GIXSAM) ➜ Success `201 Created` (`d7fd28a1`).
+* Admin Loan Approval Test ➜ Success `200 OK` (Status updated to `ACCEPTED`).
+* Static Web Serving ➜ `http://localhost:5000/` (200 OK) & `http://localhost:5000/admin` (200 OK).
+
+---
+
 ### [Update-039] — First Live Mobile Client Profile Registered in Production Database (2026-09-18)
 **Type:** End-to-End System Validation & Live User Onboarding  
 **Status:** ✅ COMPLETED & VERIFIED IN LIVE DATABASE  
-
-#### User Verification:
-The user clicked the native contact share button in `@money_loan_bot` from Telegram mobile (`media_1789702780907.png`). The bot successfully verified the cryptographic contact token, created the identity in Supabase Auth, and recorded the official client profile.
-
-#### Live Verification Record:
-* **Client Name:** `GIXSAM`
-* **Telegram ID:** `6464983314`
-* **Verified Phone:** `+8801612669922`
-* **Generated Client ID:** `e84ecb25-5fa1-42fb-ab04-8e3c5112a69b`
-* **Account Status:** `ACTIVE` (0 strikes)
-* **Tenant DB Record:** Confirmed in `client_profiles` and `auth.users` on `gypqeknsxfljdvmycylv.supabase.co`.
+* Client `GIXSAM` (`+8801612669922`, TG ID: `6464983314`, ID: `e84ecb25-5fa1-42fb-ab04-8e3c5112a69b`) registered in Supabase `auth.users` and `client_profiles`.
 
 ---
 
@@ -40,89 +92,17 @@ The user clicked the native contact share button in `@money_loan_bot` from Teleg
 **Type:** Database Constraint Resolution, Supabase Auth Integration & Registration Fix  
 **Status:** ✅ COMPLETED & VERIFIED LIVE  
 
-#### User Feedback & Symptom:
-The user clicked the contact sharing card on mobile Telegram (`GIXSAM`, `+880 1612669922`) at 9:34 AM. The bot returned `❌ Service Temporarily Unavailable. Could not save your profile.`
-
-#### Root Cause Analysis:
-1. Reviewing background server task logs revealed:
-   * `[Bot] Contact error: null value in column "id" of relation "client_profiles" violates not-null constraint`.
-   * Further schema diagnosis revealed: `client_profiles.id` is constrained by a foreign key constraint `client_profiles_id_fkey` pointing directly to Supabase's internal `auth.users(id)` table.
-2. Direct insertion without an active Supabase Auth user record fails database validation.
-
-#### Architectural Fix & Calibration:
-1. **Supabase Auth User Provisioning:**
-   * Updated `src/bot/index.js` contact handler to first create an authenticated identity via `supabaseAdmin.auth.admin.createUser({ phone, email, email_confirm: true, phone_confirm: true, user_metadata: { name: fullName, telegram_id: fromId, telegram_username } })`.
-   * Automatically resolves and falls back to existing auth user IDs if already present.
-2. **Linked Profile Upsert:**
-   * Upserts into `client_profiles` using the resolved `authUserId` as the primary key `id`.
-   * Successfully tested with automated test suite and live verified.
-3. **Daemon Reboot:**
-   * Rebooted server daemon (`task-293`) with polling fully active.
-
 ---
 
 ### [Update-037] — Telegram Bot Telegram API v1+ Polling Calibration & UI Verification (2026-09-18)
 **Type:** Telegram Bot Bugfix, Interactive Keyboard Fix & HTML Entity Calibration  
 **Status:** ✅ COMPLETED & VERIFIED LIVE  
 
-#### User Feedback & Symptom:
-The user tested `@money_loan_bot` from their mobile Telegram client (`media_1789702187293.png`) and sent `/start` at 9:28 AM. The bot received the update on Telegram's servers but did not render the welcome message or contact button.
-
-#### Root Cause Analysis:
-1. Reviewing background server task logs revealed: `[Bot] Error: (intermediate value).addButton is not a function`.
-2. The modern `node-telegram-bot-api` v1+ library implements `.requestContact(label)` directly on `ReplyKeyboardBuilder` rather than `.addButton(...)`.
-3. In addition, MarkdownV2 character restrictions risk parser failures when encountering periods or symbols in usernames/names.
-
-#### Architectural Fix & Calibration:
-1. **Calibrated Keyboard Builder:**
-   * Rewrote the keyboard generation in `src/bot/index.js` using `new ReplyKeyboardBuilder().requestContact('📱 Share My Phone Number').build({ one_time_keyboard: true, resize_keyboard: true })`.
-   * Verified built JSON structure: `{"keyboard":[[{"text":"📱 Share My Phone Number","request_contact":true}]],"one_time_keyboard":true,"resize_keyboard":true}`.
-2. **HTML Parse Mode Upgrade:**
-   * Switched all bot replies from brittle `MarkdownV2` to robust `HTML` mode (`<b>`, `<code>`, `<i>`).
-   * Added `escapeHtml()` utility to sanitize user names, preventing any Telegram HTML entity parse errors.
-3. **Daemon Reboot & Verification:**
-   * Successfully rebooted server daemon (`task-270`).
-   * All 3 engines (Express HTTP server on port 5000, daily 13:00 BDT strike cron, and `@money_loan_bot` polling) are fully operational without errors.
-
 ---
 
 ### [Update-036] — Full Backend Core Engine & Live Telegram Bot Activated (2026-09-18)
 **Type:** Core Backend Implementation, Security Gate & Automation  
 **Status:** ✅ COMPLETED & VERIFIED LIVE  
-
-#### Summary of Accomplishments:
-1. **Express Server Architecture (`server.js` & `src/app.js`):**
-   * Configured security headers using `helmet`.
-   * Enforced CORS restrictions for `https://symloan.best-travel.ltd` and local development origins.
-   * Built structured request logging with timestamp and user-agent monitoring.
-2. **Mobile Device Security Middleware (`src/middleware/verifyMobileDeviceOnly.js`):**
-   * Implemented strict user-agent browser filtering.
-   * Desktop browsers requesting protected endpoints receive a `403 Forbidden` JSON response (`MOBILE_ONLY`).
-   * Validated live: Desktop UA blocked with 403; Android/Mobile UA granted 200 OK access.
-3. **Dual-Layer Supabase Client Factory (`src/lib/supabase.js`):**
-   * Configured `supabase` client for anon key operations.
-   * Configured `supabaseAdmin` client utilizing `service_role` secret key to bypass RLS for server-side operations.
-4. **Live Telegram Bot Engine (`src/bot/index.js`):**
-   * Activated live polling for `@money_loan_bot` using token `8846454332:AAGl0VAri-CNPRcDCAjJvsHOcA00BJo6hhI`.
-   * Built cryptographic contact token sharing parser: extracting verified phone numbers and upserting user profiles into `client_profiles`.
-   * Implemented commands:
-     * `/start` — Welcome prompt with interactive phone number sharing keyboard.
-     * `/status` — Displays active status, strikes count, and loan request history.
-     * `/request <amount>` — Interactive loan application initiation.
-     * `/help` — Command directory and guidance.
-5. **Morning Deadline & Strike Scheduler (`src/cron/deadlineStrikeEngine.js`):**
-   * Configured `node-cron` schedule running daily at **13:00 BDT (07:00 UTC)** (`0 7 * * *`).
-   * Queries overdue `ACCEPTED` money requests (`deadline_date < TODAY`).
-   * Automatically increments client strikes (`strikes_count += 1`).
-   * Blocks clients reaching 3 strikes (`status = 'BLOCKED'`).
-   * Records audit trail notes in both `client_profiles.admin_note` and `money_requests.admin_note`.
-6. **REST API Suite (`src/routes/api.js`):**
-   * `GET /api/health` — System status, platform identity, and uptime monitor.
-   * `GET /api/clients` & `GET /api/clients/:id` — Client profile retrieval with associated loan histories.
-   * `GET /api/loans` & `POST /api/loans` — Loan applications query and submission.
-   * `PATCH /api/loans/:id/status` — Admin approval and status workflow.
-   * `GET /api/budgets` — System budget allocations.
-   * `POST /api/cron/trigger` — Manual administrative strike test trigger.
 
 ---
 
@@ -140,23 +120,13 @@ The user tested `@money_loan_bot` from their mobile Telegram client (`media_1789
 
 ## 🔮 Future Updating Plan & Technical Roadmap
 
-### [Phase 3 / STEP 3] — High-Contrast Mobile Web Interface (`https://symloan.best-travel.ltd`)
-* **Design Language:** Mobile-first responsive UI (Tailwind CSS, FontAwesome 6, high-contrast dark theme, executive emerald/indigo accents).
-* **Client Identification:** Phone lookup & session state for verified clients.
-* **Client Dashboard:**
-  * Active loan status card with overdue warning indicators and countdown timer.
-  * Strike alert banner displaying current strike count (1/3, 2/3) and penalty consequences.
-  * Direct loan application submission form (`POST /api/loans`).
-  * Repayment schedule and ledger history viewer.
-  * Quick button to open Telegram bot `@money_loan_bot`.
+### [Phase 4 / STEP 4] — Expense Tracking & Ledger Cost Split Engine
+* Daily expense recording interface (`daily_expense_items`) for business overheads and loan allocations.
+* Automated cost split engine (`expense_splits`) linking expense items directly to client loan profiles.
+* Budget tracking against daily/monthly caps (`system_budgets`).
 
-### [Phase 4 / STEP 4] — Executive Administration & Decision Engine
-* **Admin Portal:** Protected administrative portal for loan officers.
-* **Loan Review Workflow:** One-click approval (`ACCEPTED`) or rejection (`DECLINED`) with admin notes.
-* **Expense Management:** Interface to record daily expenses (`daily_expense_items`) and calculate automated cost splits (`expense_splits`).
-* **Profile Management:** Client status override controls (`ACTIVE`, `FRAUD`, `USELESS CLIENT`, `BLOCKED`) and manual strike clearing.
-
-### [Phase 5 / STEP 5] — Production Deployment & Domain Infrastructure
-* **Hostinger Cloud Deployment:** Automated deployment to Hostinger web server (`public_html/` on `symloan.best-travel.ltd`).
-* **Telegram Webhook Migration:** Transition from local polling to secure HTTPS webhook (`/api/bot/webhook`) behind the live SSL certificate.
-* **Automated Cloud Backup & Dual-Drive Synchronization:** Keeping local workspace, GitHub, and Google Drive synchronized on every update.
+### [Phase 5 / STEP 5] — Production Deployment & Domain Routing (`https://symloan.best-travel.ltd`)
+* Automated deployment package for Hostinger Cloud (`public_html/` on `symloan.best-travel.ltd`).
+* SSL / Cloudflare Tunnel routing configuration.
+* Telegram Bot Webhook setup (`/api/bot/webhook`) replacing local polling for production high concurrency.
+* GitHub Actions CI/CD automation pipeline.

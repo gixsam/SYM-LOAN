@@ -1,0 +1,11 @@
+{
+  "global": {
+    "min_amount": 1000,
+    "max_amount": 30000,
+    "min_duration_days": 5,
+    "max_duration_days": 45,
+    "updated_at": "2026-09-18T03:57:50.834Z",
+    "updated_by": "ADMIN"
+  },
+  "client_overrides": {}
+}

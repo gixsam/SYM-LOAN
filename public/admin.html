@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — SYM LOAN (S.E.P.)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="bg-[#070b14] text-slate-100 min-h-screen">
+
+  <!-- ─── TOP NAVBAR ──────────────────────────────────────────────────────── -->
+  <nav class="sticky top-0 z-30 bg-[#070b14]/90 backdrop-blur-xl border-b border-white/10 px-6 py-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-black font-black text-lg shadow-lg shadow-amber-500/20">
+          <i class="fas fa-crown"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="text-xs font-black tracking-widest text-amber-400 uppercase">SYM EMPIRE</span>
+            <span class="text-[10px] font-mono bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/30">ADMIN</span>
+          </div>
+          <h1 class="text-base font-extrabold text-white">SYM LOAN — Executive Command Center</h1>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-4">
+        <div id="authStatusBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center">
+          <i class="fas fa-spinner fa-spin mr-1.5"></i> Authenticating...
+        </div>
+        <div class="flex items-center space-x-2">
+          <input type="password" id="adminKeyInput" placeholder="Admin Secret Key" class="bg-black/50 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400 w-36 font-mono">
+        </div>
+        <a href="/" target="_blank" class="text-xs font-bold text-slate-400 hover:text-white transition flex items-center">
+          <i class="fas fa-mobile-alt mr-1.5"></i> Mobile App
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ─── DASHBOARD BODY ──────────────────────────────────────────────────── -->
+  <div class="max-w-7xl mx-auto px-6 py-8 space-y-8">
+
+    <!-- ─── TOP KPI STATS ──────────────────────────────────────────────────── -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="glass-card-gold p-5 flex items-center justify-between">
+        <div>
+          <span class="text-xs font-bold text-amber-400 uppercase tracking-wide">Loan Applications</span>
+          <h3 id="loansCount" class="text-2xl font-black text-white mt-1">0 Application(s)</h3>
+          <p class="text-[11px] text-slate-400 mt-1">Pending and evaluated requests</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400 text-xl">
+          <i class="fas fa-file-invoice-dollar"></i>
+        </div>
+      </div>
+
+      <div class="glass-card-emerald p-5 flex items-center justify-between">
+        <div>
+          <span class="text-xs font-bold text-emerald-400 uppercase tracking-wide">Registered Clients</span>
+          <h3 id="clientsCount" class="text-2xl font-black text-white mt-1">0 Registered</h3>
+          <p class="text-[11px] text-slate-400 mt-1">Telegram verified identities</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xl">
+          <i class="fas fa-users"></i>
+        </div>
+      </div>
+
+      <div class="glass-card p-5 flex items-center justify-between border-indigo-500/30">
+        <div>
+          <span class="text-xs font-bold text-indigo-400 uppercase tracking-wide">Strike Engine</span>
+          <h3 class="text-2xl font-black text-white mt-1">Daily 01:00 PM</h3>
+          <p class="text-[11px] text-slate-400 mt-1">Automated deadline penalty scanner</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-xl">
+          <i class="fas fa-stopwatch"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── SETTINGS SECTION: GLOBAL LIMITS & CLIENT OVERRIDES ──────────────── -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+      <!-- 1. Global Limits Configuration -->
+      <div class="glass-card p-6 border-amber-500/30 space-y-4">
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <div class="flex items-center space-x-2">
+            <div class="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400">
+              <i class="fas fa-globe"></i>
+            </div>
+            <div>
+              <h2 class="text-base font-extrabold text-white">Global Loan Boundaries</h2>
+              <p class="text-[11px] text-slate-400">Applies to all registered clients automatically</p>
+            </div>
+          </div>
+          <span class="text-[10px] font-mono bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded border border-amber-500/20">SYSTEM WIDE</span>
+        </div>
+
+        <form id="globalForm" class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs font-bold text-slate-300 block mb-1">Minimum Money Request (৳)</label>
+              <input type="number" id="globalMinAmount" required min="100" class="w-full bg-black/50 border border-slate-700 rounded-lg px-3 py-2 text-sm font-bold text-amber-400 focus:outline-none focus:border-amber-400 font-mono">
+              <span class="text-[10px] text-slate-500">Clients cannot request below this</span>
+            </div>
+            <div>
+              <label class="text-xs font-bold text-slate-300 block mb-1">Maximum Money Request (৳)</label>
+              <input type="number" id="globalMaxAmount" required min="100" class="w-full bg-black/50 border border-slate-700 rounded-lg px-3 py-2 text-sm font-bold text-amber-400 focus:outline-none focus:border-amber-400 font-mono">
+              <span class="text-[10px] text-slate-500">Clients cannot request above this</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs font-bold text-slate-300 block mb-1">Start Duration (Min Days)</label>
+              <input type="number" id="globalMinDays" required min="1" max="90" class="w-full bg-black/50 border border-slate-700 rounded-lg px-3 py-2 text-sm font-bold text-emerald-400 focus:outline-none focus:border-emerald-400 font-mono">
+              <span class="text-[10px] text-slate-500">Earliest allowed deadline from today</span>
+            </div>
+            <div>
+              <label class="text-xs font-bold text-slate-300 block mb-1">Finish Duration (Max Days)</label>
+              <input type="number" id="globalMaxDays" required min="1" max="365" class="w-full bg-black/50 border border-slate-700 rounded-lg px-3 py-2 text-sm font-bold text-emerald-400 focus:outline-none focus:border-emerald-400 font-mono">
+              <span class="text-[10px] text-slate-500">Latest allowed deadline from today</span>
+            </div>
+          </div>
+
+          <div id="globalFeedback" class="hidden"></div>
+
+          <button type="submit" class="btn-gold w-full py-2.5 rounded-lg text-xs font-black uppercase tracking-wider shadow flex items-center justify-center">
+            <i class="fas fa-save mr-2"></i> Save Global Boundaries
+          </button>
+        </form>
+      </div>
+
+      <!-- 2. Individual Client Custom Overrides -->
+      <div class="glass-card p-6 border-indigo-500/30 space-y-4">
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <div class="flex items-center space-x-2">
+            <div class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+              <i class="fas fa-user-cog"></i>
+            </div>
+            <div>
+              <h2 class="text-base font-extrabold text-white">Client-Specific Limits Override</h2>
+              <p class="text-[11px] text-slate-400">Tailor boundaries for specific VIP or restricted clients</p>
+            </div>
+          </div>
+          <span class="text-[10px] font-mono bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/20">INDIVIDUAL</span>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-300 block mb-1.5">Select Client to Configure</label>
+          <select id="clientSelector" class="w-full bg-black/50 border border-slate-700 rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-400">
+            <option value="">-- Choose a registered client --</option>
+          </select>
+        </div>
+
+        <!-- Custom Override Form (Hidden until client selected) -->
+        <div id="overridePanel" class="hidden p-4 rounded-xl bg-black/30 border border-indigo-500/20 space-y-3">
+          <div class="flex items-center justify-between border-b border-white/10 pb-2">
+            <div>
+              <h4 id="clientSelectedName" class="text-sm font-black text-amber-400">Client Name</h4>
+              <p id="clientSelectedId" class="text-[10px] font-mono text-slate-500">ID / Phone</p>
+            </div>
+            <button type="button" id="resetOverrideBtn" class="text-[10px] px-2 py-1 bg-white/10 text-slate-300 hover:bg-rose-500/20 hover:text-rose-400 rounded font-bold transition">
+              Reset to Global
+            </button>
+          </div>
+
+          <form id="clientOverrideForm" class="space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-[11px] font-bold text-slate-300 block mb-1">Custom Min (৳)</label>
+                <input type="number" id="overrideMinAmount" class="w-full bg-black/50 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-amber-400">
+              </div>
+              <div>
+                <label class="text-[11px] font-bold text-slate-300 block mb-1">Custom Max (৳)</label>
+                <input type="number" id="overrideMaxAmount" class="w-full bg-black/50 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-amber-400">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-[11px] font-bold text-slate-300 block mb-1">Custom Min Days</label>
+                <input type="number" id="overrideMinDays" class="w-full bg-black/50 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-emerald-400">
+              </div>
+              <div>
+                <label class="text-[11px] font-bold text-slate-300 block mb-1">Custom Max Days</label>
+                <input type="number" id="overrideMaxDays" class="w-full bg-black/50 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-emerald-400">
+              </div>
+            </div>
+
+            <div>
+              <label class="text-[11px] font-bold text-slate-300 block mb-1">Administrative Note</label>
+              <input type="text" id="overrideNote" placeholder="Reason for custom limits..." class="w-full bg-black/50 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200">
+            </div>
+
+            <div id="overrideFeedback" class="hidden"></div>
+
+            <button type="submit" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition shadow">
+              Apply Client Override
+            </button>
+          </form>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ─── LOAN APPLICATIONS INBOX ─────────────────────────────────────────── -->
+    <div class="glass-card p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+            <i class="fas fa-clipboard-check"></i>
+          </div>
+          <h2 class="text-base font-extrabold text-white">Loan Applications Review Inbox</h2>
+        </div>
+        <button id="refreshLoansBtn" class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition flex items-center">
+          <i class="fas fa-sync-alt mr-1.5"></i> Refresh
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="border-b border-white/10 text-[11px] font-mono text-slate-400 uppercase">
+              <th class="py-2.5 px-4">Ref</th>
+              <th class="py-2.5 px-4">Client</th>
+              <th class="py-2.5 px-4">Amount</th>
+              <th class="py-2.5 px-4">Deadline</th>
+              <th class="py-2.5 px-4">Status</th>
+              <th class="py-2.5 px-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="loansTableBody">
+            <tr>
+              <td colspan="6" class="p-6 text-center text-slate-500 text-xs">
+                <i class="fas fa-spinner fa-spin mr-2"></i> Loading loan applications...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ─── CLIENTS DIRECTORY ───────────────────────────────────────────────── -->
+    <div class="glass-card p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-teal-500/20 flex items-center justify-center text-teal-400">
+            <i class="fas fa-address-book"></i>
+          </div>
+          <h2 class="text-base font-extrabold text-white">Client Accounts & Strike Register</h2>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="border-b border-white/10 text-[11px] font-mono text-slate-400 uppercase">
+              <th class="py-2.5 px-4">Client Name & ID</th>
+              <th class="py-2.5 px-4">Phone Number</th>
+              <th class="py-2.5 px-4">Status</th>
+              <th class="py-2.5 px-4">Strikes</th>
+              <th class="py-2.5 px-4">Active Limits</th>
+              <th class="py-2.5 px-4">Quick Actions</th>
+            </tr>
+          </thead>
+          <tbody id="clientsTableBody">
+            <tr>
+              <td colspan="6" class="p-6 text-center text-slate-500 text-xs">
+                <i class="fas fa-spinner fa-spin mr-2"></i> Loading clients directory...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/js/admin.js"></script>
+</body>
+</html>
