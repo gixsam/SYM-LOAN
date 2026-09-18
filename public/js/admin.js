@@ -2,11 +2,22 @@
 /**
  * public/js/admin.js
  * SYM EMPIRE PLATFORM (S.E.P.) — Executive Administration Panel Logic
+ *
+ * Features:
+ *   - Global limits management
+ *   - Per-client custom overrides
+ *   - Multi-channel disbursement (Hand-to-Hand Cash, bKash, Nagad)
+ *   - Standard 20 BDT per 1,000 MFS Cash-Out Fee Calculator
+ *   - Payment receipt screenshot upload & preview lightbox
+ *   - Vector PDF Cash Voucher generation
+ *   - Google Keep "Money 💰" notes digitalizer & historical ledger
  */
 
 let ADMIN_KEY = sessionStorage.getItem('sep_admin_key') || 'SEP_ADMIN_2026';
 let CLIENTS_CACHE = [];
 let SETTINGS_CACHE = null;
+let LOANS_CACHE = [];
+let ACTIVE_DISBURSE_LOAN = null;
 
 const DOM = {
   adminKeyInput: document.getElementById('adminKeyInput'),
@@ -37,6 +48,35 @@ const DOM = {
   loansCount: document.getElementById('loansCount'),
   refreshLoansBtn: document.getElementById('refreshLoansBtn'),
 
+  // Disbursement Modal
+  disburseModal: document.getElementById('disburseModal'),
+  closeModalBtn: document.getElementById('closeModalBtn'),
+  modalLoanRef: document.getElementById('modalLoanRef'),
+  modalClientName: document.getElementById('modalClientName'),
+  modalClientPhone: document.getElementById('modalClientPhone'),
+  modalLoanAmount: document.getElementById('modalLoanAmount'),
+  disbursementForm: document.getElementById('disbursementForm'),
+  mfsDetailsBox: document.getElementById('mfsDetailsBox'),
+  modalMfsNumber: document.getElementById('modalMfsNumber'),
+  modalTrxId: document.getElementById('modalTrxId'),
+  modalFeeAmount: document.getElementById('modalFeeAmount'),
+  modalTotalDisbursed: document.getElementById('modalTotalDisbursed'),
+  modalReceiptFile: document.getElementById('modalReceiptFile'),
+  modalAdminNote: document.getElementById('modalAdminNote'),
+  confirmDisburseBtn: document.getElementById('confirmDisburseBtn'),
+
+  // Receipt Modal
+  receiptModal: document.getElementById('receiptModal'),
+  closeReceiptModalBtn: document.getElementById('closeReceiptModalBtn'),
+  receiptImage: document.getElementById('receiptImage'),
+  downloadReceiptLink: document.getElementById('downloadReceiptLink'),
+
+  // Historical notes
+  rawNoteInput: document.getElementById('rawNoteInput'),
+  importNoteBtn: document.getElementById('importNoteBtn'),
+  historicalTableBody: document.getElementById('historicalTableBody'),
+  historicalCountBadge: document.getElementById('historicalCountBadge'),
+
   // Clients list
   clientsTableBody: document.getElementById('clientsTableBody'),
   clientsCount: document.getElementById('clientsCount'),
@@ -50,7 +90,6 @@ function initAdmin() {
 
 function getHeaders() {
   return {
-    'Content-Type': 'application/json',
     'x-admin-key': ADMIN_KEY,
   };
 }
@@ -61,6 +100,7 @@ async function loadAllData() {
     await fetchSettings();
     await fetchClients();
     await fetchLoans();
+    await fetchHistoricalLedgers();
     DOM.authStatusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center';
     DOM.authStatusBadge.innerHTML = '<i class="fas fa-shield-alt mr-1.5"></i> Authenticated';
   } catch (err) {
@@ -93,13 +133,11 @@ async function fetchClients() {
   CLIENTS_CACHE = json.clients || [];
   DOM.clientsCount.textContent = `${CLIENTS_CACHE.length} Registered`;
 
-  // Populate client selector
   DOM.clientSelector.innerHTML = '<option value="">-- Choose a registered client --</option>' +
     CLIENTS_CACHE.map(c => `
       <option value="${c.id}">${c.name} (${c.phone_number}) — Strikes: ${c.strikes_count}</option>
     `).join('');
 
-  // Render clients table
   DOM.clientsTableBody.innerHTML = CLIENTS_CACHE.map(c => {
     const isOverride = c.active_limits.is_override;
     return `
@@ -136,16 +174,16 @@ async function fetchClients() {
   }).join('');
 }
 
-// ─── Loans API ────────────────────────────────────────────────────────────────
+// ─── Loans API & Multi-Channel Disbursement ───────────────────────────────────
 async function fetchLoans() {
   const res = await fetch('/api/admin/loans', { headers: getHeaders() });
   const json = await res.json();
   if (!res.ok || !json.success) throw new Error(json.message);
 
-  const loans = json.loans || [];
-  DOM.loansCount.textContent = `${loans.length} Application(s)`;
+  LOANS_CACHE = json.loans || [];
+  DOM.loansCount.textContent = `${LOANS_CACHE.length} Application(s)`;
 
-  if (loans.length === 0) {
+  if (LOANS_CACHE.length === 0) {
     DOM.loansTableBody.innerHTML = `
       <tr>
         <td colspan="6" class="p-6 text-center text-slate-500 text-xs">
@@ -156,23 +194,62 @@ async function fetchLoans() {
     return;
   }
 
-  DOM.loansTableBody.innerHTML = loans.map(l => {
+  DOM.loansTableBody.innerHTML = LOANS_CACHE.map(l => {
     const client = l.client_profiles || { name: 'Unknown', phone_number: '—' };
+    const d = l.disbursement || {};
+
     let statusClass = 'bg-amber-500/20 text-amber-400 border border-amber-500/30';
     if (l.status === 'ACCEPTED') statusClass = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
     if (l.status === 'DECLINED') statusClass = 'bg-rose-500/20 text-rose-400 border border-rose-500/30';
 
     const isPending = l.status === 'PENDING';
+    const isAccepted = l.status === 'ACCEPTED';
+
+    // Channel badge
+    let channelBadge = '<span class="text-slate-500 text-[10px]">—</span>';
+    if (d.payout_method) {
+      if (d.payout_method === 'BKASH') {
+        channelBadge = `
+          <div>
+            <span class="px-2 py-0.5 rounded text-[10px] font-black bg-pink-500/20 text-pink-400 border border-pink-500/30 uppercase">
+              <i class="fas fa-mobile-alt mr-1"></i> bKash
+            </span>
+            <div class="text-[10px] font-mono text-slate-400 mt-1">TrxID: <b class="text-white">${d.trx_id || 'N/A'}</b></div>
+          </div>
+        `;
+      } else if (d.payout_method === 'NAGAD') {
+        channelBadge = `
+          <div>
+            <span class="px-2 py-0.5 rounded text-[10px] font-black bg-orange-500/20 text-orange-400 border border-orange-500/30 uppercase">
+              <i class="fas fa-wallet mr-1"></i> Nagad
+            </span>
+            <div class="text-[10px] font-mono text-slate-400 mt-1">TrxID: <b class="text-white">${d.trx_id || 'N/A'}</b></div>
+          </div>
+        `;
+      } else {
+        channelBadge = `
+          <div>
+            <span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase">
+              <i class="fas fa-hand-holding-usd mr-1"></i> Cash Handover
+            </span>
+          </div>
+        `;
+      }
+    }
 
     return `
       <tr class="border-b border-white/5 hover:bg-white/[0.02] text-xs">
-        <td class="py-3 px-4 font-mono text-[11px] text-slate-400">#${l.id.slice(0, 8)}</td>
         <td class="py-3 px-4">
           <div class="font-bold text-white">${client.name}</div>
           <div class="font-mono text-[10px] text-emerald-400">${client.phone_number}</div>
+          <div class="font-mono text-[9px] text-slate-500">#${l.id.slice(0, 8)}</div>
         </td>
         <td class="py-3 px-4 font-black text-sm text-emerald-400">
           ৳${parseFloat(l.amount).toLocaleString()}
+          ${d.mfs_fee ? `<div class="text-[9px] font-normal text-amber-400">+৳${d.mfs_fee} MFS fee</div>` : ''}
+        </td>
+        <td class="py-3 px-4">
+          ${channelBadge}
         </td>
         <td class="py-3 px-4">
           <div class="font-bold text-slate-300">${l.deadline_date}</div>
@@ -185,14 +262,25 @@ async function fetchLoans() {
         </td>
         <td class="py-3 px-4 space-x-1.5">
           ${isPending ? `
-            <button onclick="decideLoan('${l.id}', 'ACCEPTED')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[10px] font-bold shadow">
-              <i class="fas fa-check mr-1"></i> Accept
+            <button onclick="openDisburseModal('${l.id}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[10px] font-bold shadow">
+              <i class="fas fa-check mr-1"></i> Accept & Disburse
             </button>
-            <button onclick="decideLoan('${l.id}', 'DECLINED')" class="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded text-[10px] font-bold shadow">
+            <button onclick="declineLoan('${l.id}')" class="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded text-[10px] font-bold shadow">
               <i class="fas fa-times mr-1"></i> Decline
             </button>
           ` : `
-            <span class="text-[10px] text-slate-500 font-mono">${l.status}</span>
+            <div class="flex items-center space-x-1.5">
+              ${d.receipt_url ? `
+                <button onclick="viewReceiptImage('${d.receipt_url}')" class="px-2 py-1 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded text-[10px] font-bold border border-blue-500/30" title="View Payment Screenshot">
+                  <i class="fas fa-receipt mr-1"></i> Receipt
+                </button>
+              ` : ''}
+              ${isAccepted ? `
+                <button onclick="downloadVoucher('${l.id}')" class="px-2 py-1 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 rounded text-[10px] font-bold border border-amber-500/30" title="Download Official PDF Voucher">
+                  <i class="fas fa-file-pdf mr-1"></i> Voucher
+                </button>
+              ` : ''}
+            </div>
           `}
         </td>
       </tr>
@@ -200,52 +288,111 @@ async function fetchLoans() {
   }).join('');
 }
 
-// ─── Loan Actions ─────────────────────────────────────────────────────────────
-async function decideLoan(loanId, decision) {
-  const note = prompt(`Enter administrative note for marking loan as ${decision}:`, `Approved by loan admin on ${new Date().toLocaleDateString()}`);
-  if (note === null) return; // cancelled
+// ─── Disbursement Modal Flow ──────────────────────────────────────────────────
+window.openDisburseModal = function(loanId) {
+  const loan = LOANS_CACHE.find(l => l.id === loanId);
+  if (!loan) return;
+
+  ACTIVE_DISBURSE_LOAN = loan;
+  const client = loan.client_profiles || {};
+
+  DOM.modalLoanRef.textContent = `Loan Ref: #${loan.id.slice(0, 8).toUpperCase()}`;
+  DOM.modalClientName.textContent = client.name || 'Client';
+  DOM.modalClientPhone.textContent = client.phone_number || '';
+  DOM.modalLoanAmount.textContent = `৳${parseFloat(loan.amount).toLocaleString()}`;
+  DOM.modalMfsNumber.value = (client.phone_number || '').replace(/^\+88/, '');
+  DOM.modalTrxId.value = '';
+  DOM.modalReceiptFile.value = '';
+  DOM.modalAdminNote.value = '';
+
+  // Fee calculation: 20 BDT per 1,000 BDT
+  const amount = parseFloat(loan.amount) || 0;
+  const fee = Math.ceil(amount / 1000) * 20;
+  DOM.modalFeeAmount.textContent = `৳${fee.toLocaleString()}`;
+  DOM.modalTotalDisbursed.textContent = `৳${(amount + fee).toLocaleString()}`;
+
+  // Default to Cash
+  document.querySelector('input[name="payout_method"][value="CASH"]').checked = true;
+  DOM.mfsDetailsBox.classList.add('hidden');
+  updateMethodSelectionStyle('CASH');
+
+  DOM.disburseModal.classList.remove('hidden');
+};
+
+function updateMethodSelectionStyle(selectedMethod) {
+  document.querySelectorAll('.method-card').forEach(card => {
+    const input = card.querySelector('input[type="radio"]');
+    if (input.value === selectedMethod) {
+      card.classList.add('border-amber-400', 'bg-amber-500/10');
+    } else {
+      card.classList.remove('border-amber-400', 'bg-amber-500/10');
+    }
+  });
+
+  if (selectedMethod === 'BKASH' || selectedMethod === 'NAGAD') {
+    DOM.mfsDetailsBox.classList.remove('hidden');
+  } else {
+    DOM.mfsDetailsBox.classList.add('hidden');
+  }
+}
+
+window.declineLoan = async function(loanId) {
+  const reason = prompt('Reason for declining loan:', 'Does not meet loan criteria at this time');
+  if (reason === null) return;
 
   try {
     const res = await fetch(`/api/admin/loans/${loanId}/decision`, {
       method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({ decision, admin_note: note }),
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision: 'DECLINED', admin_note: reason }),
     });
-
     const json = await res.json();
     if (!res.ok || !json.success) throw new Error(json.message);
-
-    alert(`Loan marked as ${decision}.`);
+    alert('Loan application marked as DECLINED.');
     await fetchLoans();
   } catch (err) {
     alert(`Error: ${err.message}`);
   }
-}
+};
 
-async function clearClientStrikes(clientId) {
-  if (!confirm('Clear all strikes for this client?')) return;
+window.viewReceiptImage = function(url) {
+  DOM.receiptImage.src = url;
+  DOM.downloadReceiptLink.href = url;
+  DOM.receiptModal.classList.remove('hidden');
+};
 
+window.downloadVoucher = function(loanId) {
+  const loan = LOANS_CACHE.find(l => l.id === loanId);
+  if (!loan) return;
+  const client = loan.client_profiles || { name: 'GIXSAM', phone_number: '+8801612669922' };
+  window.generateLoanVoucherPdf(loan, client);
+};
+
+// ─── Historical Google Keep Notes API ─────────────────────────────────────────
+async function fetchHistoricalLedgers() {
   try {
-    const res = await fetch(`/api/admin/clients/${clientId}/status`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({ strikes_count: 0, status: 'ACTIVE', admin_note: 'Strikes cleared by admin' }),
-    });
+    const res = await fetch('/api/admin/historical-ledgers', { headers: getHeaders() });
     const json = await res.json();
-    if (!res.ok || !json.success) throw new Error(json.message);
-    alert('Strikes reset to 0.');
-    await fetchClients();
+    if (res.ok && json.success) {
+      const list = json.ledgers || [];
+      DOM.historicalCountBadge.textContent = `${list.length} Records`;
+      DOM.historicalTableBody.innerHTML = list.map(item => `
+        <tr class="border-b border-white/5 hover:bg-white/[0.02] text-xs">
+          <td class="py-2.5 px-3 font-bold text-white">${item.old_name}</td>
+          <td class="py-2.5 px-3 font-mono font-black text-amber-400">৳${parseFloat(item.historical_balance).toLocaleString()}</td>
+          <td class="py-2.5 px-3">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${item.historical_tag.includes('FRAUD') ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-white/5 text-slate-300'}">
+              ${item.historical_tag}
+            </span>
+          </td>
+          <td class="py-2.5 px-3 text-[10px] text-slate-500">${new Date(item.created_at).toLocaleDateString()}</td>
+        </tr>
+      `).join('');
+    }
   } catch (err) {
-    alert(`Error: ${err.message}`);
+    console.error('Failed to load historical ledgers:', err);
   }
 }
-
-// ─── Client Override Selection ────────────────────────────────────────────────
-window.selectClientForOverride = function(clientId) {
-  DOM.clientSelector.value = clientId;
-  DOM.clientSelector.dispatchEvent(new Event('change'));
-  DOM.overridePanel.scrollIntoView({ behavior: 'smooth' });
-};
 
 // ─── Setup Event Listeners ────────────────────────────────────────────────────
 function setupEvents() {
@@ -258,12 +405,111 @@ function setupEvents() {
   DOM.refreshLoansBtn.addEventListener('click', () => {
     fetchLoans();
     fetchClients();
+    fetchHistoricalLedgers();
+  });
+
+  DOM.closeModalBtn.addEventListener('click', () => {
+    DOM.disburseModal.classList.add('hidden');
+  });
+
+  DOM.closeReceiptModalBtn.addEventListener('click', () => {
+    DOM.receiptModal.classList.add('hidden');
+  });
+
+  // Method selector click
+  document.querySelectorAll('input[name="payout_method"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      updateMethodSelectionStyle(e.target.value);
+    });
+  });
+
+  // Disbursement Form Submit (Multipart/Form-Data)
+  DOM.disbursementForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!ACTIVE_DISBURSE_LOAN) return;
+
+    const payout_method = document.querySelector('input[name="payout_method"]:checked').value;
+    const destination_number = DOM.modalMfsNumber.value.trim();
+    const trx_id = DOM.modalTrxId.value.trim();
+    const fee_handling = document.querySelector('input[name="fee_handling"]:checked')?.value || 'INCLUDED';
+    const admin_note = DOM.modalAdminNote.value.trim();
+    const receiptFile = DOM.modalReceiptFile.files[0];
+
+    if ((payout_method === 'BKASH' || payout_method === 'NAGAD') && !trx_id) {
+      alert('Please provide the MFS Transaction ID (TrxID) for verification.');
+      DOM.modalTrxId.focus();
+      return;
+    }
+
+    DOM.confirmDisburseBtn.disabled = true;
+    DOM.confirmDisburseBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing Disbursement...';
+
+    try {
+      const formData = new FormData();
+      formData.append('decision', 'ACCEPTED');
+      formData.append('payout_method', payout_method);
+      formData.append('destination_number', destination_number);
+      formData.append('trx_id', trx_id);
+      formData.append('fee_handling', fee_handling);
+      formData.append('admin_note', admin_note);
+      if (receiptFile) {
+        formData.append('receipt_image', receiptFile);
+      }
+
+      const res = await fetch(`/api/admin/loans/${ACTIVE_DISBURSE_LOAN.id}/decision`, {
+        method: 'POST',
+        headers: getHeaders(), // browser sets multipart boundary automatically
+        body: formData,
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message);
+
+      alert(`✅ Loan disbursed successfully via ${payout_method}!`);
+      DOM.disburseModal.classList.add('hidden');
+      await fetchLoans();
+    } catch (err) {
+      alert(`Disbursement Error: ${err.message}`);
+    } finally {
+      DOM.confirmDisburseBtn.disabled = false;
+      DOM.confirmDisburseBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Confirm Approval & Disburse';
+    }
+  });
+
+  // Google Keep Note Importer
+  DOM.importNoteBtn.addEventListener('click', async () => {
+    const raw_text = DOM.rawNoteInput.value.trim();
+    if (!raw_text) {
+      alert('Please paste some note lines to import.');
+      return;
+    }
+
+    DOM.importNoteBtn.disabled = true;
+    DOM.importNoteBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Parsing...';
+
+    try {
+      const res = await fetch('/api/admin/historical-ledgers/import-note', {
+        method: 'POST',
+        headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raw_text }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message);
+
+      alert(json.message);
+      DOM.rawNoteInput.value = '';
+      await fetchHistoricalLedgers();
+    } catch (err) {
+      alert(`Import error: ${err.message}`);
+    } finally {
+      DOM.importNoteBtn.disabled = false;
+      DOM.importNoteBtn.innerHTML = '<i class="fas fa-magic mr-1.5"></i> Parse & Import to Ledger';
+    }
   });
 
   // Global Settings Form
   DOM.globalForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-
     const min_amount = parseFloat(DOM.globalMinAmount.value);
     const max_amount = parseFloat(DOM.globalMaxAmount.value);
     const min_duration_days = parseInt(DOM.globalMinDays.value, 10);
@@ -272,17 +518,15 @@ function setupEvents() {
     try {
       const res = await fetch('/api/admin/settings/global', {
         method: 'POST',
-        headers: getHeaders(),
+        headers: { ...getHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ min_amount, max_amount, min_duration_days, max_duration_days }),
       });
-
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message);
 
       DOM.globalFeedback.className = 'p-3 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30';
-      DOM.globalFeedback.textContent = '✅ Global limits updated! All clients without custom overrides now use these new limits.';
+      DOM.globalFeedback.textContent = '✅ Global limits updated successfully!';
       DOM.globalFeedback.classList.remove('hidden');
-
       setTimeout(() => DOM.globalFeedback.classList.add('hidden'), 5000);
       await fetchClients();
     } catch (err) {
@@ -292,20 +536,18 @@ function setupEvents() {
     }
   });
 
-  // Client Selector Change
+  // Client selector
   DOM.clientSelector.addEventListener('change', (e) => {
     const clientId = e.target.value;
     if (!clientId) {
       DOM.overridePanel.classList.add('hidden');
       return;
     }
-
     const client = CLIENTS_CACHE.find(c => c.id === clientId);
     if (!client) return;
 
     DOM.clientSelectedName.textContent = client.name;
     DOM.clientSelectedId.textContent = `${client.phone_number} • ID: ${client.id}`;
-
     const override = SETTINGS_CACHE?.client_overrides?.[clientId] || client.active_limits;
 
     DOM.overrideMinAmount.value = override.min_amount;
@@ -313,36 +555,33 @@ function setupEvents() {
     DOM.overrideMinDays.value = override.min_duration_days;
     DOM.overrideMaxDays.value = override.max_duration_days;
     DOM.overrideNote.value = override.note || '';
-
     DOM.overridePanel.classList.remove('hidden');
   });
 
-  // Client Override Form Submit
+  // Client Override Submit
   DOM.clientOverrideForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const clientId = DOM.clientSelector.value;
     if (!clientId) return;
 
-    const min_amount = parseFloat(DOM.overrideMinAmount.value);
-    const max_amount = parseFloat(DOM.overrideMaxAmount.value);
-    const min_duration_days = parseInt(DOM.overrideMinDays.value, 10);
-    const max_duration_days = parseInt(DOM.overrideMaxDays.value, 10);
-    const note = DOM.overrideNote.value.trim();
-
     try {
       const res = await fetch(`/api/admin/settings/client/${clientId}`, {
         method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({ min_amount, max_amount, min_duration_days, max_duration_days, note }),
+        headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          min_amount: parseFloat(DOM.overrideMinAmount.value),
+          max_amount: parseFloat(DOM.overrideMaxAmount.value),
+          min_duration_days: parseInt(DOM.overrideMinDays.value, 10),
+          max_duration_days: parseInt(DOM.overrideMaxDays.value, 10),
+          note: DOM.overrideNote.value.trim(),
+        }),
       });
-
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message);
 
       DOM.overrideFeedback.className = 'p-3 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30';
       DOM.overrideFeedback.textContent = `✅ Custom limits applied for ${json.client.name}!`;
       DOM.overrideFeedback.classList.remove('hidden');
-
       setTimeout(() => DOM.overrideFeedback.classList.add('hidden'), 5000);
       await fetchSettings();
       await fetchClients();
@@ -353,11 +592,11 @@ function setupEvents() {
     }
   });
 
-  // Reset Override Button
+  // Reset Override
   DOM.resetOverrideBtn.addEventListener('click', async () => {
     const clientId = DOM.clientSelector.value;
     if (!clientId) return;
-    if (!confirm('Remove custom limits and restore global limits for this client?')) return;
+    if (!confirm('Remove custom limits for this client?')) return;
 
     try {
       const res = await fetch(`/api/admin/settings/client/${clientId}`, {
@@ -366,7 +605,6 @@ function setupEvents() {
       });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message);
-
       alert('Custom override removed.');
       await fetchSettings();
       await fetchClients();

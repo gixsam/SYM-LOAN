@@ -1,4 +1,4 @@
-﻿node_modules/
+node_modules/
 .env
 .env.local
 .DS_Store
@@ -8,3 +8,5 @@ dist/
 cloudflared.exe
 cloudflared.log
 
+public/uploads/receipts/*
+!public/uploads/receipts/.gitkeep

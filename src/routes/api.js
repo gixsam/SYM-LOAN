@@ -102,6 +102,22 @@ router.get('/clients/:id', async (req, res) => {
   res.json({ success: true, data, limits });
 });
 
+// Helper to parse disbursement metadata
+function enrichLoans(loans) {
+  return (loans || []).map(loan => {
+    let disbursement = null;
+    if (loan.admin_note && loan.admin_note.startsWith('{') && loan.admin_note.endsWith('}')) {
+      try {
+        disbursement = JSON.parse(loan.admin_note);
+      } catch (e) {}
+    }
+    return {
+      ...loan,
+      disbursement,
+    };
+  });
+}
+
 // Get loan requests for single client
 router.get('/clients/:id/loans', async (req, res) => {
   const { data, error } = await supabaseAdmin
@@ -111,7 +127,7 @@ router.get('/clients/:id/loans', async (req, res) => {
     .order('created_at', { ascending: false });
 
   if (error) return res.status(500).json({ success: false, message: error.message });
-  res.json({ success: true, count: data.length, data });
+  res.json({ success: true, count: data.length, data: enrichLoans(data) });
 });
 
 // ─── Money Requests (Loans) ───────────────────────────────────────────────────
@@ -125,7 +141,7 @@ router.get('/loans', async (req, res) => {
     .order('created_at', { ascending: false });
 
   if (error) return res.status(500).json({ success: false, message: error.message });
-  res.json({ success: true, count: data.length, data });
+  res.json({ success: true, count: data.length, data: enrichLoans(data) });
 });
 
 // POST /api/loans — Submit loan application strictly validated by Admin Limits

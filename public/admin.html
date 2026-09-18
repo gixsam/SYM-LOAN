@@ -8,6 +8,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome 6 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- jsPDF for vector voucher generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="/js/voucher.js"></script>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body class="bg-[#070b14] text-slate-100 min-h-screen">
@@ -208,14 +211,17 @@
 
     </div>
 
-    <!-- ─── LOAN APPLICATIONS INBOX ─────────────────────────────────────────── -->
+    <!-- ─── LOAN APPLICATIONS INBOX (WITH MULTI-CHANNEL DISBURSEMENT) ───────── -->
     <div class="glass-card p-6 space-y-4">
       <div class="flex items-center justify-between border-b border-white/10 pb-3">
         <div class="flex items-center space-x-2">
           <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400">
             <i class="fas fa-clipboard-check"></i>
           </div>
-          <h2 class="text-base font-extrabold text-white">Loan Applications Review Inbox</h2>
+          <div>
+            <h2 class="text-base font-extrabold text-white">Loan Applications Review & Disbursement</h2>
+            <p class="text-[11px] text-slate-400">Approve with Hand-to-Hand Cash, bKash or Nagad (৳20/1,000 fee calculator)</p>
+          </div>
         </div>
         <button id="refreshLoansBtn" class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition flex items-center">
           <i class="fas fa-sync-alt mr-1.5"></i> Refresh
@@ -226,18 +232,72 @@
         <table class="w-full text-left">
           <thead>
             <tr class="border-b border-white/10 text-[11px] font-mono text-slate-400 uppercase">
-              <th class="py-2.5 px-4">Ref</th>
-              <th class="py-2.5 px-4">Client</th>
-              <th class="py-2.5 px-4">Amount</th>
+              <th class="py-2.5 px-4">Ref / Client</th>
+              <th class="py-2.5 px-4">Amount (BDT)</th>
+              <th class="py-2.5 px-4">Disbursement Method & TrxID</th>
               <th class="py-2.5 px-4">Deadline</th>
               <th class="py-2.5 px-4">Status</th>
-              <th class="py-2.5 px-4">Actions</th>
+              <th class="py-2.5 px-4">Actions & Vouchers</th>
             </tr>
           </thead>
           <tbody id="loansTableBody">
             <tr>
               <td colspan="6" class="p-6 text-center text-slate-500 text-xs">
                 <i class="fas fa-spinner fa-spin mr-2"></i> Loading loan applications...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ─── HISTORICAL "GOOGLE KEEP NOTE" LEDGER & DIGITALIZER ──────────────── -->
+    <div class="glass-card p-6 space-y-5 border-amber-500/20">
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400 text-base">
+            <i class="fas fa-sticky-note"></i>
+          </div>
+          <div>
+            <h2 class="text-base font-extrabold text-white flex items-center">
+              Historical Ledger & Google Keep Digitalizer
+              <span class="ml-2 text-[10px] font-mono bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">MONEY 💰 NOTES</span>
+            </h2>
+            <p class="text-[11px] text-slate-400">Directly synchronized with your mobile Google Keep notes</p>
+          </div>
+        </div>
+        <span id="historicalCountBadge" class="text-xs font-mono font-bold bg-white/5 text-slate-300 px-2.5 py-1 rounded border border-white/10">24 Records</span>
+      </div>
+
+      <!-- Quick Note Importer -->
+      <div class="p-4 rounded-xl bg-black/40 border border-white/5 space-y-3">
+        <label class="text-xs font-bold text-slate-300 block">
+          <i class="fas fa-paste text-amber-400 mr-1.5"></i> Paste Raw Google Keep Notes to Digitalize:
+        </label>
+        <textarea id="rawNoteInput" rows="2" placeholder="e.g. Sunny-----------=2140+500=2,640&#10;Jhor vi ---------=2000 fraud" class="w-full bg-black/60 border border-slate-700 rounded-lg p-2.5 text-xs font-mono text-amber-300 focus:outline-none focus:border-amber-400"></textarea>
+        <div class="flex justify-between items-center">
+          <span class="text-[10px] text-slate-500">Supports arithmetic expressions, notes, and tags automatically.</span>
+          <button id="importNoteBtn" class="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-black font-black text-xs rounded-lg transition shadow flex items-center">
+            <i class="fas fa-magic mr-1.5"></i> Parse & Import to Ledger
+          </button>
+        </div>
+      </div>
+
+      <!-- Historical Ledger Grid / Table -->
+      <div class="overflow-x-auto max-h-80 overflow-y-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="border-b border-white/10 text-[11px] font-mono text-slate-400 uppercase sticky top-0 bg-[#0d1527]">
+              <th class="py-2 px-3">Client / Person Name</th>
+              <th class="py-2 px-3">Balance (BDT)</th>
+              <th class="py-2 px-3">Category Tag & Note</th>
+              <th class="py-2 px-3">Recorded Date</th>
+            </tr>
+          </thead>
+          <tbody id="historicalTableBody">
+            <tr>
+              <td colspan="4" class="p-4 text-center text-slate-500 text-xs">
+                Loading historical records...
               </td>
             </tr>
           </tbody>
@@ -279,6 +339,145 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- ─── MULTI-CHANNEL DISBURSEMENT MODAL (BKASH / NAGAD / CASH) ─────────── -->
+  <div id="disburseModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="glass-card-gold max-w-lg w-full p-6 space-y-4 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+            <i class="fas fa-money-check-alt"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-white">Approve & Disburse Loan</h3>
+            <p id="modalLoanRef" class="text-[11px] font-mono text-slate-400">Ref: #—</p>
+          </div>
+        </div>
+        <button id="closeModalBtn" class="text-slate-400 hover:text-white text-lg">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Loan Summary Box -->
+      <div class="p-3 rounded-xl bg-black/50 border border-white/5 flex items-center justify-between">
+        <div>
+          <span class="text-[10px] text-slate-400 uppercase font-bold">Client Recipient</span>
+          <div id="modalClientName" class="text-sm font-black text-white">Client</div>
+          <div id="modalClientPhone" class="text-[11px] font-mono text-emerald-400">Phone</div>
+        </div>
+        <div class="text-right">
+          <span class="text-[10px] text-slate-400 uppercase font-bold">Loan Amount</span>
+          <div id="modalLoanAmount" class="text-xl font-black text-amber-400">৳0</div>
+        </div>
+      </div>
+
+      <form id="disbursementForm" class="space-y-4">
+        <!-- Payout Method Selection -->
+        <div>
+          <label class="text-xs font-bold text-slate-300 block mb-2">Select Disbursement Channel:</label>
+          <div class="grid grid-cols-3 gap-3">
+            <label class="method-card cursor-pointer border border-slate-700 p-3 rounded-xl flex flex-col items-center justify-center text-center transition hover:border-amber-400 bg-black/40">
+              <input type="radio" name="payout_method" value="CASH" class="hidden" checked>
+              <i class="fas fa-money-bill-wave text-lg text-emerald-400 mb-1"></i>
+              <span class="text-xs font-bold text-white">Cash Handover</span>
+              <span class="text-[9px] text-slate-400">Direct In-Person</span>
+            </label>
+
+            <label class="method-card cursor-pointer border border-slate-700 p-3 rounded-xl flex flex-col items-center justify-center text-center transition hover:border-pink-500 bg-black/40">
+              <input type="radio" name="payout_method" value="BKASH" class="hidden">
+              <i class="fas fa-mobile-alt text-lg text-pink-500 mb-1"></i>
+              <span class="text-xs font-bold text-white">bKash</span>
+              <span class="text-[9px] text-pink-400">৳20/1000 Fee</span>
+            </label>
+
+            <label class="method-card cursor-pointer border border-slate-700 p-3 rounded-xl flex flex-col items-center justify-center text-center transition hover:border-orange-500 bg-black/40">
+              <input type="radio" name="payout_method" value="NAGAD" class="hidden">
+              <i class="fas fa-wallet text-lg text-orange-400 mb-1"></i>
+              <span class="text-xs font-bold text-white">Nagad</span>
+              <span class="text-[9px] text-orange-400">৳20/1000 Fee</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- MFS Details (Visible for bKash and Nagad) -->
+        <div id="mfsDetailsBox" class="hidden p-3.5 rounded-xl bg-black/40 border border-amber-500/30 space-y-3">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-[11px] font-bold text-slate-300 block mb-1">MFS Mobile Number</label>
+              <input type="tel" id="modalMfsNumber" placeholder="017xxxxxxxx" class="w-full bg-black/60 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono">
+            </div>
+            <div>
+              <label class="text-[11px] font-bold text-slate-300 block mb-1">Transaction ID (TrxID) *</label>
+              <input type="text" id="modalTrxId" placeholder="e.g. BLA94827X1" class="w-full bg-black/60 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-amber-400 font-mono uppercase">
+            </div>
+          </div>
+
+          <!-- MFS 20 BDT/1000 Fee Calculator -->
+          <div class="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs">
+            <div class="flex justify-between items-center text-slate-300">
+              <span>MFS Cash-Out Fee (Standard ৳20/1,000):</span>
+              <b id="modalFeeAmount" class="text-amber-400 font-mono">৳100</b>
+            </div>
+            <div class="flex justify-between items-center text-slate-300 mt-1">
+              <span>Total Payout with Fee:</span>
+              <b id="modalTotalDisbursed" class="text-emerald-400 font-mono font-bold text-sm">৳5,100</b>
+            </div>
+            
+            <div class="mt-2 pt-2 border-t border-white/5 flex items-center space-x-3 text-[11px]">
+              <label class="flex items-center space-x-1 cursor-pointer">
+                <input type="radio" name="fee_handling" value="INCLUDED" checked>
+                <span class="text-slate-300">Add fee to loan balance</span>
+              </label>
+              <label class="flex items-center space-x-1 cursor-pointer">
+                <input type="radio" name="fee_handling" value="WAIVED">
+                <span class="text-slate-300">Admin waives fee</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment Receipt Upload (Saved on Hostinger) -->
+        <div>
+          <label class="text-xs font-bold text-slate-300 block mb-1">
+            <i class="fas fa-camera text-emerald-400 mr-1"></i> Upload Payment Screenshot / Receipt:
+          </label>
+          <input type="file" id="modalReceiptFile" accept="image/*" class="w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-white/10 file:text-white hover:file:bg-white/20 cursor-pointer">
+          <span class="text-[10px] text-slate-500 block mt-0.5">Saved securely on server. Previewable from the ledger anytime.</span>
+        </div>
+
+        <!-- Administrative Handover Note -->
+        <div>
+          <label class="text-xs font-bold text-slate-300 block mb-1">Handover Note / Remarks:</label>
+          <input type="text" id="modalAdminNote" placeholder="e.g. Handed over at office or sent via personal bKash" class="w-full bg-black/50 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
+        </div>
+
+        <button type="submit" id="confirmDisburseBtn" class="btn-emerald w-full py-3 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center">
+          <i class="fas fa-check-circle mr-2"></i> Confirm Approval & Disburse
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ─── RECEIPT SCREENSHOT LIGHTBOX MODAL ─────────────────────────────────── -->
+  <div id="receiptModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-lg flex items-center justify-center p-4 hidden">
+    <div class="max-w-md w-full glass-card p-4 space-y-3 relative text-center">
+      <div class="flex items-center justify-between border-b border-white/10 pb-2">
+        <h4 class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center">
+          <i class="fas fa-receipt mr-1.5"></i> Payment Proof Screenshot
+        </h4>
+        <button id="closeReceiptModalBtn" class="text-slate-400 hover:text-white text-lg">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="overflow-hidden rounded-lg max-h-[75vh] flex items-center justify-center bg-black">
+        <img id="receiptImage" src="" alt="Payment Receipt" class="object-contain max-h-[70vh] rounded">
+      </div>
+      <a id="downloadReceiptLink" href="#" target="_blank" download class="inline-block text-xs font-bold text-amber-400 hover:underline">
+        <i class="fas fa-external-link-alt mr-1"></i> Open Original in New Tab
+      </a>
+    </div>
   </div>
 
   <script src="/js/admin.js"></script>

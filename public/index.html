@@ -9,6 +9,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome 6 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- jsPDF & Voucher Generator -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="/js/voucher.js"></script>
   <!-- Custom Styling -->
   <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -242,6 +245,26 @@
         Haven't registered yet?
         <a href="https://t.me/money_loan_bot" target="_blank" class="text-amber-400 font-bold underline ml-1">Open @money_loan_bot</a>
       </div>
+    </div>
+  </div>
+
+  <!-- ─── RECEIPT LIGHTBOX MODAL ─────────────────────────────────────────── -->
+  <div id="clientReceiptModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-lg flex items-center justify-center p-4 hidden">
+    <div class="max-w-md w-full glass-card p-4 space-y-3 relative text-center">
+      <div class="flex items-center justify-between border-b border-white/10 pb-2">
+        <h4 class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center">
+          <i class="fas fa-receipt mr-1.5"></i> Payment Proof Screenshot
+        </h4>
+        <button id="closeClientReceiptBtn" class="text-slate-400 hover:text-white text-lg">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="overflow-hidden rounded-lg max-h-[75vh] flex items-center justify-center bg-black">
+        <img id="clientReceiptImg" src="" alt="Payment Proof" class="object-contain max-h-[70vh] rounded">
+      </div>
+      <a id="clientReceiptDownloadLink" href="#" target="_blank" download class="inline-block text-xs font-bold text-amber-400 hover:underline">
+        <i class="fas fa-external-link-alt mr-1"></i> Open Original in New Tab
+      </a>
     </div>
   </div>
 

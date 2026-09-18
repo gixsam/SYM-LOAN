@@ -300,6 +300,42 @@ function renderLoans(loans) {
     }
 
     const isOverdue = loan.status === 'ACCEPTED' && new Date(loan.deadline_date) < new Date();
+    const d = loan.disbursement || {};
+
+    // Method badge
+    let methodBadge = '';
+    if (d.payout_method) {
+      if (d.payout_method === 'BKASH') {
+        methodBadge = `
+          <div class="mt-2.5 flex items-center justify-between p-2 rounded-lg bg-pink-500/10 border border-pink-500/20 text-xs">
+            <div class="flex items-center space-x-1.5">
+              <span class="w-2 h-2 rounded-full bg-pink-500 animate-pulse"></span>
+              <span class="font-bold text-pink-400">bKash Disbursed</span>
+              <span class="text-[10px] font-mono text-slate-400">TrxID: <b class="text-white">${d.trx_id || 'N/A'}</b></span>
+            </div>
+            ${d.mfs_fee ? `<span class="text-[10px] font-mono text-amber-400">+৳${d.mfs_fee} fee</span>` : ''}
+          </div>
+        `;
+      } else if (d.payout_method === 'NAGAD') {
+        methodBadge = `
+          <div class="mt-2.5 flex items-center justify-between p-2 rounded-lg bg-orange-500/10 border border-orange-500/20 text-xs">
+            <div class="flex items-center space-x-1.5">
+              <span class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+              <span class="font-bold text-orange-400">Nagad Disbursed</span>
+              <span class="text-[10px] font-mono text-slate-400">TrxID: <b class="text-white">${d.trx_id || 'N/A'}</b></span>
+            </div>
+            ${d.mfs_fee ? `<span class="text-[10px] font-mono text-amber-400">+৳${d.mfs_fee} fee</span>` : ''}
+          </div>
+        `;
+      } else {
+        methodBadge = `
+          <div class="mt-2.5 flex items-center space-x-1.5 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs">
+            <i class="fas fa-hand-holding-usd text-emerald-400"></i>
+            <span class="font-bold text-emerald-400">Direct Cash Handover</span>
+          </div>
+        `;
+      }
+    }
 
     return `
       <div class="glass-card p-4 transition hover:border-slate-600">
@@ -312,6 +348,7 @@ function renderLoans(loans) {
             <i class="fas ${icon} mr-1"></i> ${loan.status}
           </span>
         </div>
+
         <div class="flex items-center justify-between text-xs text-slate-400">
           <div>
             <i class="far fa-calendar-alt mr-1 text-slate-400"></i> Due: <b class="text-slate-200">${loan.deadline_date}</b>
@@ -319,11 +356,45 @@ function renderLoans(loans) {
           </div>
           <div>${new Date(loan.created_at).toLocaleDateString()}</div>
         </div>
-        ${loan.admin_note ? `<div class="mt-2 text-xs text-slate-400 bg-black/30 p-2 rounded border border-white/5 font-mono">${loan.admin_note}</div>` : ''}
+
+        ${methodBadge}
+
+        <!-- Actions: Receipt Preview & PDF Voucher Download -->
+        <div class="mt-3 pt-2.5 border-t border-white/5 flex items-center justify-end space-x-2">
+          ${d.receipt_url ? `
+            <button onclick="openClientReceiptModal('${d.receipt_url}')" class="px-2.5 py-1 rounded bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 text-[11px] font-bold border border-blue-500/30 flex items-center">
+              <i class="fas fa-image mr-1.5"></i> Payment Proof
+            </button>
+          ` : ''}
+
+          ${loan.status === 'ACCEPTED' ? `
+            <button onclick="clientDownloadVoucher('${loan.id}')" class="px-2.5 py-1 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 text-[11px] font-bold border border-amber-500/30 flex items-center">
+              <i class="fas fa-file-pdf mr-1.5 text-amber-400"></i> Voucher (PDF)
+            </button>
+          ` : ''}
+        </div>
       </div>
     `;
   }).join('');
 }
+
+// Receipt & Voucher handlers for Client Portal
+window.openClientReceiptModal = function(url) {
+  const modal = document.getElementById('clientReceiptModal');
+  const img = document.getElementById('clientReceiptImg');
+  const link = document.getElementById('clientReceiptDownloadLink');
+  if (modal && img) {
+    img.src = url;
+    if (link) link.href = url;
+    modal.classList.remove('hidden');
+  }
+};
+
+window.clientDownloadVoucher = function(loanId) {
+  const loan = STATE.loans.find(l => l.id === loanId);
+  if (!loan) return;
+  window.generateLoanVoucherPdf(loan, STATE.client || { name: 'Client' });
+};
 
 // ─── Setup Event Listeners ────────────────────────────────────────────────────
 function setupEventListeners() {
@@ -359,6 +430,14 @@ function setupEventListeners() {
     DOM.phoneInput.value = '';
     openLoginModal();
   });
+
+  // Close receipt lightbox
+  const closeReceiptBtn = document.getElementById('closeClientReceiptBtn');
+  if (closeReceiptBtn) {
+    closeReceiptBtn.addEventListener('click', () => {
+      document.getElementById('clientReceiptModal')?.classList.add('hidden');
+    });
+  }
 
   // Submit loan application
   DOM.loanForm.addEventListener('submit', async (e) => {

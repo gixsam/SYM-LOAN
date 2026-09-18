@@ -1,4 +1,4 @@
-﻿# 📋 SYM EMPIRE PLATFORM (S.E.P.) — SYM LOAN
+# 📋 SYM EMPIRE PLATFORM (S.E.P.) — SYM LOAN
 ## Master Project Note, Architecture & Changelog (`NOTE.md`)
 
 > **Project Name:** SYM EMPIRE PLATFORM (S.E.P.) - SYM LOAN  
@@ -12,13 +12,69 @@
 > **Database Cloud Tenant:** Supabase Instance (`SYM-LOAN` / `gypqeknsxfljdvmycylv` in AWS `ap-northeast-2`)  
 > **Database Direct Host:** `db.gypqeknsxfljdvmycylv.supabase.co`  
 > **Telegram Bot:** `@money_loan_bot` (Live Token: `8846454332:AAGl0VAri-CNPRcDCAjJvsHOcA00BJo6hhI`)  
-> **Technology Stack:** Node.js, Express, Supabase (PostgreSQL), node-telegram-bot-api, node-cron, CORS, Helmet, dotenv, HTML5, Tailwind CSS, FontAwesome 6, Cloudflare Tunnel  
+> **Technology Stack:** Node.js, Express, Supabase (PostgreSQL), Multer, jsPDF, node-telegram-bot-api, node-cron, CORS, Helmet, dotenv, HTML5, Tailwind CSS, FontAwesome 6, Cloudflare Tunnel  
 > **Live Local Server:** `http://localhost:5000` (Client: `/`, Admin: `/admin`)  
-> **Last Synchronized:** 2026-09-18 10:02 Local Time  
+> **Last Synchronized:** 2026-09-18 10:48 Local Time  
 
 ---
 
 ## 🚀 Logged System Updates & Changelog
+
+### [Update-042] — Phase 4 Completed: Cash & MFS Disbursement Engine (Option 3), Receipt Vault, PDF Voucher & Google Notes Digitalizer (2026-09-18)
+**Type:** Multi-Channel Disbursement Architecture, MFS Fee Math, Digital Vouchers & Historical Ledger AI  
+**Status:** ✅ COMPLETED, FULLY AUTOMATED & VERIFIED LIVE  
+
+#### User Request & Objectives:
+1. Implement **Option 3: Cash & MFS Disbursement Engine**:
+   * Support **Hand-to-Hand Cash** and Bangladesh MFS platforms (**bKash**, **Nagad**).
+   * Strict **MFS Cash-Out Fee Calculator**: Standard fee locked to **20 BDT per 1,000 BDT** (2.0%) for both bKash and Nagad.
+2. **Interactive Multi-Channel Approval Flow:**
+   * Client enters loan amount and deadline as normal.
+   * Admin clicks `[Accept]` on the loan inbox, triggering an executive disbursement modal asking:
+     - Disbursement Method: `[💵 Hand-to-Hand Cash]` | `[🟢 bKash]` | `[🟠 Nagad]`
+     - Destination Phone Number (auto-prefilled with borrower's verified phone).
+     - Transaction ID (TrxID) (required for bKash/Nagad, optional for cash).
+     - Fee Handling: Included, Deducted, or Waived.
+     - Optional disbursement memo/note.
+3. **Payment Receipt Screenshot Upload & Lightbox:**
+   * Admin can upload payment screenshot (receipt/slip).
+   * Image securely stored on server/Hostinger in `public/uploads/receipts/`.
+   * Previewable via modal lightbox in both the Admin Loan Ledger and Client Loan History.
+4. **Digital Cash Voucher (PDF Download):**
+   * Vector executive A4 transaction voucher generated client-side via `jsPDF`.
+   * Features: SYM EMPIRE branding, voucher serial number, client details, disbursement channel badge, 20 BDT fee breakdown, 1:00 PM strike clause, dual signature lines (Borrower & Managing Director), and timestamped verification hash.
+5. **Google Note "Money 💰" Digitalizer:**
+   * Parses raw phone notes with handwritten arithmetic formulas (e.g. `Sunny-----------=2140+500=2,640`, `Jhor vi ---------=2000 fraud`).
+   * Automatically isolates balances, tags, and tags suspect accounts as `FRAUD CLIENT`.
+   * Upserts into Supabase `historical_ledgers` preventing unique constraint collision on `old_name`.
+
+#### Architectural Execution & Deliverables:
+1. **Multipart Upload & Storage Pipeline (`src/lib/uploader.js`):**
+   * Configured `multer` disk storage saving to `public/uploads/receipts/`.
+   * Enforced MIME validation (JPEG, PNG, WEBP) and 10MB size limit.
+   * Served as static asset directly via Express `public/` directory mapping to Hostinger `public_html/`.
+2. **Disbursement Controller & 20 BDT Math (`src/routes/adminApi.js`):**
+   * Integrated `uploadReceipt.single('receipt_image')` into `POST /api/admin/loans/:id/decision`.
+   * Enforced strict fee formula: `Math.ceil(loanAmount / 1000) * 20`.
+   * Structured disbursement metadata stored safely in Supabase `money_requests.admin_note` as JSON payload (`decision`, `payout_method`, `destination_number`, `trx_id`, `mfs_fee`, `fee_handling`, `total_disbursed`, `receipt_url`, `disbursed_at`).
+   * Added `POST /api/admin/historical-ledgers/import-note` with regex parser and `.upsert(..., { onConflict: 'old_name' })`.
+3. **Client API Enrichment (`src/routes/api.js`):**
+   * Added `enrichLoans()` helper parsing JSON disbursement metadata into structured `loan.disbursement` object for client consumption.
+4. **Interactive Admin Modal & Notes Importer (`public/admin.html`, `public/js/admin.js`):**
+   * Added `#disburseModal` with interactive channel buttons (`💵 Cash`, `🟢 bKash`, `🟠 Nagad`), real-time 20 BDT fee calculation display, TrxID validation, and drag-and-drop file upload.
+   * Added `#adminReceiptModal` lightbox for full-resolution receipt viewing.
+   * Added Google Keep Note Raw Importer card with live import summary and refreshed historical ledger table.
+5. **Client Portal Upgrades (`public/index.html`, `public/js/app.js`):**
+   * Loan list badges displaying channel (`🟢 bKash: TrxID`, `🟠 Nagad: TrxID`, `💵 Hand Cash`).
+   * "View Receipt" button opening high-res receipt modal.
+   * "Download Voucher (PDF)" button generating vector voucher.
+6. **Executive PDF Voucher Engine (`public/js/voucher.js`):**
+   * Standalone `jsPDF` vector document builder generating executive transaction voucher with gold/navy corporate design, monetary breakdown, and dual signatures.
+7. **Comprehensive End-to-End Verification (`test_e2e_phase4.js`):**
+   * Automated test covering note parsing/upsert, fraud detection, bKash disbursement, 20 BDT fee math, multipart image upload, HTTP GET receipt preview, and client view enrichment.
+   * **Result:** `🎉 ALL PHASE 4 TESTS PASSED FLAWLESSLY!`
+
+---
 
 ### [Update-041] — Cloudflare Live Tunnel Established for Mobile Testing (2026-09-18)
 **Type:** Live Mobile Host, Cloudflare Tunnel & Remote Access  
@@ -115,13 +171,13 @@
 
 ## 🔮 Future Updating Plan & Technical Roadmap
 
-### [Phase 4 / STEP 4] — Expense Tracking & Ledger Cost Split Engine
+### [Phase 5 / STEP 5] — Production Deployment & Hostinger Synchronization (`https://symloan.best-travel.ltd`)
+* Automated deployment package for Hostinger Cloud Node.js engine (`public_html/` for `symloan.best-travel.ltd`).
+* SSL / Reverse Proxy routing configuration.
+* Telegram Bot Webhook setup (`/api/bot/webhook`) replacing local polling for production high concurrency.
+* GitHub Actions CI/CD automation pipeline.
+
+### [Phase 6 / STEP 6] — Expense Tracking & Ledger Cost Split Engine
 * Daily expense recording interface (`daily_expense_items`) for business overheads and loan allocations.
 * Automated cost split engine (`expense_splits`) linking expense items directly to client loan profiles.
 * Budget tracking against daily/monthly caps (`system_budgets`).
-
-### [Phase 5 / STEP 5] — Production Deployment & Domain Routing (`https://symloan.best-travel.ltd`)
-* Automated deployment package for Hostinger Cloud (`public_html/` on `symloan.best-travel.ltd`).
-* SSL / Cloudflare Tunnel routing configuration.
-* Telegram Bot Webhook setup (`/api/bot/webhook`) replacing local polling for production high concurrency.
-* GitHub Actions CI/CD automation pipeline.

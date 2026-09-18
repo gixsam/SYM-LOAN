@@ -1,34 +1,33 @@
-﻿{
-    "name":  "sym-loan",
-    "version":  "1.0.0",
-    "description":  "SYM EMPIRE PLATFORM (S.E.P.) - SYM LOAN Backend Engine",
-    "main":  "server.js",
-    "scripts":  {
-                    "start":  "node server.js",
-                    "dev":  "node --watch server.js",
-                    "test":  "echo \u0027No tests configured yet\u0027"
-                },
-    "repository":  {
-                       "type":  "git",
-                       "url":  "git+https://github.com/gixsam/SYM-LOAN.git"
-                   },
-    "keywords":  [
-
-                 ],
-    "author":  "GIXSAM",
-    "license":  "ISC",
-    "type":  "commonjs",
-    "bugs":  {
-                 "url":  "https://github.com/gixsam/SYM-LOAN/issues"
-             },
-    "homepage":  "https://github.com/gixsam/SYM-LOAN#readme",
-    "dependencies":  {
-                         "@supabase/supabase-js":  "^2.116.0",
-                         "cors":  "^2.8.6",
-                         "dotenv":  "^18.0.0",
-                         "express":  "^5.2.1",
-                         "helmet":  "^8.3.0",
-                         "node-cron":  "^4.6.0",
-                         "node-telegram-bot-api":  "^2.1.0"
-                     }
+{
+    "name": "sym-loan",
+    "version": "1.0.0",
+    "description": "SYM EMPIRE PLATFORM (S.E.P.) - SYM LOAN Backend Engine",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js",
+        "dev": "node --watch server.js",
+        "test": "echo 'No tests configured yet'"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/gixsam/SYM-LOAN.git"
+    },
+    "keywords": [],
+    "author": "GIXSAM",
+    "license": "ISC",
+    "type": "commonjs",
+    "bugs": {
+        "url": "https://github.com/gixsam/SYM-LOAN/issues"
+    },
+    "homepage": "https://github.com/gixsam/SYM-LOAN#readme",
+    "dependencies": {
+        "@supabase/supabase-js": "^2.116.0",
+        "cors": "^2.8.6",
+        "dotenv": "^18.0.0",
+        "express": "^5.2.1",
+        "helmet": "^8.3.0",
+        "multer": "^2.4.0",
+        "node-cron": "^4.6.0",
+        "node-telegram-bot-api": "^2.1.0"
+    }
 }
