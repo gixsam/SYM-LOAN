@@ -600,6 +600,72 @@ function renderClientUI(client) {
     DOM.submitBtn.innerHTML = 'Submit Money Request <i class="fas fa-paper-plane ml-2"></i>';
     DOM.submitBtn.className = 'btn-gold w-full py-3.5 rounded-xl font-black text-sm tracking-wide shadow-lg uppercase';
   }
+
+  // Check client standing and overdue alerts (Phase 10)
+  if (client.id) {
+    fetchClientStanding(client.id);
+  }
+}
+
+// ─── Phase 10: Client Standing & Overdue Warning Banner ───────────────────────
+async function fetchClientStanding(clientId) {
+  if (!clientId) return;
+  try {
+    const res = await fetch(`/api/clients/${clientId}/standing`, { headers: getAuthHeaders() });
+    if (!res.ok) return;
+    const json = await res.json();
+    if (!json.success || !json.standing) return;
+
+    renderStandingAndOverdueAlert(json.standing);
+  } catch (err) {
+    console.warn('Failed to fetch client standing:', err.message);
+  }
+}
+
+function renderStandingAndOverdueAlert(standing) {
+  const banner = document.getElementById('clientOverdueAlertBanner');
+  const bannerTitle = document.getElementById('clientOverdueBannerTitle');
+  const bannerBadge = document.getElementById('clientOverdueBannerBadge');
+  const bannerDesc = document.getElementById('clientOverdueBannerDesc');
+  const btnBannerSettle = document.getElementById('btnBannerSettleLoan');
+
+  if (!banner) return;
+
+  if (standing.has_overdue_loan || standing.strikes_count > 0 || standing.status === 'BLOCKED') {
+    banner.classList.remove('hidden');
+
+    if (standing.status === 'BLOCKED' || standing.strikes_count >= 3) {
+      if (bannerTitle) bannerTitle.textContent = '⛔ ACCOUNT BLOCKED — 3 OVERDUE STRIKES';
+      if (bannerBadge) bannerBadge.textContent = 'PERMANENT BLACKLIST';
+      if (bannerDesc) bannerDesc.textContent = 'Your account has been permanently locked due to reaching 3 Overdue Strikes. Immediate settlement of all outstanding debts is required to prevent legal collection actions. Tap below to submit repayment.';
+    } else if (standing.has_overdue_loan) {
+      const overdueLoan = standing.overdue_loans[0];
+      const overdueAmount = overdueLoan ? `৳${Number(overdueLoan.amount).toLocaleString()}` : '';
+      const days = overdueLoan?.days_overdue ? `${overdueLoan.days_overdue} days` : '';
+      if (bannerTitle) bannerTitle.textContent = `⚠️ URGENT: Overdue Loan Payment (${days} past due)`;
+      if (bannerBadge) bannerBadge.textContent = `${standing.strikes_count}/3 STRIKES RECORDED`;
+      if (bannerDesc) bannerDesc.textContent = `Your active loan of ${overdueAmount} is past its scheduled deadline. A daily penalty strike has been logged. Settle immediately to clear strikes and preserve borrowing privileges.`;
+    } else {
+      if (bannerTitle) bannerTitle.textContent = `⚠️ Caution: ${standing.strikes_count}/3 Penalty Strikes on Record`;
+      if (bannerBadge) bannerBadge.textContent = 'REPUTATION WARNING';
+      if (bannerDesc) bannerDesc.textContent = 'Your profile has penalty strikes recorded from past overdue loans. Maintain timely payments to avoid automated account blacklisting.';
+    }
+
+    if (btnBannerSettle) {
+      btnBannerSettle.onclick = () => {
+        const firstOverdue = standing.overdue_loans?.[0];
+        if (firstOverdue && typeof window.openRepayModal === 'function') {
+          window.openRepayModal(firstOverdue.id);
+        } else if (typeof window.openRepayModal === 'function') {
+          window.openRepayModal();
+        } else {
+          document.getElementById('clientRepayModal')?.classList.remove('hidden');
+        }
+      };
+    }
+  } else {
+    banner.classList.add('hidden');
+  }
 }
 
 // ─── Fetch Client Loans & Repayments ───────────────────────────────────────────
@@ -627,6 +693,7 @@ async function fetchClientLoans(clientId) {
     }
 
     renderLoans(STATE.loans);
+    fetchClientStanding(clientId);
   } catch (err) {
     console.error('Failed to fetch loans:', err);
   }

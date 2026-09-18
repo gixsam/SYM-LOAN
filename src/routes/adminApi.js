@@ -23,6 +23,8 @@ const kycManager       = require('../lib/kycManager');
 const expenseManager   = require('../lib/expenseManager');
 const executiveSuiteManager = require('../lib/executiveSuiteManager');
 const repaymentManager = require('../lib/repaymentManager');
+const smsService       = require('../lib/smsService');
+const collectionEngine = require('../lib/collectionEngine');
 
 const router = express.Router();
 
@@ -1100,5 +1102,132 @@ router.post('/repayments/:id/reject', requireAdmin, async (req, res) => {
   }
 });
 
+// ─── Phase 10: Multi-Channel Debt Collection, Strike Escalator & Reminder Engine ───
+
+// GET /api/admin/collections/matrix — Complete debtor risk matrix
+router.get('/collections/matrix', requireAdmin, async (req, res) => {
+  try {
+    const matrix = await collectionEngine.getCollectionsMatrix();
+    res.json({ success: true, data: matrix });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/admin/collections/run-cycle — Run collection & strike escalation cycle on-demand
+router.post('/collections/run-cycle', requireAdmin, async (req, res) => {
+  try {
+    const report = await collectionEngine.runCollectionAndReminderCycle(req.body || {});
+    res.json({
+      success: true,
+      message: 'Collection and strike escalation cycle completed successfully.',
+      report,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/admin/collections/remind — Trigger manual dunning reminder (Telegram / SMS / Both)
+router.post('/collections/remind', requireAdmin, async (req, res) => {
+  try {
+    const { client_id, loan_id, channel, template_type, custom_text } = req.body;
+    if (!client_id) {
+      return res.status(400).json({ success: false, message: 'client_id is required' });
+    }
+
+    const { data: client } = await supabaseAdmin
+      .from('client_profiles')
+      .select('id, name, phone_number, strikes_count, status, telegram_chat_id')
+      .eq('id', client_id)
+      .maybeSingle();
+
+    let loan = null;
+    if (loan_id) {
+      const { data: l } = await supabaseAdmin
+        .from('money_requests')
+        .select('id, amount, deadline_date, status')
+        .eq('id', loan_id)
+        .maybeSingle();
+      loan = l;
+    }
+
+    const dispatchRes = await smsService.dispatchReminder({
+      channel: channel || 'BOTH',
+      client: client || { id: client_id, name: 'Client' },
+      loan,
+      templateType: template_type || 'MANUAL_DUNNING',
+      customText: custom_text,
+      trigger: 'ADMIN_MANUAL',
+    });
+
+    res.json({
+      success: true,
+      message: 'Reminder dispatched successfully.',
+      dispatch: dispatchRes,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/admin/collections/strikes — Manual strike adjustment (INCREMENT, DECREMENT, RESET, SET)
+router.post('/collections/strikes', requireAdmin, async (req, res) => {
+  try {
+    const { client_id, action, value, reason } = req.body;
+    if (!client_id || !action) {
+      return res.status(400).json({
+        success: false,
+        message: 'client_id and action (INCREMENT, DECREMENT, RESET, SET) are required.',
+      });
+    }
+
+    const result = await collectionEngine.adjustClientStrikes(client_id, { action, value, reason });
+    res.json({
+      success: true,
+      message: 'Client strikes updated.',
+      result,
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/admin/collections/blacklist — Manual blacklist/unblock toggle
+router.post('/collections/blacklist', requireAdmin, async (req, res) => {
+  try {
+    const { client_id, status, reason } = req.body;
+    if (!client_id) {
+      return res.status(400).json({ success: false, message: 'client_id is required.' });
+    }
+
+    const result = await collectionEngine.setClientBlacklist(client_id, { status, reason });
+    res.json({
+      success: true,
+      message: `Client status updated to ${result.new_status}.`,
+      result,
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/admin/collections/logs — View reminder dispatch logs & metrics
+router.get('/collections/logs', requireAdmin, (req, res) => {
+  try {
+    const logs = smsService.getReminderLogs(req.query);
+    const stats = smsService.getStats();
+    res.json({
+      success: true,
+      count: logs.length,
+      stats,
+      logs,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
+
 

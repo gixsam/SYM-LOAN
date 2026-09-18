@@ -32,6 +32,8 @@ const { uploadAvatar, uploadKycDocs, uploadReceipt } = require('../lib/uploader'
 const kycManager    = require('../lib/kycManager');
 const emailService  = require('../lib/emailService');
 const repaymentManager = require('../lib/repaymentManager');
+const smsService     = require('../lib/smsService');
+const collectionEngine = require('../lib/collectionEngine');
 
 const router = express.Router();
 
@@ -878,5 +880,96 @@ router.get('/repayments/:id', (req, res) => {
   }
 });
 
+// GET /api/clients/:id/standing — View borrower credit standing, strike meter & debt alerts
+router.get('/clients/:id/standing', async (req, res) => {
+  try {
+    const clientId = req.params.id;
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    let client = null;
+    if (UUID_REGEX.test(clientId)) {
+      const { data, error: clientErr } = await supabaseAdmin
+        .from('client_profiles')
+        .select('id, name, phone_number, strikes_count, status, admin_note')
+        .eq('id', clientId)
+        .maybeSingle();
+
+      if (clientErr && clientErr.code !== '22P02') throw clientErr;
+      client = data;
+    }
+
+    if (!client) {
+      return res.status(404).json({ success: false, message: 'Client profile not found.' });
+    }
+
+    const strikes = Number(client.strikes_count) || 0;
+    const isBlocked = client.status === 'BLOCKED' || strikes >= 3;
+
+    let standingLabel = 'GOOD_STANDING';
+    let standingText = 'Good Standing (0/3 Strikes)';
+    let colorScheme = 'emerald';
+
+    if (isBlocked) {
+      standingLabel = 'BLACK_LISTED';
+      standingText = 'Account Locked / Blacklisted (3/3 Strikes)';
+      colorScheme = 'rose';
+    } else if (strikes === 2) {
+      standingLabel = 'DANGER_HIGH_RISK';
+      standingText = 'Critical Risk: 2 Strikes Recorded';
+      colorScheme = 'amber';
+    } else if (strikes === 1) {
+      standingLabel = 'WARNING';
+      standingText = 'Warning: 1 Strike Recorded';
+      colorScheme = 'yellow';
+    }
+
+    // Check active loans for overdue or due today
+    const { data: loans } = await supabaseAdmin
+      .from('money_requests')
+      .select('id, amount, deadline_date, status, created_at')
+      .eq('client_id', clientId)
+      .eq('status', 'ACCEPTED');
+
+    const overdueLoans = [];
+    const dueTodayLoans = [];
+
+    if (loans && loans.length > 0) {
+      for (const l of loans) {
+        const diff = collectionEngine.getDaysDiffFromToday(l.deadline_date);
+        if (diff < 0) {
+          overdueLoans.push({ ...l, days_overdue: Math.abs(diff) });
+        } else if (diff === 0) {
+          dueTodayLoans.push(l);
+        }
+      }
+    }
+
+    const recentReminders = smsService.getReminderLogs({ client_id: clientId, limit: 5 });
+
+    res.json({
+      success: true,
+      standing: {
+        client_id: client.id,
+        name: client.name,
+        phone_number: client.phone_number,
+        strikes_count: strikes,
+        max_strikes: 3,
+        status: isBlocked ? 'BLOCKED' : client.status,
+        standing_label: standingLabel,
+        standing_text: standingText,
+        color_scheme: colorScheme,
+        has_overdue_loan: overdueLoans.length > 0,
+        overdue_loans: overdueLoans,
+        due_today_loans: dueTodayLoans,
+        active_loans_count: loans ? loans.length : 0,
+        recent_reminders: recentReminders,
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
+
 

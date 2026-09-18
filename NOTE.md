@@ -16,6 +16,52 @@
 > **Live Local Server:** `http://localhost:5000` (Client: `/`, Admin: `/admin`)  
 > **Last Synchronized:** 2026-09-18 21:20 Local Time  
 
+### [Update-059] — Phase 10: Multi-Channel Automated Debt Collection, Strike Escalator & SMS/Telegram Reminder Engine (2026-09-18)
+**Type:** Automated Debt Recovery Pipeline, Debtor Risk Matrix, Multi-Channel SMS/Telegram Dunning Gateway, Automated Strike Escalator & Interactive Administrative Collection Operations Desk  
+**Status:** ✅ COMPLETED, TESTED (32/32 TESTS PASSED — 100%), REGRESSION TESTED, COMPILED, PACKAGED & DUAL-SYNCED ACROSS WORKPLACES  
+
+#### User Requests & Step-by-Step Implementation:
+1. **Persistent Reminder Ledger & SMS/Telegram Dispatch Engine (`data/reminders.json` & `src/lib/smsService.js`):**
+   - Engineered dedicated, high-performance notification service with anti-spam idempotency (`hasBeenRemindedToday`) ensuring borrowers receive at most one reminder per channel per day unless manually overridden by admin.
+   - Multi-channel delivery support with carrier failover: Pluggable SMS carrier via environment configuration (`SMS_API_KEY`, `SMS_SENDER_ID`) with automated fallback to verified simulated SMS delivery logging.
+   - Direct Telegram Bot notification dispatch for debtors with active Telegram IDs.
+   - Automated template engine providing 6 specialized dunning notices:
+     - `PRE_DUE_3D`: Courteous 72-hour upcoming due date reminder with repayment channel details.
+     - `PRE_DUE_1D`: High-priority 24-hour final advance notice.
+     - `DUE_TODAY`: Action-required deadline notice with 1-click settlement instructions.
+     - `OVERDUE_STRIKE`: Formal overdue notice showing accumulated strikes (1/3, 2/3) and penalty warning.
+     - `ACCOUNT_BLOCKED`: Blacklist/default notification for borrowers with 3+ strikes or active administrative sanctions.
+     - `MANUAL_DUNNING`: Custom admin-composed urgent settlement notices.
+2. **Debtor Risk Matrix & Automated Collection Cycle (`src/lib/collectionEngine.js`):**
+   - Implemented real-time collections risk matrix querying active loans and client profiles.
+   - Computes loan aging, days until due or days overdue, strike tier, and collection status (`SAFE`, `UPCOMING_3D`, `UPCOMING_1D`, `DUE_TODAY`, `OVERDUE_CRITICAL`, `DELINQUENT_BLOCKED`).
+   - Automated cycle runner (`runCollectionAndReminderCycle`) that analyzes portfolio health, escalates strikes for unpaid overdue loans, dispatches appropriate reminders, and compiles comprehensive audit reports.
+   - Administrative strike adjustment (`adjustClientStrikes`) and manual blacklist toggle (`setClientBlacklist`) with automatic audit logging.
+3. **Automated Dual-Daily Cron Escalator (`src/cron/deadlineStrikeEngine.js`):**
+   - Upgraded deadline cron engine with two autonomous daily jobs:
+     - 10:00 AM BDT (04:00 UTC): Morning pre-due and due-date payment reminder sweep.
+     - 13:00 PM BDT (07:00 UTC): Afternoon overdue strike escalation and high-priority dunning dispatch.
+4. **Client Standing & Overdue Warning Banner (`public/index.html`, `public/js/app.js`, & `src/routes/api.js`):**
+   - Added `GET /api/clients/:id/standing` endpoint delivering debtor health status, strike counts, and active overdue debt notices.
+   - Built an impossible-to-miss overdue warning banner (`#clientOverdueAlertBanner`) on the client portal when loans are overdue or strikes exist, complete with strike indicator badges and a direct 1-click **`[ Make Repayment Now ]`** quick-settlement button that opens `#clientRepayModal`.
+5. **Admin Collection Operations Desk (`public/admin.html`, `public/js/admin.js`, & `src/routes/adminApi.js`):**
+   - Added `#debtCollectionSection` to the Admin Command Center with navigation drawer shortcut and dynamic overdue badge counter.
+   - Real-time KPI summary cards: Total Active Debtors, Critical Overdue Count, Blacklisted Borrowers, Total Overdue Exposure BDT, Reminders Dispatched Today.
+   - One-click **`[ Run Full Collection Cycle ]`** button executing complete portfolio evaluation and automated notification dispatch with real-time feedback.
+   - Interactive Debtors Risk Matrix table with multi-tier filtering (`All`, `Critical Overdue`, `Due Today`, `Upcoming 1-3D`, `Blacklisted`) and live search by name, phone, or loan ID.
+   - Quick administrative action buttons per debtor: **`[ Remind (SMS/TG) ]`**, **`[ + Strike ]`**, **`[ - Strike ]`**, and **`[ Blacklist / Unblock ]`**.
+   - Interactive Manual Reminder Modal (`#adminManualReminderModal`) allowing tailored channel selection (SMS, Telegram, Both), pre-configured message templates, or custom notes.
+   - Dispatched Reminders Audit Trail log showing real-time delivery status, timestamp, channel, and recipient.
+
+#### Automated Verification & Production Release:
+- Created automated test suite `scripts/test_phase10.js` testing 32 assertions covering SMS service, templates, idempotency, risk matrix calculation, admin APIs, run-cycle, manual reminders, client standing API, and frontend DOM components (**32/32 Passed — 100% Pass Rate**).
+- Verified Phase 9 regression suite `scripts/test_phase9.js` (**26/26 Passed — 100% Pass Rate**).
+- Verified Phase 8 regression suite `scripts/test_phase8.js` (**19/19 Passed — 100% Pass Rate**).
+- Rebuilt Hostinger deployment package `dist/hostinger_deploy.zip` (1022.3 KB).
+- Synchronized `NOTE.md` dual-workplace mirror to `G:\My Drive\ALL WEBSITE WORKPLACE\SYM LOAN WORKPLACE\NOTE.md`.
+
+---
+
 ### [Update-058] — Phase 9: Automated Client Repayment Gateway, Administrative Reconciliation Desk & Digital Clearance Certificate Engine (2026-09-18)
 **Type:** FinTech Self-Service Repayment Gateway, Proof of Payment Upload, Administrative Ledger Reconciliation Desk, Dynamic Debt Liquidation & Cryptographic Clearance Certificates  
 **Status:** ✅ COMPLETED, TESTED (26/26 TESTS PASSED — 100%), COMPILED, PACKAGED & DUAL-SYNCED ACROSS WORKPLACES  

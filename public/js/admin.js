@@ -361,6 +361,8 @@ async function loadAllData() {
     await fetchMasterSpreadsheet();
     await fetchUpcomingRepaymentsAnalytics();
     await fetchExpenses();
+    await fetchCollectionsMatrix();
+    await fetchReminderLogs();
     await fetchSuiteNotes();
     await fetchSuiteEvents();
     await fetchSuiteAlarms();
@@ -1123,6 +1125,471 @@ window.adminDownloadClearanceCertificate = function(loanId, repaymentId) {
   window.generateClearanceCertificatePdf(loan, client, repayment);
 };
 
+// ─── Phase 10: Multi-Channel Debt Collection & Strike Escalation Desk ──────────
+let COLLECTIONS_MATRIX_CACHE = null;
+let ACTIVE_COLLECTION_FILTER = 'ALL';
+let REMINDER_LOGS_CACHE = [];
+let ACTIVE_MANUAL_REMINDER_TARGET = null;
+
+async function fetchCollectionsMatrix(filter = ACTIVE_COLLECTION_FILTER) {
+  try {
+    const res = await fetch('/api/admin/collections/matrix', { headers: getHeaders() });
+    if (!res.ok) return;
+    const json = await res.json();
+    if (!json.success || !json.data) return;
+
+    COLLECTIONS_MATRIX_CACHE = json.data;
+    const s = json.data.summary || {};
+
+    // Update KPI Metric Cards
+    const collOverdueEl = document.getElementById('collMetricOverdue');
+    const collBlockedEl = document.getElementById('collMetricBlocked');
+    const collHighRiskEl = document.getElementById('collMetricHighRisk');
+    const collDueTodayEl = document.getElementById('collMetricDueToday');
+    const collBadgeEl = document.getElementById('collectionOverdueCounterBadge');
+    const collDrawerBadgeEl = document.getElementById('collectionOverdueDrawerBadge');
+
+    if (collOverdueEl) collOverdueEl.textContent = `${s.overdue_count || 0} (৳ ${Math.round(s.overdue_amount || 0).toLocaleString()})`;
+    if (collBlockedEl) collBlockedEl.textContent = `${s.critical_blocked_count || 0} Clients`;
+    if (collHighRiskEl) collHighRiskEl.textContent = `${s.high_risk_count || 0} Clients`;
+    if (collDueTodayEl) collDueTodayEl.textContent = `${s.due_today_count || 0} (৳ ${Math.round(s.due_today_amount || 0).toLocaleString()})`;
+    if (collBadgeEl) collBadgeEl.textContent = `${s.overdue_count || 0} OVERDUE`;
+    if (collDrawerBadgeEl) collDrawerBadgeEl.textContent = s.overdue_count || 0;
+
+    applyCollectionFilter(filter);
+  } catch (err) {
+    console.error('Failed to fetch collections matrix:', err);
+  }
+}
+
+function applyCollectionFilter(filter) {
+  ACTIVE_COLLECTION_FILTER = filter;
+  if (!COLLECTIONS_MATRIX_CACHE || !COLLECTIONS_MATRIX_CACHE.items) return;
+
+  let items = [...COLLECTIONS_MATRIX_CACHE.items];
+
+  if (filter === 'OVERDUE') {
+    items = items.filter(i => i.category === 'OVERDUE');
+  } else if (filter === 'BLOCKED') {
+    items = items.filter(i => i.client.status === 'BLOCKED' || (i.client.strikes_count || 0) >= 3);
+  } else if (filter === 'HIGH_RISK') {
+    items = items.filter(i => (i.client.strikes_count === 1 || i.client.strikes_count === 2) && i.client.status !== 'BLOCKED');
+  } else if (filter === 'DUE_TODAY') {
+    items = items.filter(i => i.category === 'DUE_TODAY');
+  } else if (filter === 'UPCOMING') {
+    items = items.filter(i => i.category === 'UPCOMING' || i.category === 'DUE_SOON');
+  }
+
+  // Apply search query if typed
+  const query = (document.getElementById('collSearchInput')?.value || '').toLowerCase().trim();
+  if (query) {
+    items = items.filter(i => 
+      (i.client.name || '').toLowerCase().includes(query) ||
+      (i.client.phone_number || '').toLowerCase().includes(query) ||
+      (i.loan_id || '').toLowerCase().includes(query)
+    );
+  }
+
+  renderCollectionsTable(items);
+}
+
+function renderCollectionsTable(items) {
+  const tbody = document.getElementById('collectionsTableBody');
+  if (!tbody) return;
+
+  if (!items || items.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="p-6 text-center text-slate-500 text-xs">
+          <i class="fas fa-check-double text-2xl mb-1.5 block opacity-40 text-emerald-400"></i>
+          No borrowers match the current collection filter. All accounts in good order.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = items.map(item => {
+    const c = item.client;
+    const strikes = c.strikes_count || 0;
+    const isBlocked = c.status === 'BLOCKED' || strikes >= 3;
+
+    // Strike Meter HTML
+    let strikeBadge = '';
+    if (isBlocked) {
+      strikeBadge = `
+        <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-red-950/80 text-rose-300 border border-rose-500/50 flex items-center w-fit shadow-md shadow-rose-950/50">
+          <i class="fas fa-ban mr-1 text-rose-400 animate-pulse"></i> 3/3 BLOCKED
+        </span>
+      `;
+    } else if (strikes === 2) {
+      strikeBadge = `
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center w-fit">
+          <i class="fas fa-exclamation-triangle mr-1 text-amber-400"></i> 2/3 (High Risk)
+        </span>
+      `;
+    } else if (strikes === 1) {
+      strikeBadge = `
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 flex items-center w-fit">
+          <i class="fas fa-exclamation-circle mr-1 text-yellow-400"></i> 1/3 (Warning)
+        </span>
+      `;
+    } else {
+      strikeBadge = `
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center w-fit">
+          <i class="fas fa-check mr-1 text-emerald-400"></i> 0/3 (Clean)
+        </span>
+      `;
+    }
+
+    // Schedule & Status
+    let scheduleHtml = '';
+    if (item.category === 'OVERDUE') {
+      scheduleHtml = `
+        <div class="font-bold text-rose-400 font-mono">${item.deadline_date}</div>
+        <span class="text-[10px] font-black uppercase text-rose-300 bg-rose-500/20 px-1.5 py-0.2 rounded border border-rose-500/30 flex items-center w-fit mt-0.5">
+          <i class="fas fa-fire mr-1 text-rose-400"></i> ${item.days_overdue} Days Overdue
+        </span>
+      `;
+    } else if (item.category === 'DUE_TODAY') {
+      scheduleHtml = `
+        <div class="font-bold text-yellow-300 font-mono">${item.deadline_date}</div>
+        <span class="text-[10px] font-bold uppercase text-yellow-300 bg-yellow-500/20 px-1.5 py-0.2 rounded border border-yellow-500/30 flex items-center w-fit mt-0.5">
+          <i class="fas fa-clock mr-1 text-yellow-400 animate-spin"></i> Due Today!
+        </span>
+      `;
+    } else {
+      scheduleHtml = `
+        <div class="font-bold text-slate-300 font-mono">${item.deadline_date}</div>
+        <div class="text-[10px] text-slate-400 mt-0.5">In ${item.days_diff} days</div>
+      `;
+    }
+
+    // Last Reminded
+    let lastRemindedHtml = '<span class="text-slate-500 text-[10px] italic">Not contacted</span>';
+    if (item.last_reminder) {
+      const lrDate = new Date(item.last_reminder.dispatched_at).toLocaleDateString([], { month: 'short', day: 'numeric' });
+      const lrChannel = item.last_reminder.channel || 'TG/SMS';
+      lastRemindedHtml = `
+        <div class="text-[11px] font-mono text-slate-300 font-bold flex items-center">
+          <i class="fas fa-paper-plane mr-1 text-cyan-400 text-[9px]"></i> ${lrChannel}
+        </div>
+        <div class="text-[10px] text-slate-400">${lrDate} (${item.last_reminder.template_type})</div>
+      `;
+    }
+
+    return `
+      <tr class="border-b border-white/5 hover:bg-white/[0.02] text-xs transition">
+        <td class="py-3 px-3">
+          <div class="font-bold text-white">${escapeHtml(c.name)}</div>
+          <div class="font-mono text-[11px] text-emerald-400">${escapeHtml(c.phone_number || '—')}</div>
+          <div class="text-[10px] text-slate-500 font-mono">ID: ${c.id.slice(0, 8)}</div>
+        </td>
+        <td class="py-3 px-3">
+          <div class="font-black text-white font-mono text-sm">৳ ${item.amount.toLocaleString()}</div>
+          <div class="text-[10px] text-slate-400 font-mono">Ref: #${item.loan_id.slice(0, 8)}</div>
+        </td>
+        <td class="py-3 px-3">
+          ${scheduleHtml}
+        </td>
+        <td class="py-3 px-3">
+          ${strikeBadge}
+        </td>
+        <td class="py-3 px-3">
+          <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${c.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400 border border-rose-500/40'}">
+            ${c.status}
+          </span>
+        </td>
+        <td class="py-3 px-3">
+          ${lastRemindedHtml}
+        </td>
+        <td class="py-3 px-3 text-right">
+          <div class="flex items-center justify-end flex-wrap gap-1.5">
+            <!-- Manual Reminder Button -->
+            <button onclick="openManualReminderModal('${c.id}', '${item.loan_id}')" class="px-2 py-1 bg-cyan-600/80 hover:bg-cyan-500 text-white rounded text-[10px] font-bold transition flex items-center cursor-pointer shadow" title="Send Multi-Channel Reminder">
+              <i class="fas fa-bullhorn mr-1"></i> Remind
+            </button>
+
+            <!-- Increment Strike Button -->
+            <button onclick="adjustClientStrikes('${c.id}', 'INCREMENT')" class="px-2 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded text-[10px] font-bold transition flex items-center cursor-pointer" title="Add +1 Strike Penalty">
+              <i class="fas fa-plus mr-0.5"></i> Strike
+            </button>
+
+            <!-- Reset Strikes Button -->
+            ${strikes > 0 ? `
+              <button onclick="adjustClientStrikes('${c.id}', 'RESET')" class="px-2 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded text-[10px] font-bold transition flex items-center cursor-pointer" title="Amnesty: Clear Strikes to 0">
+                <i class="fas fa-undo"></i>
+              </button>
+            ` : ''}
+
+            <!-- Blacklist / Unblock Toggle Button -->
+            <button onclick="toggleClientBlacklist('${c.id}', '${c.status}')" class="px-2 py-1 ${isBlocked ? 'bg-emerald-600/80 hover:bg-emerald-600 text-white' : 'bg-rose-600/80 hover:bg-rose-600 text-white'} rounded text-[10px] font-bold transition flex items-center cursor-pointer" title="${isBlocked ? 'Unblock Borrower Account' : 'Blacklist & Lock Account'}">
+              <i class="fas ${isBlocked ? 'fa-unlock' : 'fa-ban'} mr-1"></i> ${isBlocked ? 'Unblock' : 'Blacklist'}
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// ─── Manual Interventions & Automated Cycle Trigger ───────────────────────────
+async function runCollectionCycleNow() {
+  const btn = document.getElementById('btnRunCollectionCycle');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i> Running Cycle...';
+  }
+
+  try {
+    const res = await fetch('/api/admin/collections/run-cycle', {
+      method: 'POST',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ force: false, notifyChannels: 'BOTH' }),
+    });
+
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    const r = json.report || {};
+    alert(
+      `⚡ Automated Collection & Strike Escalation Complete!\n\n` +
+      `• Active Loans Evaluated : ${r.total_active_loans}\n` +
+      `• Overdue Evaluated       : ${r.overdue_processed}\n` +
+      `• Strikes Issued          : ${r.strikes_issued}\n` +
+      `• Clients Auto-Blocked    : ${r.clients_blocked}\n` +
+      `• Reminders Dispatched    : ${r.reminders_sent?.total || 0}`
+    );
+
+    await fetchCollectionsMatrix();
+    await fetchReminderLogs();
+    await fetchClients();
+  } catch (err) {
+    alert(`Collection Run Error: ${err.message}`);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-bolt text-amber-400 mr-1.5"></i> Run Collection Cycle Now';
+    }
+  }
+}
+
+window.adjustClientStrikes = async function(clientId, action, value = 1) {
+  const reason = prompt(`Enter reason for strike adjustment (${action}):`, 'Administrative compliance review');
+  if (reason === null) return;
+
+  try {
+    const res = await fetch('/api/admin/collections/strikes', {
+      method: 'POST',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: clientId, action, value, reason }),
+    });
+
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    alert(`✅ Client strike updated: ${json.result.previous_strikes} → ${json.result.new_strikes} (Status: ${json.result.status})`);
+    await fetchCollectionsMatrix();
+    await fetchClients();
+  } catch (err) {
+    alert(`Strike Update Error: ${err.message}`);
+  }
+};
+
+window.toggleClientBlacklist = async function(clientId, currentStatus) {
+  const newStatus = currentStatus === 'BLOCKED' ? 'ACTIVE' : 'BLOCKED';
+  const confirmMsg = newStatus === 'BLOCKED'
+    ? '⚠️ Are you sure you want to BLACKLIST and lock this client account? They will be unable to borrow or request loans.'
+    : 'Are you sure you want to UNBLOCK this client and restore borrowing status?';
+
+  if (!confirm(confirmMsg)) return;
+  const reason = prompt('Specify reason for blacklist status change:', 'Administrative risk control');
+
+  try {
+    const res = await fetch('/api/admin/collections/blacklist', {
+      method: 'POST',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: clientId, status: newStatus, reason }),
+    });
+
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    alert(`Client status updated to ${newStatus}.`);
+    await fetchCollectionsMatrix();
+    await fetchClients();
+  } catch (err) {
+    alert(`Blacklist Error: ${err.message}`);
+  }
+};
+
+// ─── Manual Reminder Modal Handlers ───────────────────────────────────────────
+window.openManualReminderModal = function(clientId, loanId) {
+  if (!COLLECTIONS_MATRIX_CACHE) return;
+  const item = COLLECTIONS_MATRIX_CACHE.items.find(i => i.client.id === clientId && i.loan_id === loanId)
+    || COLLECTIONS_MATRIX_CACHE.items.find(i => i.client.id === clientId);
+
+  if (!item) {
+    alert('Borrower details not found.');
+    return;
+  }
+
+  ACTIVE_MANUAL_REMINDER_TARGET = item;
+
+  document.getElementById('modalTargetClientId').value = clientId;
+  document.getElementById('modalTargetLoanId').value = loanId || item.loan_id;
+  document.getElementById('modalBorrowerName').textContent = item.client.name;
+  document.getElementById('modalBorrowerPhone').textContent = item.client.phone_number || 'N/A';
+  document.getElementById('modalBorrowerLoanInfo').textContent = `৳ ${item.amount.toLocaleString()} (Due: ${item.deadline_date})`;
+  document.getElementById('modalBorrowerStrikes').textContent = `${item.client.strikes_count || 0} / 3 strikes (${item.client.status})`;
+
+  // Pre-fill template text
+  updateManualReminderTemplateText();
+
+  document.getElementById('adminManualReminderModal')?.classList.remove('hidden');
+};
+
+function updateManualReminderTemplateText() {
+  if (!ACTIVE_MANUAL_REMINDER_TARGET) return;
+  const item = ACTIVE_MANUAL_REMINDER_TARGET;
+  const templateType = document.getElementById('modalTemplateSelector')?.value || 'OVERDUE_STRIKE';
+  const textArea = document.getElementById('modalReminderCustomText');
+  if (!textArea) return;
+
+  const clientName = item.client.name;
+  const amount = `৳${item.amount.toLocaleString()}`;
+  const deadline = item.deadline_date;
+  const strikes = item.client.strikes_count || 0;
+
+  switch (templateType) {
+    case 'PRE_DUE_3D':
+      textArea.value = `⏰ [SYM LOAN Reminder] Dear ${clientName}, your loan of ${amount} is due in 3 days on ${deadline}. Please prepare repayment via bKash/Nagad/Rocket/Bank to maintain your clean 5-star standing. Portal: https://symloan.best-travel.ltd`;
+      break;
+    case 'PRE_DUE_1D':
+      textArea.value = `⚠️ [SYM LOAN Urgent Notice] Dear ${clientName}, your loan of ${amount} is due TOMORROW (${deadline})! Settle timely to prevent penalty strikes and protect your borrowing privileges. Portal: https://symloan.best-travel.ltd`;
+      break;
+    case 'DUE_TODAY':
+      textArea.value = `🚨 [SYM LOAN FINAL CALL] Dear ${clientName}, your loan of ${amount} is DUE TODAY (${deadline})! Please repay immediately via our portal or official MFS accounts to avoid automatic overdue strikes. Portal: https://symloan.best-travel.ltd`;
+      break;
+    case 'OVERDUE_STRIKE':
+      textArea.value = `🔴 [SYM LOAN OVERDUE ALERT] Strike #${strikes || 1} has been issued to ${clientName}! Your loan of ${amount} is OVERDUE (due: ${deadline}). Accumulating 3 strikes results in PERMANENT ACCOUNT BLACKLIST & legal collection actions. Settle immediately: https://symloan.best-travel.ltd`;
+      break;
+    case 'ACCOUNT_BLOCKED':
+      textArea.value = `⛔ [SYM LOAN ACCOUNT LOCKED] ${clientName}, your account is now PERMANENTLY BLOCKED due to reaching 3 Overdue Strikes on loan ${amount}. Contact recovery desk immediately to settle outstanding debts: https://symloan.best-travel.ltd`;
+      break;
+    case 'CUSTOM':
+      textArea.value = `📢 [SYM LOAN Collection Notice] Dear ${clientName}, this is an urgent reminder regarding your active loan of ${amount} (Due: ${deadline}). Please visit https://symloan.best-travel.ltd to settle your payment.`;
+      break;
+  }
+}
+
+async function sendManualReminder() {
+  const clientId = document.getElementById('modalTargetClientId')?.value;
+  const loanId = document.getElementById('modalTargetLoanId')?.value;
+  const channel = document.getElementById('modalReminderChannel')?.value || 'BOTH';
+  const templateType = document.getElementById('modalTemplateSelector')?.value || 'MANUAL_DUNNING';
+  const customText = document.getElementById('modalReminderCustomText')?.value.trim();
+
+  if (!clientId) return;
+
+  const btn = document.getElementById('btnConfirmSendReminder');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i> Dispatching...';
+  }
+
+  try {
+    const res = await fetch('/api/admin/collections/remind', {
+      method: 'POST',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_id: clientId,
+        loan_id: loanId,
+        channel,
+        template_type: templateType,
+        custom_text: customText,
+      }),
+    });
+
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    alert(`✅ Reminder successfully dispatched via ${channel}!`);
+    document.getElementById('adminManualReminderModal')?.classList.add('hidden');
+
+    await fetchCollectionsMatrix();
+    await fetchReminderLogs();
+  } catch (err) {
+    alert(`Reminder Dispatch Error: ${err.message}`);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-paper-plane mr-1.5"></i> Dispatch Reminder Now';
+    }
+  }
+}
+
+// ─── Reminder Dispatch Audit Logs ─────────────────────────────────────────────
+async function fetchReminderLogs() {
+  try {
+    const res = await fetch('/api/admin/collections/logs?limit=30', { headers: getHeaders() });
+    if (!res.ok) return;
+    const json = await res.json();
+    if (!json.success) return;
+
+    REMINDER_LOGS_CACHE = json.logs || [];
+    const stats = json.stats || {};
+
+    const remindersTodayEl = document.getElementById('collMetricRemindersToday');
+    const logsCountText = document.getElementById('reminderLogsCountText');
+
+    if (remindersTodayEl) remindersTodayEl.textContent = `${stats.dispatched_today || 0} Sent`;
+    if (logsCountText) logsCountText.textContent = `${json.count || 0} total logged`;
+
+    renderReminderLogs(REMINDER_LOGS_CACHE);
+  } catch (err) {
+    console.error('Failed to fetch reminder logs:', err);
+  }
+}
+
+function renderReminderLogs(logs) {
+  const tbody = document.getElementById('reminderLogsTableBody');
+  if (!tbody) return;
+
+  if (!logs || logs.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500">No dispatches logged yet.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = logs.map(l => {
+    const timeFormatted = new Date(l.dispatched_at).toLocaleString([], {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    let statusBadge = l.status === 'DELIVERED' || l.status === 'SIMULATED_DELIVERED'
+      ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-500/20 text-emerald-300">Delivered</span>`
+      : `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-rose-500/20 text-rose-300">Failed</span>`;
+
+    return `
+      <tr class="border-b border-white/5 text-[11px] hover:bg-white/[0.02]">
+        <td class="py-2 px-2.5 font-mono text-slate-400">${timeFormatted}</td>
+        <td class="py-2 px-2.5">
+          <div class="font-bold text-white">${escapeHtml(l.client_name)}</div>
+          <div class="font-mono text-[10px] text-emerald-400">${escapeHtml(l.client_phone || '—')}</div>
+        </td>
+        <td class="py-2 px-2.5 font-mono text-cyan-400 font-bold">${l.channel}</td>
+        <td class="py-2 px-2.5 font-mono text-amber-300 text-[10px]">${l.template_type}</td>
+        <td class="py-2 px-2.5">${statusBadge}</td>
+        <td class="py-2 px-2.5 font-mono text-slate-400 text-[10px]">${l.trigger}</td>
+        <td class="py-2 px-2.5 text-slate-300 max-w-xs truncate" title="${escapeHtml(l.message_text || '')}">${escapeHtml(l.message_text || '—')}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
 // ─── KYC Identity Verification Admin Desk ────────────────────────────────────
 async function fetchKycList() {
   if (!DOM.kycTableBody) return;
@@ -1418,6 +1885,58 @@ function setupEvents() {
 
   document.getElementById('closeAdminRepaymentReceiptBtn')?.addEventListener('click', () => {
     document.getElementById('adminRepaymentReceiptModal')?.classList.add('hidden');
+  });
+
+  // Debt Collection & Strike Management Desk Events (Phase 10)
+  document.getElementById('refreshCollectionsBtn')?.addEventListener('click', () => {
+    fetchCollectionsMatrix(ACTIVE_COLLECTION_FILTER);
+  });
+
+  document.getElementById('btnRunCollectionCycle')?.addEventListener('click', () => {
+    runCollectionCycleNow();
+  });
+
+  document.querySelectorAll('.coll-filter-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('.coll-filter-btn').forEach(b => {
+        b.className = 'coll-filter-btn px-2.5 py-1 rounded-md font-bold transition text-slate-400 hover:text-white cursor-pointer';
+      });
+      e.currentTarget.className = 'coll-filter-btn px-2.5 py-1 rounded-md font-bold transition bg-rose-500/20 text-rose-300 border border-rose-500/30 cursor-pointer';
+      applyCollectionFilter(e.currentTarget.dataset.filter);
+    });
+  });
+
+  document.getElementById('collSearchInput')?.addEventListener('input', () => {
+    applyCollectionFilter(ACTIVE_COLLECTION_FILTER);
+  });
+
+  document.getElementById('toggleReminderLogsBtn')?.addEventListener('click', () => {
+    const container = document.getElementById('reminderLogsContainer');
+    const text = document.getElementById('toggleReminderLogsText');
+    if (!container) return;
+    const isHidden = container.classList.contains('hidden');
+    if (isHidden) {
+      container.classList.remove('hidden');
+      if (text) text.textContent = 'Hide Reminders Log';
+      fetchReminderLogs();
+    } else {
+      container.classList.add('hidden');
+      if (text) text.textContent = 'View Reminders Log';
+    }
+  });
+
+  // Manual Reminder Modal
+  document.getElementById('closeManualReminderModalBtn')?.addEventListener('click', () => {
+    document.getElementById('adminManualReminderModal')?.classList.add('hidden');
+  });
+  document.getElementById('btnCancelManualReminder')?.addEventListener('click', () => {
+    document.getElementById('adminManualReminderModal')?.classList.add('hidden');
+  });
+  document.getElementById('modalTemplateSelector')?.addEventListener('change', () => {
+    updateManualReminderTemplateText();
+  });
+  document.getElementById('btnConfirmSendReminder')?.addEventListener('click', () => {
+    sendManualReminder();
   });
 
   DOM.closeModalBtn.addEventListener('click', () => {
