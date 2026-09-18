@@ -4,7 +4,7 @@
 > **Project Name:** SYM EMPIRE PLATFORM (S.E.P.) - SYM LOAN  
 > **Master System Identity:** 'SYM EMPIRE' PLATFORM (S.E.P.)  
 > **Production Domain:** [`https://symloan.best-travel.ltd`](https://symloan.best-travel.ltd)  
-> **Live Cloudflare Tunnel:** [`https://asian-decades-indices-diving.trycloudflare.com`](https://asian-decades-indices-diving.trycloudflare.com)  
+> **Live Cloudflare Tunnel:** [`https://thy-causing-closed-sheffield.trycloudflare.com`](https://thy-causing-closed-sheffield.trycloudflare.com)  
 > **Target Server Host:** Hostinger Cloud / Node.js Engine (`public_html/` for `symloan.best-travel.ltd`)  
 > **Local Project Root:** `D:\TECH\WEBSITE\SYM WEBZ\SYM LOAN\`  
 > **Google Drive Workplace:** `G:\My Drive\ALL WEBSITE WORKPLACE\SYM LOAN WORKPLACE\`  
