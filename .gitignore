@@ -4,3 +4,7 @@
 .DS_Store
 *.log
 dist/
+
+cloudflared.exe
+cloudflared.log
+

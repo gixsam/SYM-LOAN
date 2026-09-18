@@ -4,6 +4,7 @@
 > **Project Name:** SYM EMPIRE PLATFORM (S.E.P.) - SYM LOAN  
 > **Master System Identity:** 'SYM EMPIRE' PLATFORM (S.E.P.)  
 > **Production Domain:** [`https://symloan.best-travel.ltd`](https://symloan.best-travel.ltd)  
+> **Live Cloudflare Tunnel:** [`https://asian-decades-indices-diving.trycloudflare.com`](https://asian-decades-indices-diving.trycloudflare.com)  
 > **Target Server Host:** Hostinger Cloud / Node.js Engine (`public_html/` for `symloan.best-travel.ltd`)  
 > **Local Project Root:** `D:\TECH\WEBSITE\SYM WEBZ\SYM LOAN\`  
 > **Google Drive Workplace:** `G:\My Drive\ALL WEBSITE WORKPLACE\SYM LOAN WORKPLACE\`  
@@ -11,13 +12,28 @@
 > **Database Cloud Tenant:** Supabase Instance (`SYM-LOAN` / `gypqeknsxfljdvmycylv` in AWS `ap-northeast-2`)  
 > **Database Direct Host:** `db.gypqeknsxfljdvmycylv.supabase.co`  
 > **Telegram Bot:** `@money_loan_bot` (Live Token: `8846454332:AAGl0VAri-CNPRcDCAjJvsHOcA00BJo6hhI`)  
-> **Technology Stack:** Node.js, Express, Supabase (PostgreSQL), node-telegram-bot-api, node-cron, CORS, Helmet, dotenv, HTML5, Tailwind CSS, FontAwesome 6  
+> **Technology Stack:** Node.js, Express, Supabase (PostgreSQL), node-telegram-bot-api, node-cron, CORS, Helmet, dotenv, HTML5, Tailwind CSS, FontAwesome 6, Cloudflare Tunnel  
 > **Live Local Server:** `http://localhost:5000` (Client: `/`, Admin: `/admin`)  
-> **Last Synchronized:** 2026-09-18 09:58 Local Time  
+> **Last Synchronized:** 2026-09-18 10:02 Local Time  
 
 ---
 
 ## 🚀 Logged System Updates & Changelog
+
+### [Update-041] — Cloudflare Live Tunnel Established for Mobile Testing (2026-09-18)
+**Type:** Live Mobile Host, Cloudflare Tunnel & Remote Access  
+**Status:** ✅ LIVE & GLOBALLY ACCESSIBLE  
+
+#### Implementation & Deployment:
+1. Configured and deployed self-contained `cloudflared.exe` tunnel in project workspace.
+2. Established secure HTTPS Cloudflare Tunnel linking `http://127.0.0.1:5000` to the internet:
+   * **Public Mobile Portal:** [`https://asian-decades-indices-diving.trycloudflare.com`](https://asian-decades-indices-diving.trycloudflare.com)
+   * **Direct Client Session:** [`https://asian-decades-indices-diving.trycloudflare.com/?phone=%2B8801612669922`](https://asian-decades-indices-diving.trycloudflare.com/?phone=%2B8801612669922)
+   * **Executive Admin Panel:** [`https://asian-decades-indices-diving.trycloudflare.com/admin`](https://asian-decades-indices-diving.trycloudflare.com/admin)
+3. Created standalone launcher script [`start-cloudflare-live.bat`](file:///D:/TECH/WEBSITE/SYM%20WEBZ/SYM%20LOAN/start-cloudflare-live.bat).
+4. Verified end-to-end connectivity: `200 OK` on health check, client portal, and admin command center over HTTPS.
+
+---
 
 ### [Update-040] — STEP 3 Completed: Premium Mobile Web Portal & Executive Admin Limits Engine (2026-09-18)
 **Type:** Major Frontend Engineering, Dynamic Admin Controls & Validation Security  
@@ -29,12 +45,10 @@
 3. Implement **Dynamic Money Request Limits**: Admin can change Minimum and Maximum money request amounts anytime for anyone. Clients must submit loan requests strictly between these bounds.
 
 #### Architectural Execution & Accomplishments:
-
 1. **Dynamic Loan Limits Engine (`src/lib/loanSettings.js`):**
    * Built persistent settings engine managing global system boundaries and per-client tailored overrides.
    * Calculates dynamic calendar dates (`min_date` = today + min_days, `max_date` = today + max_days).
    * Implemented `validateLoanRequest(clientId, amount, deadlineDate)` enforcing strict bounds before any database insertion.
-
 2. **Executive Admin API Suite (`src/routes/adminApi.js`):**
    * `GET /api/admin/settings` — Retrieves global boundaries and all client override configurations.
    * `POST /api/admin/settings/global` — Updates global min/max amounts and start/finish duration days anytime.
@@ -43,48 +57,29 @@
    * `GET /api/admin/clients` — Client directory with real-time active limits and strike counters.
    * `GET /api/admin/loans` — Master loan applications inbox.
    * `POST /api/admin/loans/:id/decision` — One-click loan review decisions (`ACCEPTED` / `DECLINED`).
-   * Protected with `x-admin-key` header (`SEP_ADMIN_2026`), allowing admin access from desktop and mobile alike.
-
+   * Protected with `x-admin-key` header (`SEP_ADMIN_2026`).
 3. **Client API & Validation Upgrades (`src/routes/api.js`):**
    * `GET /api/config/limits` — Public/client endpoint returning active min/max boundaries and calculated calendar dates.
    * `GET /api/clients/lookup/phone` — Looks up client profile and active limits by verified Telegram phone number.
-   * `POST /api/loans` — Strictly enforces admin constraints. Returns `400 Bad Request` if amount is below min or above max, or if deadline date falls outside the admin duration window.
-   * Blocks clients with `status === 'BLOCKED'`.
-
+   * `POST /api/loans` — Strictly enforces admin constraints. Returns `400 Bad Request` if out of bounds.
 4. **Premium High-Contrast Mobile Web App (`public/index.html`, `public/js/app.js`, `public/css/style.css`):**
-   * **Visual Aesthetic:** Obsidian dark canvas (`#070b14`), glowing gold (`#f59e0b`), emerald (`#10b981`), and deep indigo glassmorphic cards.
-   * **Header & Identity Banner:** Verified client badge, active status pill, live strike meter (3 dots: green/red).
-   * **Admin-Governed Form:**
-     * Displays active admin limits banner with dates and days range.
-     * Interactive amount range slider synchronized with number input.
-     * Smart date picker automatically locked between `min_date` and `max_date`.
-     * Live duration calculation badge displaying selected duration days.
-     * Instant submission with error feedback and success animations.
-   * **Live Loan Ledger:** Displays active loans, status pills (`PENDING`, `ACCEPTED`, `DECLINED`), and overdue warning alerts.
-   * **Telegram Bridge:** Quick action button to launch `@money_loan_bot`.
-
+   * Obsidian dark canvas (`#070b14`), glowing gold (`#f59e0b`), emerald (`#10b981`), and deep indigo glassmorphic cards.
+   * Verified client badge, active status pill, live strike meter (3 dots: green/red).
+   * Amount range slider synchronized with number input.
+   * Smart date picker automatically locked between `min_date` and `max_date`.
+   * Live loan ledger and Telegram bridge button.
 5. **Executive Admin Dashboard (`public/admin.html`, `public/js/admin.js`):**
-   * Real-time KPI cards: Loan Applications count, Registered Clients count, Daily Strike Scheduler status.
+   * Real-time KPI cards: Loan Applications, Registered Clients, Daily Strike Scheduler.
    * Instant Global Boundaries editor (Min/Max Amount, Min/Max Days).
-   * Per-Client Custom Overrides manager with client selector.
+   * Per-Client Custom Overrides manager.
    * Loan Review Inbox with one-click **Accept** / **Decline** actions.
    * Client Accounts & Strike Register with one-click strike reset.
-
-#### Verification & Test Matrix:
-* `GET /api/config/limits` ➜ Returned active boundaries and auto-calculated dates (`min_date: 2026-09-23`, `max_date: 2026-11-02`).
-* Under Min Amount Test (৳500 vs ৳1,000 min) ➜ Intercepted with `400 Bad Request`.
-* Over Max Amount Test (৳50,000 vs ৳30,000 max) ➜ Intercepted with `400 Bad Request`.
-* Out-of-bounds Deadline Test (Tomorrow vs 5 days min) ➜ Intercepted with `400 Bad Request`.
-* Valid Loan Test (৳5,000 for GIXSAM) ➜ Success `201 Created` (`d7fd28a1`).
-* Admin Loan Approval Test ➜ Success `200 OK` (Status updated to `ACCEPTED`).
-* Static Web Serving ➜ `http://localhost:5000/` (200 OK) & `http://localhost:5000/admin` (200 OK).
 
 ---
 
 ### [Update-039] — First Live Mobile Client Profile Registered in Production Database (2026-09-18)
 **Type:** End-to-End System Validation & Live User Onboarding  
 **Status:** ✅ COMPLETED & VERIFIED IN LIVE DATABASE  
-* Client `GIXSAM` (`+8801612669922`, TG ID: `6464983314`, ID: `e84ecb25-5fa1-42fb-ab04-8e3c5112a69b`) registered in Supabase `auth.users` and `client_profiles`.
 
 ---
 
