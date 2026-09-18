@@ -10,3 +10,5 @@ cloudflared.log
 
 public/uploads/receipts/*
 !public/uploads/receipts/.gitkeep
+
+android/build/

@@ -55,6 +55,8 @@ const DOM = {
   togglePushAlertsBtn: document.getElementById('togglePushAlertsBtn'),
   settingsJumpKycBtn: document.getElementById('settingsJumpKycBtn'),
   settingsLogoutBtn: document.getElementById('settingsLogoutBtn'),
+  pwaInstallBtn: document.getElementById('pwaInstallBtn'),
+  settingsPwaInstallBtn: document.getElementById('settingsPwaInstallBtn'),
 
   // Progressive Contextual Permission & Trust Modal Elements
   permissionGuidanceModal: document.getElementById('permissionGuidanceModal'),
@@ -206,6 +208,7 @@ function escapeHtml(str) {
 async function initApp() {
   loadSavedClient();
   setupEventListeners();
+  setupPwaServiceWorker();
 
   // Parse URL query parameters for admin bypass / deep linking
   const urlParams = new URLSearchParams(window.location.search);
@@ -2213,6 +2216,63 @@ function setupEventListeners() {
     } finally {
       DOM.submitBtn.disabled = false;
       DOM.submitBtn.innerHTML = 'Submit Money Request <i class="fas fa-paper-plane ml-2"></i>';
+    }
+  });
+}
+
+// ─── Progressive Web App (PWA) & Offline Service Worker Registration ───────
+let deferredInstallPrompt = null;
+
+function setupPwaServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => {
+          console.log('[PWA] ServiceWorker successfully registered with scope:', reg.scope);
+        })
+        .catch(err => {
+          console.warn('[PWA] ServiceWorker registration failed:', err);
+        });
+    });
+  }
+
+  // Handle Android / Chrome / Edge PWA install prompt event
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    console.log('[PWA] beforeinstallprompt event captured');
+
+    if (DOM.pwaInstallBtn) {
+      DOM.pwaInstallBtn.classList.remove('hidden');
+    }
+    if (DOM.settingsPwaInstallBtn) {
+      DOM.settingsPwaInstallBtn.disabled = false;
+      DOM.settingsPwaInstallBtn.textContent = 'Install PWA';
+    }
+  });
+
+  const triggerPwaInstall = async () => {
+    if (!deferredInstallPrompt) {
+      alert('To install SYM LOAN on your device:\n\n• On iOS / Safari: Tap the Share button (square with arrow) and select "Add to Home Screen".\n• On Android Chrome: Tap menu (⋮) and select "Install app" or "Add to Home screen".\n• Or download our Native Android APK directly from the menu.');
+      return;
+    }
+    deferredInstallPrompt.prompt();
+    const choice = await deferredInstallPrompt.userChoice;
+    console.log(`[PWA] User response: ${choice?.outcome}`);
+    deferredInstallPrompt = null;
+    if (DOM.pwaInstallBtn) DOM.pwaInstallBtn.classList.add('hidden');
+  };
+
+  DOM.pwaInstallBtn?.addEventListener('click', triggerPwaInstall);
+  DOM.settingsPwaInstallBtn?.addEventListener('click', triggerPwaInstall);
+
+  window.addEventListener('appinstalled', () => {
+    console.log('[PWA] SYM LOAN app was installed successfully.');
+    deferredInstallPrompt = null;
+    if (DOM.pwaInstallBtn) DOM.pwaInstallBtn.classList.add('hidden');
+    if (DOM.settingsPwaInstallBtn) {
+      DOM.settingsPwaInstallBtn.textContent = 'Installed ✓';
+      DOM.settingsPwaInstallBtn.disabled = true;
     }
   });
 }
