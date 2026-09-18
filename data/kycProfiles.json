@@ -1,0 +1,19 @@
+{
+  "e84ecb25-5fa1-42fb-ab04-8e3c5112a69b": {
+    "client_id": "e84ecb25-5fa1-42fb-ab04-8e3c5112a69b",
+    "status": "UNSUBMITTED",
+    "full_name": "",
+    "dob": "",
+    "nid_number": "",
+    "nid_front_url": "",
+    "nid_back_url": "",
+    "live_selfie_url": "",
+    "email": "",
+    "email_verified": false,
+    "phone": "+8801612669922",
+    "locked": false,
+    "submitted_at": "2026-09-18T09:01:19.935Z",
+    "verified_at": "2026-09-18T09:01:28.939Z",
+    "rejection_reason": null
+  }
+}

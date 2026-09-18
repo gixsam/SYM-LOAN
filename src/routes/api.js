@@ -21,12 +21,16 @@
  */
 
 const express       = require('express');
+const fs            = require('fs');
+const path          = require('path');
 const { supabaseAdmin } = require('../lib/supabase');
 const loanSettings  = require('../lib/loanSettings');
 const { runDeadlineStrikeCheck } = require('../cron/deadlineStrikeEngine');
 const otpManager    = require('../lib/otpManager');
 const { sendTelegramOtp } = require('../bot/index');
-const { uploadAvatar } = require('../lib/uploader');
+const { uploadAvatar, uploadKycDocs } = require('../lib/uploader');
+const kycManager    = require('../lib/kycManager');
+const emailService  = require('../lib/emailService');
 
 const router = express.Router();
 
@@ -203,7 +207,16 @@ router.post('/loans', async (req, res) => {
     });
   }
 
-  // 2. Strict Boundary Validation against Admin Configured Limits
+  // 2. KYC Verification Gatekeeper Check
+  if (!kycManager.isClientKycVerified(client_id)) {
+    return res.status(403).json({
+      success: false,
+      code: 'KYC_REQUIRED',
+      message: 'Identity verification (KYC) is required before submitting money requests. Please complete your profile in Settings.',
+    });
+  }
+
+  // 3. Strict Boundary Validation against Admin Configured Limits
   const validation = loanSettings.validateLoanRequest(client_id, amount, deadline_date);
   if (!validation.valid) {
     return res.status(400).json({
@@ -401,6 +414,177 @@ router.post('/clients/:id/avatar', uploadAvatar.single('avatar_image'), async (r
     avatar_url: avatarUrl,
     client: updated,
   });
+});
+
+// ─── KYC & Identity Verification Endpoints ────────────────────────────────────
+
+// GET /api/kyc/profile?clientId=...
+router.get('/kyc/profile', async (req, res) => {
+  const clientId = req.query.clientId || req.query.client_id;
+  if (!clientId) {
+    return res.status(400).json({ success: false, message: 'Client ID parameter is required.' });
+  }
+  const kyc = kycManager.getKycProfile(clientId);
+  if (!kyc.phone) {
+    try {
+      const { data: client } = await supabaseAdmin
+        .from('client_profiles')
+        .select('phone_number, name')
+        .eq('id', clientId)
+        .maybeSingle();
+      if (client && client.phone_number) {
+        kyc.phone = client.phone_number;
+        kycManager.saveKycDraft(clientId, { phone: client.phone_number });
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+  res.json({ success: true, kyc });
+});
+
+// POST /api/kyc/upload-nid — Smart NID Front & Back upload
+router.post('/kyc/upload-nid', uploadKycDocs.fields([
+  { name: 'nid_front', maxCount: 1 },
+  { name: 'nid_back', maxCount: 1 },
+]), async (req, res) => {
+  const clientId = req.body?.client_id;
+  if (!clientId) {
+    return res.status(400).json({ success: false, message: 'client_id is required.' });
+  }
+
+  const updates = {};
+  if (req.files?.nid_front?.[0]) {
+    updates.nid_front_url = `/uploads/kyc/${req.files.nid_front[0].filename}`;
+  }
+  if (req.files?.nid_back?.[0]) {
+    updates.nid_back_url = `/uploads/kyc/${req.files.nid_back[0].filename}`;
+  }
+
+  try {
+    const kyc = kycManager.saveKycDraft(clientId, updates);
+    res.json({
+      success: true,
+      message: 'NID documents uploaded successfully.',
+      nid_front_url: updates.nid_front_url || kyc.nid_front_url,
+      nid_back_url: updates.nid_back_url || kyc.nid_back_url,
+      kyc,
+    });
+  } catch (err) {
+    res.status(403).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/kyc/upload-selfie — Live Camera Photo (One-click capture & save)
+router.post('/kyc/upload-selfie', uploadKycDocs.single('live_selfie'), async (req, res) => {
+  const clientId = req.body?.client_id;
+  if (!clientId) {
+    return res.status(400).json({ success: false, message: 'client_id is required.' });
+  }
+
+  let selfieUrl = null;
+  if (req.file) {
+    selfieUrl = `/uploads/kyc/${req.file.filename}`;
+  } else if (req.body?.base64Image) {
+    // Handle canvas base64 image capture
+    const base64Data = req.body.base64Image.replace(/^data:image\/\w+;base64,/, '');
+    const filename = `kyc-selfie-${clientId.slice(0, 8)}-${Date.now()}.jpg`;
+    const filepath = path.join(__dirname, '../../public/uploads/kyc', filename);
+    fs.writeFileSync(filepath, base64Data, 'base64');
+    selfieUrl = `/uploads/kyc/${filename}`;
+  }
+
+  if (!selfieUrl) {
+    return res.status(400).json({ success: false, message: 'Live photo data or image file is required.' });
+  }
+
+  try {
+    const kyc = kycManager.saveKycDraft(clientId, { live_selfie_url: selfieUrl });
+    res.json({
+      success: true,
+      message: 'Live photo captured and saved.',
+      live_selfie_url: selfieUrl,
+      kyc,
+    });
+  } catch (err) {
+    res.status(403).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/kyc/request-email-otp — Dispatch 6-digit OTP to client email
+router.post('/kyc/request-email-otp', async (req, res) => {
+  const { client_id, email } = req.body;
+  if (!client_id || !email) {
+    return res.status(400).json({ success: false, message: 'client_id and email are required.' });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+  const currentKyc = kycManager.getKycProfile(client_id);
+  if (currentKyc.locked && currentKyc.status === 'VERIFIED') {
+    return res.status(403).json({ success: false, message: 'Profile is already verified and locked.' });
+  }
+
+  const otpRes = otpManager.generateOtp(cleanEmail);
+  if (!otpRes.success) {
+    return res.status(429).json({ success: false, message: otpRes.error, waitSeconds: otpRes.waitSeconds });
+  }
+
+  const emailRes = await emailService.sendEmailOtp(cleanEmail, otpRes.code, 'KYC Email Verification');
+  res.json({
+    success: true,
+    message: emailRes.message,
+    previewCode: emailRes.previewCode,
+    expires_in: 300,
+  });
+});
+
+// POST /api/kyc/verify-email-otp — Validate OTP and confirm email verification
+router.post('/kyc/verify-email-otp', async (req, res) => {
+  const { client_id, email, code } = req.body;
+  if (!client_id || !email || !code) {
+    return res.status(400).json({ success: false, message: 'client_id, email, and 6-digit code are required.' });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+  const verifyRes = otpManager.verifyOtp(cleanEmail, code);
+  if (!verifyRes.valid) {
+    return res.status(401).json({ success: false, message: verifyRes.message });
+  }
+
+  try {
+    const kyc = kycManager.saveKycDraft(client_id, { email: cleanEmail, email_verified: true });
+    res.json({
+      success: true,
+      message: 'Email address verified successfully.',
+      email_verified: true,
+      kyc,
+    });
+  } catch (err) {
+    res.status(403).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/kyc/submit — Final submission (Locks all fields permanently)
+router.post('/kyc/submit', async (req, res) => {
+  const { client_id, full_name, dob, nid_number } = req.body;
+  if (!client_id) {
+    return res.status(400).json({ success: false, message: 'client_id is required.' });
+  }
+
+  try {
+    const submitted = kycManager.submitKyc(client_id, {
+      full_name,
+      dob,
+      nid_number,
+    });
+    res.json({
+      success: true,
+      message: 'KYC identity documents submitted successfully. Your profile is now locked and under review.',
+      kyc: submitted,
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
 });
 
 module.exports = router;

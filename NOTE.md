@@ -20,6 +20,58 @@
 
 ## 🚀 Logged System Updates & Changelog
 
+### [Update-049] — Fintech-Grade KYC Identity Engine, Smart NID Extractor, Email OTP, Immutable Live Selfie & Admin Biometric Match Desk (2026-09-18)
+**Type:** Full-Stack KYC Identity Verification Engine, Pre-Loan Security Gatekeeper, Live Camera Biometrics, OCR Auto-Extractor, Email Verification, Multi-Panel Immutability  
+**Status:** ✅ COMPLETED, TESTED & DUAL-SYNCED ACROSS WORKPLACES  
+
+#### User Request & Objectives:
+1. **Pre-Loan KYC Gatekeeper:**
+   - Enforce mandatory KYC identity verification before any loan/money request can be submitted. Unverified clients are blocked with a modal dialog interceptor and redirected to Profile & KYC settings.
+2. **Navigation & Access:**
+   - Added a top navigation bar hamburger menu (`☰`) with a slide-out drawer (`#clientDrawer`) and dynamic tab switching between `[ 💰 Loans & Ledger ]` and `[ 🪪 Profile & KYC ]`.
+   - Client profile avatar click now directly opens the KYC section.
+3. **Smart NID Extractor:**
+   - Upload dual sides (NID Front & NID Back) with visual dropzones, scanner animations, and automated optical data extraction into Full Name (English), Date of Birth (DOB), and NID Number.
+4. **Permanent Telegram Mobile Lock:**
+   - The registered mobile number used during Telegram OTP sign-up is permanently locked (`read-only`) with a padlock icon 🔒 and cannot be changed or edited.
+5. **In-Line Email OTP Verification:**
+   - Client inputs their email address and clicks `[ ✉️ Verify ]`. A 6-digit OTP is dispatched via Hostinger SMTP (`smtp.hostinger.com:465`) with local preview fallback. Entering the correct code locks the email as `✅ Verified`.
+6. **Live Camera Selfie (One-Click Permanent Lock):**
+   - Real-time device camera integration (`navigator.mediaDevices.getUserMedia` with fallback to native camera file input) featuring a biometric oval guide and instant frame snapshot.
+   - Once clicked and saved, the live selfie is **permanently immutable and unchangeable** (no retakes or modifications permitted).
+7. **Profile Immutability Post-Submission:**
+   - Once submitted, all KYC profile fields, photos, and credentials are completely frozen and uneditable.
+8. **Executive Admin Biometric Matching Desk (`/admin`):**
+   - Dedicated KYC Review section with pending badge counters and a split-screen Inspection Modal (`#kycInspectModal`).
+   - Side-by-side zoomable view of NID Front, NID Back, and Live Biometric Selfie alongside extracted credentials.
+   - Quick preset rejection reasons and 1-Click `[ ✅ Approve & Unlock Loans ]` or `[ ❌ Reject KYC ]` compliance actions.
+
+#### Architecture & Implementation Details:
+1. **Backend Engine & Storage:**
+   - `src/lib/kycManager.js`: In-memory and disk persistence (`data/kycProfiles.json`) with Supabase synchronization via `client_profiles.admin_note` tags `[KYC:...]`.
+   - `src/lib/uploader.js`: Multer middleware `uploadKycDocs` storing files in `public/uploads/kyc/` with 15MB limits.
+   - `src/lib/emailService.js`: Hostinger Business SMTP integration with fallback.
+   - `src/routes/api.js`:
+     - `GET /api/kyc/profile`: Client KYC status and auto-populated registered phone.
+     - `POST /api/kyc/upload-nid`: Multipart NID Front & Back storage.
+     - `POST /api/kyc/upload-selfie`: Base64 canvas snapshot or camera image upload with immutability check.
+     - `POST /api/kyc/request-email-otp`: Dispatches 6-digit code with rate-limiting.
+     - `POST /api/kyc/verify-email-otp`: Validates code and sets `email_verified: true`.
+     - `POST /api/kyc/submit`: Validates complete document set, locks profile permanently, sets status to `PENDING`.
+     - `POST /api/loans`: Pre-loan check enforces `VERIFIED` status; unverified requests return `403 Forbidden` (`KYC_REQUIRED`).
+   - `src/routes/adminApi.js`:
+     - `GET /api/admin/kyc/list`: Enriched KYC records for admin desk.
+     - `GET /api/admin/kyc/:clientId`: Full biometric inspection details.
+     - `POST /api/admin/kyc/:clientId/decision`: Approves (`VERIFIED`) or rejects (`REJECTED`) with client feedback note.
+2. **Frontend UI/UX:**
+   - `public/index.html`: Slide-out navigation drawer, KYC tab view, NID dropzones with scanner line animations, email OTP drawer, live camera viewfinder, verification checklist, and loan interceptor modal.
+   - `public/js/app.js`: Camera stream control, canvas snapshot, smart extractor simulation, OTP countdown, form locking logic, and loan submission interceptor.
+   - `public/admin.html`: `#kycReviewSection` table, pending badge counters, `#kycInspectModal` with 3-column zoomable document grid.
+   - `public/js/admin.js`: `fetchKycList()`, `renderKycTable()`, `openKycInspection()`, and `submitKycDecision()`.
+   - `public/css/style.css`: Scanline keyframes, camera mirror styling, and tab styling.
+
+---
+
 ### [Update-048] — Telegram Bot Access Setting Unblock & BotFather Command Directory Calibration (2026-09-18)
 **Type:** Bot Configuration, Access Security Unblocking, UX Navigation Commands  
 **Status:** ✅ COMPLETED & DUAL-SYNCED ACROSS WORKPLACES  

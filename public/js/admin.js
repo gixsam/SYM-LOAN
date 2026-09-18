@@ -162,7 +162,40 @@ const DOM = {
   uploadLogoFeedback: document.getElementById('uploadLogoFeedback'),
   saveLogoBtn: document.getElementById('saveLogoBtn'),
   resetLogoBtn: document.getElementById('resetLogoBtn'),
+
+  // KYC Review Desk Elements
+  kycReviewSection: document.getElementById('kycReviewSection'),
+  kycPendingBadge: document.getElementById('kycPendingBadge'),
+  kycPendingCounterBadge: document.getElementById('kycPendingCounterBadge'),
+  refreshKycBtn: document.getElementById('refreshKycBtn'),
+  kycTableBody: document.getElementById('kycTableBody'),
+
+  // KYC Inspection Modal Elements
+  kycInspectModal: document.getElementById('kycInspectModal'),
+  closeKycInspectModalBtn: document.getElementById('closeKycInspectModalBtn'),
+  inspectKycStatusPill: document.getElementById('inspectKycStatusPill'),
+  inspectNidFrontStatus: document.getElementById('inspectNidFrontStatus'),
+  inspectNidFrontImg: document.getElementById('inspectNidFrontImg'),
+  inspectNidFrontLink: document.getElementById('inspectNidFrontLink'),
+  inspectNidBackStatus: document.getElementById('inspectNidBackStatus'),
+  inspectNidBackImg: document.getElementById('inspectNidBackImg'),
+  inspectNidBackLink: document.getElementById('inspectNidBackLink'),
+  inspectSelfieImg: document.getElementById('inspectSelfieImg'),
+  inspectSelfieLink: document.getElementById('inspectSelfieLink'),
+  inspectPhone: document.getElementById('inspectPhone'),
+  inspectFullName: document.getElementById('inspectFullName'),
+  inspectDob: document.getElementById('inspectDob'),
+  inspectNidNumber: document.getElementById('inspectNidNumber'),
+  inspectEmail: document.getElementById('inspectEmail'),
+  inspectSubmittedAt: document.getElementById('inspectSubmittedAt'),
+  inspectRejectReasonInput: document.getElementById('inspectRejectReasonInput'),
+  inspectFeedback: document.getElementById('inspectFeedback'),
+  rejectKycBtn: document.getElementById('rejectKycBtn'),
+  approveKycBtn: document.getElementById('approveKycBtn'),
 };
+
+let KYC_CACHE = [];
+let ACTIVE_INSPECT_KYC = null;
 
 function initAdmin() {
   DOM.adminKeyInput.value = ADMIN_KEY;
@@ -181,6 +214,7 @@ async function loadAllData() {
   try {
     await fetchSettings();
     await fetchClients();
+    await fetchKycList();
     await fetchLoans();
     await fetchHistoricalLedgers();
     await fetchMasterSpreadsheet();
@@ -632,6 +666,252 @@ function downloadSpreadsheetXlsx() {
   XLSX.writeFile(workbook, `SYM_LOAN_Master_Spreadsheet_${dateStr}.xlsx`);
 }
 
+// ─── KYC Identity Verification Admin Desk ────────────────────────────────────
+async function fetchKycList() {
+  if (!DOM.kycTableBody) return;
+  try {
+    const res = await fetch('/api/admin/kyc/list', { headers: getHeaders() });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    KYC_CACHE = json.data || json.profiles || [];
+    const pendingCount = KYC_CACHE.filter(k => (k.kyc_status || 'UNSUBMITTED') === 'PENDING').length;
+
+    if (DOM.kycPendingCounterBadge) {
+      DOM.kycPendingCounterBadge.textContent = `${pendingCount} PENDING`;
+    }
+    if (DOM.kycPendingBadge) {
+      DOM.kycPendingBadge.textContent = `${pendingCount}`;
+      if (pendingCount > 0) {
+        DOM.kycPendingBadge.classList.remove('hidden');
+      } else {
+        DOM.kycPendingBadge.classList.add('hidden');
+      }
+    }
+
+    renderKycTable(KYC_CACHE);
+  } catch (err) {
+    if (DOM.kycTableBody) {
+      DOM.kycTableBody.innerHTML = `
+        <tr>
+          <td colspan="7" class="p-6 text-center text-rose-400 text-xs">
+            <i class="fas fa-exclamation-triangle mr-1.5"></i> Failed to load KYC submissions: ${err.message}
+          </td>
+        </tr>
+      `;
+    }
+  }
+}
+
+function renderKycTable(records) {
+  if (!DOM.kycTableBody) return;
+  if (!records || records.length === 0) {
+    DOM.kycTableBody.innerHTML = `
+      <tr>
+        <td colspan="7" class="p-6 text-center text-slate-500 text-xs">
+          <i class="fas fa-inbox text-lg mb-1 block opacity-40"></i> No client KYC profiles submitted yet.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  DOM.kycTableBody.innerHTML = records.map(r => {
+    const status = (r.kyc_status || 'UNSUBMITTED').toUpperCase();
+    let badgeClass = 'bg-slate-700/50 text-slate-400 border-slate-600';
+    let badgeIcon = '<i class="fas fa-file-alt mr-1"></i>';
+    let badgeText = status;
+
+    if (status === 'VERIFIED') {
+      badgeClass = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+      badgeIcon = '<i class="fas fa-check-circle mr-1"></i>';
+      badgeText = 'APPROVED';
+    } else if (status === 'PENDING') {
+      badgeClass = 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse';
+      badgeIcon = '<i class="fas fa-hourglass-half mr-1"></i>';
+      badgeText = 'PENDING';
+    } else if (status === 'REJECTED') {
+      badgeClass = 'bg-rose-500/20 text-rose-300 border-rose-500/40';
+      badgeIcon = '<i class="fas fa-times-circle mr-1"></i>';
+      badgeText = 'REJECTED';
+    }
+
+    const hasSelfie = !!r.live_selfie_url;
+    const selfieHtml = hasSelfie
+      ? `<div class="flex items-center space-x-2">
+           <img src="${r.live_selfie_url}" class="w-8 h-8 rounded-full object-cover border border-emerald-500/40 shadow" alt="Selfie">
+           <span class="text-[10px] font-mono text-emerald-400 font-bold">Captured</span>
+         </div>`
+      : `<span class="text-slate-500 text-xs">—</span>`;
+
+    const emailDisplay = r.email 
+      ? `<span class="font-mono text-slate-300">${r.email}</span> ${r.email_verified ? '<span class="text-emerald-400 text-xs" title="Verified">✅</span>' : '<span class="text-amber-400 text-[10px]">(Unverified)</span>'}`
+      : `<span class="text-slate-500 text-xs">—</span>`;
+
+    return `
+      <tr class="border-b border-white/5 hover:bg-white/[0.02] transition">
+        <td class="py-3 px-4">
+          <div class="font-bold text-white text-xs">${r.name || 'Unnamed Client'}</div>
+          <div class="text-[11px] font-mono text-slate-400 flex items-center mt-0.5">
+            <i class="fas fa-lock text-[9px] mr-1 text-slate-500"></i> ${r.phone || '—'}
+          </div>
+        </td>
+        <td class="py-3 px-4">
+          <div class="text-xs font-semibold text-slate-200">${r.name || '—'}</div>
+          <div class="text-[10px] font-mono text-slate-400">DOB: ${r.dob || '—'}</div>
+        </td>
+        <td class="py-3 px-4">
+          <span class="font-mono text-xs font-bold text-amber-300">${r.nid_number || '—'}</span>
+        </td>
+        <td class="py-3 px-4 text-xs">
+          ${emailDisplay}
+        </td>
+        <td class="py-3 px-4">
+          ${selfieHtml}
+        </td>
+        <td class="py-3 px-4">
+          <span class="px-2.5 py-1 rounded-full text-[10px] font-bold border ${badgeClass} inline-flex items-center">
+            ${badgeIcon} ${badgeText}
+          </span>
+        </td>
+        <td class="py-3 px-4 text-right">
+          <button onclick="window.openKycInspection('${r.client_id}')" class="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold transition flex items-center ml-auto cursor-pointer">
+            <i class="fas fa-search-plus mr-1.5"></i> Inspect & Match
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+window.openKycInspection = async function(clientId) {
+  let record = KYC_CACHE.find(k => k.client_id === clientId);
+
+  try {
+    const res = await fetch(`/api/admin/kyc/${clientId}`, { headers: getHeaders() });
+    const json = await res.json();
+    if (res.ok && json.success && json.kyc) {
+      record = { ...json.kyc, client_id: clientId, phone: json.client?.phone_number || json.kyc.phone };
+    }
+  } catch (err) {
+    console.warn('Direct fetch failed, fallback to cache:', err);
+  }
+
+  if (!record) {
+    alert('Client KYC record not found.');
+    return;
+  }
+
+  ACTIVE_INSPECT_KYC = record;
+
+  const status = (record.status || record.kyc_status || 'UNSUBMITTED').toUpperCase();
+  if (DOM.inspectKycStatusPill) {
+    DOM.inspectKycStatusPill.textContent = status;
+    DOM.inspectKycStatusPill.className = status === 'VERIFIED'
+      ? 'px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+      : status === 'REJECTED'
+      ? 'px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-rose-500/20 text-rose-300 border border-rose-500/30'
+      : 'px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30';
+  }
+
+  // Documents
+  if (DOM.inspectNidFrontImg) DOM.inspectNidFrontImg.src = record.nid_front_url || '';
+  if (DOM.inspectNidFrontLink) DOM.inspectNidFrontLink.href = record.nid_front_url || '#';
+  if (DOM.inspectNidFrontStatus) {
+    DOM.inspectNidFrontStatus.textContent = record.nid_front_url ? 'UPLOADED' : 'MISSING';
+    DOM.inspectNidFrontStatus.className = record.nid_front_url ? 'text-[10px] font-mono text-emerald-400 font-bold' : 'text-[10px] font-mono text-rose-400';
+  }
+
+  if (DOM.inspectNidBackImg) DOM.inspectNidBackImg.src = record.nid_back_url || '';
+  if (DOM.inspectNidBackLink) DOM.inspectNidBackLink.href = record.nid_back_url || '#';
+  if (DOM.inspectNidBackStatus) {
+    DOM.inspectNidBackStatus.textContent = record.nid_back_url ? 'UPLOADED' : 'MISSING';
+    DOM.inspectNidBackStatus.className = record.nid_back_url ? 'text-[10px] font-mono text-emerald-400 font-bold' : 'text-[10px] font-mono text-rose-400';
+  }
+
+  if (DOM.inspectSelfieImg) DOM.inspectSelfieImg.src = record.live_selfie_url || '';
+  if (DOM.inspectSelfieLink) DOM.inspectSelfieLink.href = record.live_selfie_url || '#';
+
+  // Credentials
+  if (DOM.inspectPhone) DOM.inspectPhone.innerHTML = `<i class="fas fa-lock text-[10px] mr-1 text-slate-500"></i> ${record.phone || '—'}`;
+  if (DOM.inspectFullName) DOM.inspectFullName.textContent = record.full_name || record.name || '—';
+  if (DOM.inspectDob) DOM.inspectDob.textContent = record.dob || '—';
+  if (DOM.inspectNidNumber) DOM.inspectNidNumber.textContent = record.nid_number || '—';
+  if (DOM.inspectEmail) {
+    DOM.inspectEmail.innerHTML = `${record.email || '—'} ${record.email_verified ? '<span class="text-emerald-400 font-bold">(Verified ✅)</span>' : '<span class="text-amber-400 font-bold">(Unverified)</span>'}`;
+  }
+  if (DOM.inspectSubmittedAt) {
+    DOM.inspectSubmittedAt.textContent = record.submitted_at ? new Date(record.submitted_at).toLocaleString() : '—';
+  }
+  if (DOM.inspectRejectReasonInput) {
+    DOM.inspectRejectReasonInput.value = record.rejection_reason || '';
+  }
+  if (DOM.inspectFeedback) {
+    DOM.inspectFeedback.className = 'hidden text-xs font-bold p-2.5 rounded-xl';
+    DOM.inspectFeedback.textContent = '';
+  }
+
+  if (DOM.kycInspectModal) {
+    DOM.kycInspectModal.classList.remove('hidden');
+  }
+};
+
+async function submitKycDecision(decision, reason) {
+  if (!ACTIVE_INSPECT_KYC) return;
+  const clientId = ACTIVE_INSPECT_KYC.client_id;
+  if (!clientId) return;
+
+  if (decision === 'REJECTED' && (!reason || !reason.trim())) {
+    if (DOM.inspectFeedback) {
+      DOM.inspectFeedback.className = 'text-xs font-bold p-2.5 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/30 block';
+      DOM.inspectFeedback.textContent = 'Please provide a rejection reason so the client knows what to fix.';
+    }
+    DOM.inspectRejectReasonInput?.focus();
+    return;
+  }
+
+  const approveBtn = DOM.approveKycBtn;
+  const rejectBtn = DOM.rejectKycBtn;
+  const feedback = DOM.inspectFeedback;
+
+  if (approveBtn) approveBtn.disabled = true;
+  if (rejectBtn) rejectBtn.disabled = true;
+  if (feedback) {
+    feedback.className = 'text-xs font-bold p-2.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30 block';
+    feedback.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i> Updating KYC decision...';
+  }
+
+  try {
+    const res = await fetch(`/api/admin/kyc/${clientId}/decision`, {
+      method: 'POST',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision, reason: reason || '' })
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    if (feedback) {
+      feedback.className = 'text-xs font-bold p-2.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 block';
+      feedback.textContent = `✅ Success: KYC ${decision === 'VERIFIED' ? 'Approved & Loans Unlocked' : 'Rejected'}`;
+    }
+
+    await fetchKycList();
+    await fetchClients();
+
+    setTimeout(() => {
+      DOM.kycInspectModal?.classList.add('hidden');
+    }, 1200);
+  } catch (err) {
+    if (feedback) {
+      feedback.className = 'text-xs font-bold p-2.5 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/30 block';
+      feedback.textContent = `Error: ${err.message}`;
+    }
+  } finally {
+    if (approveBtn) approveBtn.disabled = false;
+    if (rejectBtn) rejectBtn.disabled = false;
+  }
+}
+
 // ─── Setup Event Listeners ────────────────────────────────────────────────────
 function setupEvents() {
   DOM.adminKeyInput.addEventListener('change', () => {
@@ -645,6 +925,7 @@ function setupEvents() {
     fetchClients();
     fetchHistoricalLedgers();
     fetchMasterSpreadsheet();
+    fetchKycList();
   });
 
   DOM.closeModalBtn.addEventListener('click', () => {
@@ -1358,6 +1639,49 @@ function setupEvents() {
       }
     });
   }
+
+  // ─── KYC Identity Verification Event Listeners ─────────────────────────────
+  if (DOM.refreshKycBtn) {
+    DOM.refreshKycBtn.addEventListener('click', () => {
+      fetchKycList();
+    });
+  }
+
+  if (DOM.closeKycInspectModalBtn) {
+    DOM.closeKycInspectModalBtn.addEventListener('click', () => {
+      DOM.kycInspectModal?.classList.add('hidden');
+    });
+  }
+
+  if (DOM.kycInspectModal) {
+    DOM.kycInspectModal.addEventListener('click', (e) => {
+      if (e.target === DOM.kycInspectModal) {
+        DOM.kycInspectModal.classList.add('hidden');
+      }
+    });
+  }
+
+  if (DOM.approveKycBtn) {
+    DOM.approveKycBtn.addEventListener('click', () => {
+      submitKycDecision('VERIFIED', 'Verified by Executive Compliance');
+    });
+  }
+
+  if (DOM.rejectKycBtn) {
+    DOM.rejectKycBtn.addEventListener('click', () => {
+      const reason = DOM.inspectRejectReasonInput ? DOM.inspectRejectReasonInput.value.trim() : '';
+      submitKycDecision('REJECTED', reason);
+    });
+  }
+
+  document.querySelectorAll('.kyc-preset-reason').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (DOM.inspectRejectReasonInput) {
+        DOM.inspectRejectReasonInput.value = btn.dataset.reason || '';
+        DOM.inspectRejectReasonInput.focus();
+      }
+    });
+  });
 }
 
 document.addEventListener('DOMContentLoaded', initAdmin);

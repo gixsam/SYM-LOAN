@@ -93,12 +93,37 @@ const uploadBrandLogo = multer({
   },
 });
 
+// ─── 4. KYC Documents Storage (NID Front/Back & Live Selfie) ──────────────────
+const KYC_DIR = path.join(__dirname, '../../public/uploads/kyc');
+if (!fs.existsSync(KYC_DIR)) {
+  fs.mkdirSync(KYC_DIR, { recursive: true });
+}
+
+const kycStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, KYC_DIR),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+    const field = file.fieldname || 'doc';
+    const clientId = (req.body?.client_id || req.params?.clientId || 'client').slice(0, 8);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e4);
+    cb(null, `kyc-${field}-${clientId}-${uniqueSuffix}${ext}`);
+  },
+});
+
+const uploadKycDocs = multer({
+  storage: kycStorage,
+  limits: { fileSize: 15 * 1024 * 1024 }, // 15MB max per photo
+  fileFilter: imageFilter,
+});
+
 module.exports = {
   uploadReceipt,
   uploadAvatar,
   uploadBrandLogo,
+  uploadKycDocs,
   RECEIPTS_DIR,
   AVATARS_DIR,
   BRANDING_DIR,
+  KYC_DIR,
   UPLOADS_DIR: RECEIPTS_DIR,
 };

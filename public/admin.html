@@ -88,6 +88,11 @@
           <i class="fas fa-user-cog text-indigo-400 w-5"></i>
           <span>Client Limits Override</span>
         </a>
+        <a href="#kycReviewSection" class="drawer-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition">
+          <i class="fas fa-id-card text-amber-400 w-5"></i>
+          <span>KYC Review & Match Desk</span>
+          <span id="kycPendingBadge" class="ml-auto px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">0</span>
+        </a>
         <a href="#loanInboxSection" class="drawer-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition">
           <i class="fas fa-clipboard-check text-emerald-400 w-5"></i>
           <span>Loan Review & Payout</span>
@@ -434,6 +439,50 @@
             </button>
           </form>
         </div>
+      </div>
+    </div>
+
+    <!-- ─── KYC IDENTITY VERIFICATION & BIOMETRIC MATCH DESK ─────────────── -->
+    <div id="kycReviewSection" class="glass-card p-6 border-amber-500/30 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-black font-black text-sm shadow">
+            <i class="fas fa-id-card"></i>
+          </div>
+          <div>
+            <h2 class="text-base font-extrabold text-white flex items-center">
+              KYC Identity Review & Biometric Match Desk
+              <span id="kycPendingCounterBadge" class="ml-2 text-[10px] font-mono bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">0 PENDING</span>
+            </h2>
+            <p class="text-[11px] text-slate-400">Side-by-side inspection of National ID Front, Back, and real-time Live Selfie before loan authorization</p>
+          </div>
+        </div>
+        <button id="refreshKycBtn" class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition flex items-center self-start sm:self-auto cursor-pointer">
+          <i class="fas fa-sync-alt mr-1.5"></i> Refresh KYC List
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="border-b border-white/10 text-[11px] font-mono text-slate-400 uppercase">
+              <th class="py-2.5 px-4">Client / Phone</th>
+              <th class="py-2.5 px-4">Extracted Name & DOB</th>
+              <th class="py-2.5 px-4">NID Card Number</th>
+              <th class="py-2.5 px-4">Email (Verified)</th>
+              <th class="py-2.5 px-4">Live Biometric Selfie</th>
+              <th class="py-2.5 px-4">KYC Status</th>
+              <th class="py-2.5 px-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="kycTableBody">
+            <tr>
+              <td colspan="7" class="p-6 text-center text-slate-500 text-xs">
+                <i class="fas fa-spinner fa-spin mr-2"></i> Loading KYC submissions...
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -951,6 +1000,136 @@
           </div>
           <button type="button" id="verifyEmailOtpBtn" class="btn-emerald w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer">
             <i class="fas fa-lock-open mr-2"></i> Verify & Authenticate
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── KYC SPLIT-SCREEN INSPECTION & BIOMETRIC MATCH MODAL ──────────────── -->
+  <div id="kycInspectModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 hidden overflow-y-auto">
+    <div class="max-w-4xl w-full glass-card p-6 space-y-5 relative border-amber-500/40 my-8 shadow-2xl">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between border-b border-white/10 pb-4">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-black font-black text-lg shadow">
+            <i class="fas fa-id-card"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h3 class="text-base font-extrabold text-white">KYC Biometric Inspection Desk</h3>
+              <span id="inspectKycStatusPill" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">PENDING</span>
+            </div>
+            <p class="text-xs text-slate-400">Match NID Front, Back, and Live Biometric Selfie against verified details</p>
+          </div>
+        </div>
+        <button id="closeKycInspectModalBtn" class="text-slate-400 hover:text-white text-xl p-1 cursor-pointer">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- 3-Column Document Inspection Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- 1. NID Front -->
+        <div class="p-3.5 rounded-xl bg-black/60 border border-white/10 space-y-2 text-center">
+          <div class="flex items-center justify-between text-xs font-bold text-slate-300">
+            <span class="flex items-center"><i class="fas fa-id-badge text-amber-400 mr-1.5"></i> NID Front</span>
+            <span id="inspectNidFrontStatus" class="text-[10px] font-mono text-slate-400">STATUS</span>
+          </div>
+          <div class="h-44 rounded-lg bg-black flex items-center justify-center overflow-hidden border border-slate-800 relative group">
+            <img id="inspectNidFrontImg" src="" alt="NID Front" class="max-h-full max-w-full object-contain">
+            <a id="inspectNidFrontLink" href="#" target="_blank" class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition">
+              <i class="fas fa-search-plus mr-1.5"></i> High-Res Zoom
+            </a>
+          </div>
+        </div>
+
+        <!-- 2. NID Back -->
+        <div class="p-3.5 rounded-xl bg-black/60 border border-white/10 space-y-2 text-center">
+          <div class="flex items-center justify-between text-xs font-bold text-slate-300">
+            <span class="flex items-center"><i class="fas fa-id-card-alt text-amber-400 mr-1.5"></i> NID Back</span>
+            <span id="inspectNidBackStatus" class="text-[10px] font-mono text-slate-400">STATUS</span>
+          </div>
+          <div class="h-44 rounded-lg bg-black flex items-center justify-center overflow-hidden border border-slate-800 relative group">
+            <img id="inspectNidBackImg" src="" alt="NID Back" class="max-h-full max-w-full object-contain">
+            <a id="inspectNidBackLink" href="#" target="_blank" class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition">
+              <i class="fas fa-search-plus mr-1.5"></i> High-Res Zoom
+            </a>
+          </div>
+        </div>
+
+        <!-- 3. Biometric Live Camera Selfie -->
+        <div class="p-3.5 rounded-xl bg-black/60 border border-emerald-500/30 space-y-2 text-center">
+          <div class="flex items-center justify-between text-xs font-bold text-emerald-300">
+            <span class="flex items-center"><i class="fas fa-camera text-emerald-400 mr-1.5"></i> Live Selfie</span>
+            <span class="text-[10px] font-mono bg-emerald-500/20 text-emerald-400 px-1.5 py-0.2 rounded border border-emerald-500/30">IMMUTABLE</span>
+          </div>
+          <div class="h-44 rounded-lg bg-black flex items-center justify-center overflow-hidden border border-slate-800 relative group">
+            <img id="inspectSelfieImg" src="" alt="Live Selfie" class="max-h-full max-w-full object-contain">
+            <a id="inspectSelfieLink" href="#" target="_blank" class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition">
+              <i class="fas fa-search-plus mr-1.5"></i> High-Res Zoom
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Extracted Client Credentials Panel -->
+      <div class="p-4 rounded-xl bg-black/50 border border-white/10 space-y-3">
+        <h4 class="text-xs font-black uppercase text-amber-400 tracking-wider flex items-center">
+          <i class="fas fa-user-check mr-2"></i> Client Extracted Identity Data
+        </h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+          <div>
+            <span class="text-[10px] font-bold text-slate-400 uppercase block">Registered Phone:</span>
+            <span id="inspectPhone" class="font-mono font-bold text-emerald-400 text-sm flex items-center mt-0.5">
+              <i class="fas fa-lock text-[10px] mr-1 text-slate-500"></i> —
+            </span>
+          </div>
+          <div>
+            <span class="text-[10px] font-bold text-slate-400 uppercase block">Full Name (English):</span>
+            <span id="inspectFullName" class="font-bold text-white text-sm block mt-0.5">—</span>
+          </div>
+          <div>
+            <span class="text-[10px] font-bold text-slate-400 uppercase block">Date of Birth (DOB):</span>
+            <span id="inspectDob" class="font-bold text-slate-200 text-sm block mt-0.5">—</span>
+          </div>
+          <div>
+            <span class="text-[10px] font-bold text-slate-400 uppercase block">National ID (NID):</span>
+            <span id="inspectNidNumber" class="font-mono font-bold text-amber-400 text-sm block mt-0.5">—</span>
+          </div>
+          <div>
+            <span class="text-[10px] font-bold text-slate-400 uppercase block">Verified Email:</span>
+            <span id="inspectEmail" class="font-mono font-semibold text-slate-200 text-xs block mt-0.5 truncate">—</span>
+          </div>
+          <div>
+            <span class="text-[10px] font-bold text-slate-400 uppercase block">Submission Date:</span>
+            <span id="inspectSubmittedAt" class="text-slate-300 text-xs block mt-0.5">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Compliance Decision Desk -->
+      <div class="space-y-3 pt-2 border-t border-white/10">
+        <div>
+          <label class="text-xs font-bold text-slate-300 block mb-1">Rejection Reason / Compliance Notes (Required if rejecting):</label>
+          <div class="flex items-center space-x-2 mb-2 flex-wrap gap-y-1.5 text-[10px]">
+            <span class="text-slate-500 font-bold">Quick Presets:</span>
+            <button type="button" class="kyc-preset-reason px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 cursor-pointer" data-reason="NID photo is blurry or unreadable. Please re-upload clearer photos.">Blurry NID</button>
+            <button type="button" class="kyc-preset-reason px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 cursor-pointer" data-reason="Live selfie does not match photo on National ID card.">Selfie Mismatch</button>
+            <button type="button" class="kyc-preset-reason px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 cursor-pointer" data-reason="NID number or DOB digits do not match card document.">Data Mismatch</button>
+            <button type="button" class="kyc-preset-reason px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 cursor-pointer" data-reason="Both front and back sides of NID must be provided.">Incomplete Card</button>
+          </div>
+          <input type="text" id="inspectRejectReasonInput" placeholder="Enter specific feedback for client..." class="w-full bg-black/50 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400 placeholder:text-slate-600">
+        </div>
+
+        <div id="inspectFeedback" class="hidden text-xs font-bold p-2.5 rounded-xl"></div>
+
+        <div class="flex items-center space-x-3 pt-1">
+          <button type="button" id="rejectKycBtn" class="w-1/2 py-3 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 font-black text-xs uppercase tracking-wider border border-rose-500/40 flex items-center justify-center transition cursor-pointer">
+            <i class="fas fa-times-circle mr-2 text-rose-400"></i> Reject KYC
+          </button>
+          <button type="button" id="approveKycBtn" class="w-1/2 py-3 rounded-xl btn-emerald font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center cursor-pointer">
+            <i class="fas fa-check-circle mr-2"></i> Approve & Unlock Loans
           </button>
         </div>
       </div>

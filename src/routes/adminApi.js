@@ -19,6 +19,7 @@ const loanSettings     = require('../lib/loanSettings');
 const { uploadReceipt, uploadBrandLogo } = require('../lib/uploader');
 const otpManager       = require('../lib/otpManager');
 const { sendTelegramOtp } = require('../bot/index');
+const kycManager       = require('../lib/kycManager');
 
 const router = express.Router();
 
@@ -633,6 +634,80 @@ router.get('/clients/master-spreadsheet', requireAdmin, async (req, res) => {
     res.json({ success: true, count: rows.length, rows });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─── KYC Identity Verification Admin Desk ────────────────────────────────────
+
+// GET /api/admin/kyc/list — List all client KYC records
+router.get('/kyc/list', requireAdmin, async (req, res) => {
+  try {
+    const { data: clients } = await supabaseAdmin
+      .from('client_profiles')
+      .select('id, name, phone_number, email, status, strikes_count, created_at');
+
+    const enriched = (clients || []).map(c => {
+      const kyc = kycManager.getKycProfile(c.id);
+      return {
+        client_id: c.id,
+        name: kyc.full_name || c.name,
+        phone: kyc.phone || c.phone_number,
+        email: kyc.email || c.email,
+        email_verified: kyc.email_verified,
+        dob: kyc.dob,
+        nid_number: kyc.nid_number,
+        nid_front_url: kyc.nid_front_url,
+        nid_back_url: kyc.nid_back_url,
+        live_selfie_url: kyc.live_selfie_url,
+        kyc_status: kyc.status || 'UNSUBMITTED',
+        locked: kyc.locked,
+        submitted_at: kyc.submitted_at,
+        verified_at: kyc.verified_at,
+        rejection_reason: kyc.rejection_reason,
+        account_status: c.status,
+        strikes: c.strikes_count,
+        joined_at: c.created_at,
+      };
+    });
+
+    res.json({ success: true, count: enriched.length, data: enriched, profiles: enriched });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/admin/kyc/:clientId — Detailed inspection view
+router.get('/kyc/:clientId', requireAdmin, async (req, res) => {
+  const { clientId } = req.params;
+  const kyc = kycManager.getKycProfile(clientId);
+
+  const { data: client } = await supabaseAdmin
+    .from('client_profiles')
+    .select('*')
+    .eq('id', clientId)
+    .maybeSingle();
+
+  if (client && (!kyc.phone || kyc.phone !== client.phone_number)) {
+    kyc.phone = client.phone_number;
+  }
+
+  res.json({ success: true, kyc, client });
+});
+
+// POST /api/admin/kyc/:clientId/decision — Approve or Reject KYC
+router.post('/kyc/:clientId/decision', requireAdmin, async (req, res) => {
+  const { clientId } = req.params;
+  const { decision, reason } = req.body;
+
+  try {
+    const updated = kycManager.adminReviewKyc(clientId, decision, reason);
+    res.json({
+      success: true,
+      message: `KYC for client has been set to ${updated.status}.`,
+      kyc: updated,
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
   }
 });
 

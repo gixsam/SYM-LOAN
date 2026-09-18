@@ -20,12 +20,83 @@
 </head>
 <body class="bg-[#070b14] text-slate-100 antialiased selection:bg-amber-500 selection:text-black">
 
+  <!-- ─── SLIDE-OUT CLIENT NAVIGATION DRAWER ────────────────────────────────── -->
+  <div id="clientDrawerBackdrop" class="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm hidden transition-opacity"></div>
+  <aside id="clientDrawer" class="fixed top-0 left-0 bottom-0 z-50 w-72 bg-[#070b14]/98 border-r border-amber-500/20 backdrop-blur-2xl p-6 flex flex-col justify-between transform -translate-x-full transition-transform duration-300">
+    <div class="space-y-6">
+      <div class="flex items-center justify-between border-b border-white/10 pb-4">
+        <div class="flex items-center space-x-2.5">
+          <img class="platform-logo-img h-8 w-auto rounded-lg object-contain shadow-md border border-white/10 p-0.5 bg-black/40" src="/images/logo.png" alt="SYM EMPIRE">
+          <div>
+            <div class="text-[10px] font-black tracking-widest text-amber-400">SYM EMPIRE (S.E.P.)</div>
+            <div class="text-xs font-bold text-white">Client Portal Menu</div>
+          </div>
+        </div>
+        <button id="closeClientDrawerBtn" class="text-slate-400 hover:text-white text-lg p-1 cursor-pointer">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Drawer Client Mini Card -->
+      <div id="drawerProfileCard" class="p-3.5 rounded-xl bg-black/50 border border-white/10 flex items-center space-x-3 cursor-pointer hover:border-amber-400/50 transition">
+        <div class="w-11 h-11 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center text-black font-black text-xs border border-amber-400/40 shrink-0">
+          <span id="drawerAvatarText">SYM</span>
+        </div>
+        <div class="overflow-hidden">
+          <div id="drawerClientName" class="text-xs font-extrabold text-white truncate">Connecting...</div>
+          <div id="drawerClientPhone" class="text-[10px] font-mono text-emerald-400 truncate">+880...</div>
+          <div class="mt-1">
+            <span id="drawerKycBadge" class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">KYC: UNVERIFIED</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Drawer Navigation Links -->
+      <nav class="space-y-1.5 text-xs font-bold">
+        <button id="drawerNavLoans" class="w-full text-left flex items-center space-x-3 px-3.5 py-3 rounded-xl text-slate-200 hover:text-white hover:bg-white/5 transition cursor-pointer">
+          <i class="fas fa-hand-holding-usd text-amber-400 w-5"></i>
+          <span>Loans & Repayment</span>
+        </button>
+
+        <button id="drawerNavKyc" class="w-full text-left flex items-center space-x-3 px-3.5 py-3 rounded-xl text-slate-200 hover:text-white hover:bg-white/5 transition cursor-pointer">
+          <i class="fas fa-id-card text-emerald-400 w-5"></i>
+          <span>Settings & KYC Verification</span>
+          <span id="drawerNavKycDot" class="ml-auto w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+        </button>
+
+        <a href="https://t.me/money_loan_bot" target="_blank" class="flex items-center space-x-3 px-3.5 py-3 rounded-xl text-slate-200 hover:text-white hover:bg-white/5 transition">
+          <i class="fab fa-telegram-plane text-blue-400 w-5"></i>
+          <span>Telegram (@money_loan_bot)</span>
+        </a>
+
+        <a href="/admin" class="flex items-center space-x-3 px-3.5 py-3 rounded-xl text-slate-200 hover:text-white hover:bg-white/5 transition">
+          <i class="fas fa-shield-alt text-rose-400 w-5"></i>
+          <span>Admin Command Center</span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- Drawer Footer -->
+    <div class="border-t border-white/10 pt-4 space-y-2.5">
+      <button id="drawerLogoutBtn" class="w-full py-2.5 px-3 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 font-bold text-xs flex items-center justify-center transition cursor-pointer">
+        <i class="fas fa-sign-out-alt mr-2"></i> Switch Client / Logout
+      </button>
+      <div class="text-[10px] text-center text-slate-500">
+        SYM EMPIRE PLATFORM (S.E.P.) • v2.6
+      </div>
+    </div>
+  </aside>
+
   <div class="mobile-wrapper flex flex-col justify-between border-x border-slate-800/60 bg-[#070b14]">
 
     <!-- ─── HEADER / BRAND BANNER ───────────────────────────────────────────── -->
     <header class="sticky top-0 z-30 bg-[#070b14]/90 backdrop-blur-xl border-b border-white/10 px-5 py-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-3">
+          <!-- Mobile Drawer Hamburger Icon -->
+          <button id="clientDrawerBtn" title="Open Navigation Menu" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/10 transition cursor-pointer">
+            <i class="fas fa-bars text-sm"></i>
+          </button>
           <img class="platform-logo-img h-10 w-auto rounded-xl object-contain shadow-md border border-white/10 p-0.5 bg-black/40" src="/images/logo.png" alt="SYM EMPIRE">
           <div>
             <div class="flex items-center space-x-1.5">
@@ -41,22 +112,29 @@
           </div>
         </div>
 
-        <button id="logoutBtn" title="Switch Client / Login" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/10 transition">
-          <i class="fas fa-user-circle text-lg"></i>
-        </button>
+        <div class="flex items-center space-x-2">
+          <!-- Profile & KYC Settings Icon -->
+          <button id="headerKycBtn" title="Profile & KYC Settings" class="w-9 h-9 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 transition cursor-pointer relative">
+            <i class="fas fa-user-check text-sm"></i>
+            <span id="headerKycDot" class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-400 rounded-full animate-ping"></span>
+          </button>
+          <button id="logoutBtn" title="Switch Client / Login" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/10 transition cursor-pointer">
+            <i class="fas fa-user-circle text-lg"></i>
+          </button>
+        </div>
       </div>
 
       <!-- ─── CLIENT PROFILE BADGE ─────────────────────────────────────────── -->
       <div id="clientBadge" class="mt-3.5 glass-card-emerald p-3.5 flex items-center justify-between">
         <div class="flex items-center space-x-3">
-          <!-- Clickable VIP Avatar -->
-          <button id="avatarTriggerBtn" title="Tap to change profile picture" class="relative group cursor-pointer focus:outline-none">
+          <!-- Clickable VIP Avatar (Leads to KYC / Profile) -->
+          <button id="avatarTriggerBtn" title="Tap to view KYC Profile & Settings" class="relative group cursor-pointer focus:outline-none">
             <div class="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-800 flex items-center justify-center text-white font-black text-sm border-2 border-emerald-400/50 shadow-inner group-hover:border-amber-400 transition">
               <img id="clientAvatarImg" src="" alt="Avatar" class="w-full h-full object-cover hidden">
               <span id="clientAvatarText">SYM</span>
             </div>
             <div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-500 text-black flex items-center justify-center text-[10px] font-black border-2 border-[#070b14] shadow group-hover:scale-110 transition">
-              <i class="fas fa-camera"></i>
+              <i class="fas fa-id-badge"></i>
             </div>
           </button>
           <div>
@@ -87,132 +165,479 @@
       </div>
     </header>
 
+    <!-- ─── PORTAL VIEW SWITCHER TABS ────────────────────────────────────────── -->
+    <div class="px-5 pt-3">
+      <div class="grid grid-cols-2 gap-2 p-1 bg-black/40 rounded-2xl border border-white/10">
+        <button id="tabBtnLoans" class="portal-tab-btn active py-2.5 px-3 rounded-xl text-xs font-black tracking-wide uppercase flex items-center justify-center space-x-2 cursor-pointer">
+          <i class="fas fa-coins text-amber-400"></i>
+          <span>Loans & Ledger</span>
+        </button>
+        <button id="tabBtnKyc" class="portal-tab-btn py-2.5 px-3 rounded-xl text-xs font-black tracking-wide uppercase flex items-center justify-center space-x-2 cursor-pointer">
+          <i class="fas fa-id-card text-emerald-400"></i>
+          <span>Profile & KYC</span>
+          <span id="tabKycPill" class="ml-1 px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">UNVERIFIED</span>
+        </button>
+      </div>
+    </div>
+
     <!-- ─── MAIN CONTENT ────────────────────────────────────────────────────── -->
     <main class="flex-1 px-5 py-4 space-y-6">
 
-      <!-- ─── LOAN APPLICATION FORM ────────────────────────────────────────── -->
-      <section class="glass-card-gold p-5 relative overflow-hidden">
-        <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+      <!-- ===================================================================== -->
+      <!-- VIEW A: LOAN APPLICATION & REPAYMENT LEDGER                           -->
+      <!-- ===================================================================== -->
+      <div id="viewLoans" class="space-y-6">
 
-        <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center space-x-2">
-            <div class="w-7 h-7 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400">
-              <i class="fas fa-hand-holding-usd text-xs"></i>
+        <!-- KYC Required Gatekeeper Banner -->
+        <div id="kycRequiredBanner" class="hidden p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 to-yellow-600/10 border border-amber-500/40 text-amber-300 text-xs space-y-2.5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2 font-black uppercase tracking-wide text-amber-400 text-sm">
+              <i class="fas fa-exclamation-triangle text-base"></i>
+              <span>Identity Verification Required</span>
             </div>
-            <h2 class="text-sm font-black uppercase tracking-wider text-white">Apply for Loan</h2>
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/30 text-amber-300 border border-amber-500/40">PRE-LOAN GATE</span>
           </div>
-          <span class="text-[10px] font-mono text-amber-300/80 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">ADMIN GOVERNED</span>
+          <p class="text-[11px] text-slate-300 leading-relaxed">
+            SYM EMPIRE PLATFORM (S.E.P.) requires mandatory KYC verification (NID Front/Back, Email OTP, and Live Photo) before any money requests can be submitted or approved.
+          </p>
+          <button type="button" id="bannerGoToKycBtn" class="btn-gold w-full py-2.5 px-4 rounded-xl font-black text-xs uppercase tracking-wide flex items-center justify-center shadow cursor-pointer">
+            <i class="fas fa-id-card mr-2"></i> Complete KYC Verification Now
+          </button>
         </div>
 
-        <!-- Admin Configuration Window Notice -->
-        <div id="durationNotice" class="text-xs bg-black/40 border border-amber-500/30 p-2.5 rounded-xl text-slate-300 mb-4 flex items-center">
-          <i class="fas fa-spinner fa-spin text-amber-400 mr-2"></i> Loading admin boundaries...
-        </div>
+        <!-- ─── LOAN APPLICATION FORM ────────────────────────────────────────── -->
+        <section class="glass-card-gold p-5 relative overflow-hidden">
+          <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
 
-        <form id="loanForm" class="space-y-4">
-          <!-- Amount Slider & Input -->
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <label class="text-xs font-bold text-slate-300 uppercase tracking-wide">Request Amount (BDT)</label>
-              <div class="flex items-center space-x-1">
-                <span class="text-lg font-black text-amber-400">৳</span>
-                <input type="number" id="amountInput" class="w-28 bg-black/50 border border-amber-500/40 rounded-lg px-2 py-1 text-right text-base font-black text-amber-400 focus:outline-none focus:border-amber-400 font-mono" value="5000">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-2">
+              <div class="w-7 h-7 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400">
+                <i class="fas fa-hand-holding-usd text-xs"></i>
+              </div>
+              <h2 class="text-sm font-black uppercase tracking-wider text-white">Apply for Loan</h2>
+            </div>
+            <span class="text-[10px] font-mono text-amber-300/80 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">ADMIN GOVERNED</span>
+          </div>
+
+          <!-- Admin Configuration Window Notice -->
+          <div id="durationNotice" class="text-xs bg-black/40 border border-amber-500/30 p-2.5 rounded-xl text-slate-300 mb-4 flex items-center">
+            <i class="fas fa-spinner fa-spin text-amber-400 mr-2"></i> Loading admin boundaries...
+          </div>
+
+          <form id="loanForm" class="space-y-4">
+            <!-- Amount Slider & Input -->
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="text-xs font-bold text-slate-300 uppercase tracking-wide">Request Amount (BDT)</label>
+                <div class="flex items-center space-x-1">
+                  <span class="text-lg font-black text-amber-400">৳</span>
+                  <input type="number" id="amountInput" class="w-28 bg-black/50 border border-amber-500/40 rounded-lg px-2 py-1 text-right text-base font-black text-amber-400 focus:outline-none focus:border-amber-400 font-mono" value="5000">
+                </div>
+              </div>
+
+              <!-- Slider -->
+              <input type="range" id="amountSlider" min="500" max="25000" step="500" value="5000" class="w-full">
+
+              <div class="flex justify-between text-[10px] font-mono text-slate-400 mt-1">
+                <span id="minAmountLabel">৳500</span>
+                <span class="text-slate-400">Move slider to adjust</span>
+                <span id="maxAmountLabel">৳25,000</span>
               </div>
             </div>
 
-            <!-- Slider -->
-            <input type="range" id="amountSlider" min="500" max="25000" step="500" value="5000" class="w-full">
+            <!-- Deadline Date Picker (Bounded by Admin duration) -->
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label for="deadlineDate" class="text-xs font-bold text-slate-300 uppercase tracking-wide">
+                  Repayment Deadline
+                </label>
+                <span id="durationDaysBadge" class="text-xs font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                  —
+                </span>
+              </div>
+              <div class="relative">
+                <input type="date" id="deadlineDate" required class="w-full bg-black/50 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-white focus:outline-none focus:border-amber-400 transition">
+              </div>
+              <p class="text-[10px] text-slate-400 mt-1">
+                <i class="fas fa-info-circle text-amber-400 mr-1"></i> You can only choose a deadline within the window set by the Admin.
+              </p>
+            </div>
 
-            <div class="flex justify-between text-[10px] font-mono text-slate-400 mt-1">
-              <span id="minAmountLabel">৳500</span>
-              <span class="text-slate-400">Move slider to adjust</span>
-              <span id="maxAmountLabel">৳25,000</span>
+            <!-- Note / Purpose -->
+            <div>
+              <label for="loanNote" class="text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5 block">
+                Purpose / Note (Optional)
+              </label>
+              <input type="text" id="loanNote" placeholder="e.g. Emergency medical, business inventory..." maxlength="150" class="w-full bg-black/50 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400 transition placeholder:text-slate-600">
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" id="submitBtn" class="btn-gold w-full py-3.5 rounded-xl font-black text-sm tracking-wide shadow-lg uppercase flex items-center justify-center">
+              Submit Money Request <i class="fas fa-paper-plane ml-2"></i>
+            </button>
+          </form>
+
+          <!-- Feedback Alert -->
+          <div id="formFeedback" class="hidden mt-4"></div>
+        </section>
+
+        <!-- ─── REPAYMENT TRACKER & ACTIVE LOANS ─────────────────────────────── -->
+        <section class="space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <div class="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <i class="fas fa-history text-xs"></i>
+              </div>
+              <h2 class="text-sm font-black uppercase tracking-wider text-white">Your Loan Ledger</h2>
+            </div>
+            <span id="loansCountBadge" class="text-[10px] font-mono font-bold bg-white/5 text-slate-400 px-2 py-0.5 rounded border border-white/10">0 Record(s)</span>
+          </div>
+
+          <div id="loansContainer" class="space-y-2.5">
+            <div class="p-6 text-center text-slate-500 text-sm glass-card">
+              <i class="fas fa-spinner fa-spin text-2xl text-emerald-500 mb-2 block"></i>
+              Loading ledger records...
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── TELEGRAM BOT LINK CARD ───────────────────────────────────────── -->
+        <section class="glass-card p-4 flex items-center justify-between border-slate-700/60 bg-gradient-to-r from-blue-950/40 to-slate-900/60">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white text-lg shadow-lg shadow-blue-500/30">
+              <i class="fab fa-telegram-plane"></i>
+            </div>
+            <div>
+              <h3 class="text-xs font-black text-white uppercase">Telegram Verification</h3>
+              <p class="text-[11px] text-slate-400">Verify identity or check strikes via bot</p>
+            </div>
+          </div>
+          <a href="https://t.me/money_loan_bot" target="_blank" class="px-3 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs transition shadow flex items-center">
+            Open Bot <i class="fas fa-external-link-alt ml-1 text-[10px]"></i>
+          </a>
+        </section>
+
+        <!-- ─── STRIKE SYSTEM POLICY NOTICE ──────────────────────────────────── -->
+        <section class="p-4 rounded-xl bg-rose-500/5 border border-rose-500/20 text-slate-400 text-xs space-y-1.5">
+          <div class="flex items-center text-rose-400 font-bold text-xs uppercase tracking-wide">
+            <i class="fas fa-shield-alt mr-1.5"></i> Strict 3-Strike Policy
+          </div>
+          <p class="text-[11px] leading-relaxed">
+            Loans must be repaid before <b>1:00 PM</b> on the deadline date. Every overdue day automatically logs a strike. Accumulating <b>3 strikes permanently blocks</b> your identity on SYM EMPIRE PLATFORM (S.E.P.).
+          </p>
+        </section>
+      </div>
+
+      <!-- ===================================================================== -->
+      <!-- VIEW B: PROFILE & KYC VERIFICATION DESK                               -->
+      <!-- ===================================================================== -->
+      <div id="viewKyc" class="space-y-6 hidden">
+
+        <!-- KYC Status Header Card -->
+        <section class="glass-card p-5 border-amber-500/30 space-y-3 relative overflow-hidden">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+              <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-black font-black text-base shadow">
+                <i class="fas fa-id-card"></i>
+              </div>
+              <div>
+                <h2 class="text-sm font-black text-white uppercase tracking-wider">Identity KYC Verification</h2>
+                <p class="text-[11px] text-slate-400">One-time regulatory profile and document match</p>
+              </div>
+            </div>
+            <span id="kycMainStatusBadge" class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">
+              UNSUBMITTED
+            </span>
+          </div>
+
+          <!-- Dynamic Status Callout -->
+          <div id="kycStatusAlert" class="p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-slate-300 flex items-start space-x-2.5">
+            <i class="fas fa-info-circle text-amber-400 text-sm mt-0.5 shrink-0"></i>
+            <span id="kycStatusMessage">Upload your National ID (Front & Back), confirm your email via OTP, and take a real-time live selfie to verify your identity.</span>
+          </div>
+
+          <!-- Rejection Reason Box (Visible only if REJECTED) -->
+          <div id="kycRejectionBox" class="hidden p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs space-y-1">
+            <div class="font-bold flex items-center"><i class="fas fa-times-circle mr-1.5"></i> Admin Rejection Feedback:</div>
+            <p id="kycRejectionReasonText" class="text-[11px] text-rose-200"></p>
+          </div>
+
+          <!-- Permanent Immutability Locked Notice (Visible when submitted or verified) -->
+          <div id="kycImmutabilityNotice" class="hidden p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center space-x-2">
+            <i class="fas fa-lock text-emerald-400 text-base shrink-0"></i>
+            <span class="text-[11px]"><b>Profile Strictly Immutable:</b> All credentials and biometric photos are permanently recorded and cannot be altered or retaken.</span>
+          </div>
+        </section>
+
+        <!-- STEP 1: Smart NID Scanner & Auto-Extractor -->
+        <section class="glass-card-gold p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-white/10 pb-3">
+            <div class="flex items-center space-x-2">
+              <span class="w-6 h-6 rounded-full bg-amber-500 text-black font-black text-xs flex items-center justify-center">1</span>
+              <h3 class="text-xs font-black uppercase text-white tracking-wide">Smart NID Card Upload</h3>
+            </div>
+            <span class="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">AUTO-EXTRACTOR</span>
+          </div>
+
+          <p class="text-[11px] text-slate-400">
+            Upload clear photos of both sides of your National ID card. Our smart extractor will read your details and automatically populate the form fields below.
+          </p>
+
+          <!-- Dual NID Dropzones -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- NID Front -->
+            <div class="p-4 rounded-xl bg-black/60 border border-slate-700/80 space-y-2.5 text-center relative overflow-hidden">
+              <div class="flex items-center justify-between text-[11px] font-bold text-slate-300">
+                <span class="flex items-center"><i class="fas fa-id-badge text-amber-400 mr-1.5"></i> NID Front Side</span>
+                <span id="nidFrontBadge" class="text-[10px] font-mono text-slate-500">PENDING</span>
+              </div>
+              <div id="nidFrontPreviewContainer" class="w-full h-32 rounded-lg bg-black/80 border border-dashed border-slate-700 flex flex-col items-center justify-center overflow-hidden relative">
+                <img id="nidFrontPreview" src="" alt="NID Front" class="w-full h-full object-contain hidden">
+                <div id="nidFrontPlaceholder" class="text-slate-500 text-xs flex flex-col items-center">
+                  <i class="fas fa-cloud-upload-alt text-2xl text-slate-600 mb-1"></i>
+                  <span>Front photo</span>
+                </div>
+                <!-- Scanner line simulation during upload -->
+                <div id="nidFrontScanner" class="kyc-scanner-line hidden"></div>
+              </div>
+              <input type="file" id="nidFrontInput" accept="image/*" class="w-full text-[11px] text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-amber-500 file:text-black hover:file:bg-amber-400 cursor-pointer">
+            </div>
+
+            <!-- NID Back -->
+            <div class="p-4 rounded-xl bg-black/60 border border-slate-700/80 space-y-2.5 text-center relative overflow-hidden">
+              <div class="flex items-center justify-between text-[11px] font-bold text-slate-300">
+                <span class="flex items-center"><i class="fas fa-id-card-alt text-amber-400 mr-1.5"></i> NID Back Side</span>
+                <span id="nidBackBadge" class="text-[10px] font-mono text-slate-500">PENDING</span>
+              </div>
+              <div id="nidBackPreviewContainer" class="w-full h-32 rounded-lg bg-black/80 border border-dashed border-slate-700 flex flex-col items-center justify-center overflow-hidden relative">
+                <img id="nidBackPreview" src="" alt="NID Back" class="w-full h-full object-contain hidden">
+                <div id="nidBackPlaceholder" class="text-slate-500 text-xs flex flex-col items-center">
+                  <i class="fas fa-cloud-upload-alt text-2xl text-slate-600 mb-1"></i>
+                  <span>Back photo</span>
+                </div>
+                <!-- Scanner line simulation during upload -->
+                <div id="nidBackScanner" class="kyc-scanner-line hidden"></div>
+              </div>
+              <input type="file" id="nidBackInput" accept="image/*" class="w-full text-[11px] text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-amber-500 file:text-black hover:file:bg-amber-400 cursor-pointer">
             </div>
           </div>
 
-          <!-- Deadline Date Picker (Bounded by Admin duration) -->
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <label for="deadlineDate" class="text-xs font-bold text-slate-300 uppercase tracking-wide">
-                Repayment Deadline
+          <!-- Extraction Feedback Indicator -->
+          <div id="nidExtractNotice" class="hidden p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center space-x-2">
+            <i class="fas fa-magic text-emerald-400 mr-1 animate-pulse"></i>
+            <span id="nidExtractNoticeText">Smart Extractor parsed credentials from NID photo into the boxes below.</span>
+          </div>
+        </section>
+
+        <!-- STEP 2: Extracted Credentials & In-Line Email OTP -->
+        <section class="glass-card p-5 space-y-4 border-slate-700/60">
+          <div class="flex items-center justify-between border-b border-white/10 pb-3">
+            <div class="flex items-center space-x-2">
+              <span class="w-6 h-6 rounded-full bg-emerald-500 text-black font-black text-xs flex items-center justify-center">2</span>
+              <h3 class="text-xs font-black uppercase text-white tracking-wide">Client Profile Credentials</h3>
+            </div>
+            <span class="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">OFFICIAL MATCH</span>
+          </div>
+
+          <div class="space-y-3.5">
+            <!-- 1. Telegram Mobile Number (Permanently Locked) -->
+            <div>
+              <label class="text-xs font-bold text-slate-300 uppercase tracking-wide flex items-center justify-between mb-1.5">
+                <span>Registered Mobile Number</span>
+                <span class="text-[10px] font-mono text-amber-400 flex items-center"><i class="fas fa-lock mr-1"></i> PERMANENTLY LOCKED</span>
               </label>
-              <span id="durationDaysBadge" class="text-xs font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-                —
+              <div class="flex items-center bg-black/70 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-slate-300 shadow-inner">
+                <i class="fas fa-shield-alt text-emerald-400 mr-2.5"></i>
+                <input type="text" id="kycPhone" readonly class="bg-transparent text-emerald-400 font-mono font-bold text-sm w-full focus:outline-none cursor-not-allowed select-none" value="+880...">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">TELEGRAM</span>
+              </div>
+              <p class="text-[10px] text-slate-500 mt-1">
+                <i class="fas fa-info-circle mr-1 text-slate-400"></i> The number used during Telegram mobile verification cannot be edited or modified.
+              </p>
+            </div>
+
+            <!-- 2. Full Name (English) -->
+            <div>
+              <label for="kycFullName" class="text-xs font-bold text-slate-300 uppercase tracking-wide flex items-center justify-between mb-1.5">
+                <span>Full Name (As shown on NID)</span>
+                <span id="nameExtractBadge" class="text-[10px] font-mono text-slate-500">AUTO-FILLED</span>
+              </label>
+              <input type="text" id="kycFullName" placeholder="e.g. MOHAMMED RAHMAN" class="w-full bg-black/50 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400 transition placeholder:text-slate-600">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <!-- 3. Date of Birth -->
+              <div>
+                <label for="kycDob" class="text-xs font-bold text-slate-300 uppercase tracking-wide flex items-center justify-between mb-1.5">
+                  <span>Date of Birth</span>
+                  <span id="dobExtractBadge" class="text-[10px] font-mono text-slate-500">NID OCR</span>
+                </label>
+                <input type="date" id="kycDob" class="w-full bg-black/50 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-white focus:outline-none focus:border-amber-400 transition">
+              </div>
+
+              <!-- 4. NID Number -->
+              <div>
+                <label for="kycNidNumber" class="text-xs font-bold text-slate-300 uppercase tracking-wide flex items-center justify-between mb-1.5">
+                  <span>National ID (NID) Number</span>
+                  <span id="nidNumExtractBadge" class="text-[10px] font-mono text-slate-500">NID OCR</span>
+                </label>
+                <input type="text" id="kycNidNumber" placeholder="10, 13, or 17 digit NID" maxlength="20" class="w-full bg-black/50 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold text-white focus:outline-none focus:border-amber-400 transition placeholder:text-slate-600">
+              </div>
+            </div>
+
+            <!-- 5. Email Address with In-Line [ Verify ] Button Tab -->
+            <div>
+              <label for="kycEmail" class="text-xs font-bold text-slate-300 uppercase tracking-wide flex items-center justify-between mb-1.5">
+                <span>Email Address (Requires Verification)</span>
+                <span id="emailStatusBadge" class="text-[10px] font-mono font-bold text-slate-500">UNVERIFIED</span>
+              </label>
+              <div class="flex items-stretch rounded-xl border border-slate-700 bg-black/50 overflow-hidden focus-within:border-amber-400 transition shadow-inner">
+                <input type="email" id="kycEmail" placeholder="e.g. client@example.com" class="w-full bg-transparent px-3.5 py-2.5 text-xs text-white focus:outline-none placeholder:text-slate-600">
+                <button type="button" id="sendEmailOtpBtn" class="bg-amber-500 hover:bg-amber-400 text-black font-black text-xs px-4 flex items-center transition cursor-pointer shrink-0">
+                  <i class="fas fa-paper-plane mr-1.5"></i> Verify
+                </button>
+              </div>
+
+              <!-- In-Line Email OTP Verification Drawer -->
+              <div id="emailOtpDrawer" class="hidden mt-2.5 p-3.5 rounded-xl bg-black/70 border border-amber-500/50 space-y-2.5 shadow-lg">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-slate-200 flex items-center font-bold">
+                    <i class="fas fa-envelope-open-text text-amber-400 mr-2"></i> Enter 6-Digit Email Code:
+                  </span>
+                  <span id="emailOtpTimerText" class="font-mono text-amber-400 font-bold text-[11px]">Expires in 05:00</span>
+                </div>
+
+                <div class="flex items-stretch space-x-2">
+                  <input type="text" id="emailOtpInput" maxlength="6" placeholder="123456" inputmode="numeric" class="w-36 bg-black border border-amber-500/60 rounded-xl px-3 py-2 text-center font-mono font-black text-amber-400 tracking-widest text-base focus:outline-none">
+                  <button type="button" id="confirmEmailOtpBtn" class="btn-emerald flex-1 py-2 px-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer shadow">
+                    <i class="fas fa-check-circle mr-1.5"></i> Confirm OTP
+                  </button>
+                </div>
+
+                <div class="flex items-center justify-between text-[10px] text-slate-400">
+                  <span>Check your inbox & spam folder</span>
+                  <button type="button" id="resendEmailOtpBtn" class="text-amber-400 hover:underline font-bold disabled:opacity-40" disabled>Resend Code</button>
+                </div>
+
+                <div id="emailOtpFeedback" class="hidden text-xs font-bold p-2 rounded-lg"></div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- STEP 3: Live Camera Photo (One-Click Permanent Lock) -->
+        <section class="glass-card p-5 space-y-4 border-slate-700/60">
+          <div class="flex items-center justify-between border-b border-white/10 pb-3">
+            <div class="flex items-center space-x-2">
+              <span class="w-6 h-6 rounded-full bg-purple-500 text-white font-black text-xs flex items-center justify-center">3</span>
+              <h3 class="text-xs font-black uppercase text-white tracking-wide">Live Camera Photo (Selfie)</h3>
+            </div>
+            <span class="text-[10px] font-mono text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">IMMUTABLE ONE-CLICK</span>
+          </div>
+
+          <p class="text-[11px] text-slate-400">
+            You must take a real-time live photo of your face using your device camera. Once clicked and saved, the photo <b class="text-amber-400">CANNOT be edited, retaken, or changed</b>.
+          </p>
+
+          <!-- Camera Viewfinder & Preview Canvas Box -->
+          <div class="space-y-3">
+            <div id="cameraViewfinderContainer" class="relative rounded-2xl overflow-hidden bg-black border border-slate-800 shadow-inner flex items-center justify-center min-h-[220px]">
+              <!-- Live Video Stream -->
+              <video id="kycCameraVideo" autoplay playsinline muted class="w-full h-56 object-cover camera-mirror hidden"></video>
+
+              <!-- Captured Live Image (Once taken) -->
+              <img id="kycSelfieImg" src="" alt="Live Selfie" class="w-full h-56 object-cover hidden">
+
+              <!-- Placeholder when camera is off -->
+              <div id="cameraPlaceholder" class="p-6 text-center text-slate-500 space-y-2">
+                <div class="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-xl text-slate-400">
+                  <i class="fas fa-camera"></i>
+                </div>
+                <div class="text-xs font-bold text-slate-300">Live Camera Standby</div>
+                <div class="text-[10px] text-slate-500">Tap below to activate device selfie camera</div>
+              </div>
+
+              <!-- Face Alignment Oval Guide Overlay -->
+              <div id="faceGuideOverlay" class="absolute inset-0 pointer-events-none flex items-center justify-center hidden">
+                <div class="w-36 h-48 rounded-[50%] border-2 border-dashed border-amber-400/70 shadow-[0_0_20px_rgba(245,158,11,0.3)]"></div>
+              </div>
+
+              <!-- Scanner line simulation during capture -->
+              <div id="selfieScannerLine" class="kyc-scanner-line hidden"></div>
+            </div>
+
+            <!-- Hidden Canvas for frame snapshot -->
+            <canvas id="kycCanvas" class="hidden"></canvas>
+
+            <!-- Fallback native file capture for environments where WebRTC is restricted -->
+            <input type="file" id="kycSelfieFallbackInput" accept="image/*" capture="user" class="hidden">
+
+            <!-- Camera Action Controls -->
+            <div id="cameraActionControls" class="flex flex-col sm:flex-row gap-2">
+              <button type="button" id="startCameraBtn" class="flex-1 py-3 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-black text-xs uppercase tracking-wider transition border border-white/10 flex items-center justify-center cursor-pointer">
+                <i class="fas fa-video mr-2 text-amber-400"></i> Turn On Camera
+              </button>
+
+              <button type="button" id="captureSelfieBtn" class="flex-1 py-3 px-4 rounded-xl btn-emerald font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center cursor-pointer hidden">
+                <i class="fas fa-camera-retro mr-2"></i> Take Live Photo & Save
+              </button>
+            </div>
+
+            <!-- Permanent Locked Indicator (Visible once selfie is recorded) -->
+            <div id="selfiePermanentLockedNotice" class="hidden p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center space-x-2.5">
+              <i class="fas fa-lock text-emerald-400 text-lg shrink-0"></i>
+              <span class="text-[11px] leading-relaxed">
+                <b>Live Selfie Recorded & Permanently Locked:</b> This real-time biometric capture has been cryptographically signed and stored. It cannot be altered or retaken.
               </span>
             </div>
-            <div class="relative">
-              <input type="date" id="deadlineDate" required class="w-full bg-black/50 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-white focus:outline-none focus:border-amber-400 transition">
+          </div>
+        </section>
+
+        <!-- STEP 4: Final KYC Review & Submission -->
+        <section class="glass-card-gold p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-white/10 pb-3">
+            <div class="flex items-center space-x-2">
+              <span class="w-6 h-6 rounded-full bg-amber-500 text-black font-black text-xs flex items-center justify-center">4</span>
+              <h3 class="text-xs font-black uppercase text-white tracking-wide">Submit Profile for Approval</h3>
             </div>
-            <p class="text-[10px] text-slate-400 mt-1">
-              <i class="fas fa-info-circle text-amber-400 mr-1"></i> You can only choose a deadline within the window set by the Admin.
-            </p>
+            <span class="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">FINAL STEP</span>
           </div>
 
-          <!-- Note / Purpose -->
-          <div>
-            <label for="loanNote" class="text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5 block">
-              Purpose / Note (Optional)
-            </label>
-            <input type="text" id="loanNote" placeholder="e.g. Emergency medical, business inventory..." maxlength="150" class="w-full bg-black/50 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400 transition placeholder:text-slate-600">
+          <!-- Requirements Checklist -->
+          <div class="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-2 text-xs">
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Pre-Submission Verification Checklist:</div>
+            <div id="chkNidFront" class="flex items-center space-x-2 text-slate-400">
+              <i class="fas fa-circle text-[9px] text-slate-600"></i>
+              <span>National ID Front photo uploaded</span>
+            </div>
+            <div id="chkNidBack" class="flex items-center space-x-2 text-slate-400">
+              <i class="fas fa-circle text-[9px] text-slate-600"></i>
+              <span>National ID Back photo uploaded</span>
+            </div>
+            <div id="chkEmailVerified" class="flex items-center space-x-2 text-slate-400">
+              <i class="fas fa-circle text-[9px] text-slate-600"></i>
+              <span>Email address verified via 6-digit OTP</span>
+            </div>
+            <div id="chkLiveSelfie" class="flex items-center space-x-2 text-slate-400">
+              <i class="fas fa-circle text-[9px] text-slate-600"></i>
+              <span>Permanent live camera photo recorded</span>
+            </div>
           </div>
 
           <!-- Submit Button -->
-          <button type="submit" id="submitBtn" class="btn-gold w-full py-3.5 rounded-xl font-black text-sm tracking-wide shadow-lg uppercase flex items-center justify-center">
-            Submit Money Request <i class="fas fa-paper-plane ml-2"></i>
+          <button type="button" id="submitKycBtn" class="btn-gold w-full py-4 rounded-xl font-black text-sm tracking-wide shadow-xl uppercase flex items-center justify-center cursor-pointer">
+            <i class="fas fa-shield-alt mr-2 text-base"></i> Submit Profile for KYC Approval
           </button>
-        </form>
 
-        <!-- Feedback Alert -->
-        <div id="formFeedback" class="hidden mt-4"></div>
-      </section>
+          <!-- Feedback notification -->
+          <div id="kycSubmitFeedback" class="hidden text-xs font-bold p-3 rounded-xl"></div>
+        </section>
 
-      <!-- ─── REPAYMENT TRACKER & ACTIVE LOANS ─────────────────────────────── -->
-      <section class="space-y-3">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-2">
-            <div class="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-              <i class="fas fa-history text-xs"></i>
-            </div>
-            <h2 class="text-sm font-black uppercase tracking-wider text-white">Your Loan Ledger</h2>
-          </div>
-          <span id="loansCountBadge" class="text-[10px] font-mono font-bold bg-white/5 text-slate-400 px-2 py-0.5 rounded border border-white/10">0 Record(s)</span>
-        </div>
-
-        <div id="loansContainer" class="space-y-2.5">
-          <div class="p-6 text-center text-slate-500 text-sm glass-card">
-            <i class="fas fa-spinner fa-spin text-2xl text-emerald-500 mb-2 block"></i>
-            Loading ledger records...
-          </div>
-        </div>
-      </section>
-
-      <!-- ─── TELEGRAM BOT LINK CARD ───────────────────────────────────────── -->
-      <section class="glass-card p-4 flex items-center justify-between border-slate-700/60 bg-gradient-to-r from-blue-950/40 to-slate-900/60">
-        <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white text-lg shadow-lg shadow-blue-500/30">
-            <i class="fab fa-telegram-plane"></i>
-          </div>
-          <div>
-            <h3 class="text-xs font-black text-white uppercase">Telegram Verification</h3>
-            <p class="text-[11px] text-slate-400">Verify identity or check strikes via bot</p>
-          </div>
-        </div>
-        <a href="https://t.me/money_loan_bot" target="_blank" class="px-3 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs transition shadow flex items-center">
-          Open Bot <i class="fas fa-external-link-alt ml-1 text-[10px]"></i>
-        </a>
-      </section>
-
-      <!-- ─── STRIKE SYSTEM POLICY NOTICE ──────────────────────────────────── -->
-      <section class="p-4 rounded-xl bg-rose-500/5 border border-rose-500/20 text-slate-400 text-xs space-y-1.5">
-        <div class="flex items-center text-rose-400 font-bold text-xs uppercase tracking-wide">
-          <i class="fas fa-shield-alt mr-1.5"></i> Strict 3-Strike Policy
-        </div>
-        <p class="text-[11px] leading-relaxed">
-          Loans must be repaid before <b>1:00 PM</b> on the deadline date. Every overdue day automatically logs a strike. Accumulating <b>3 strikes permanently blocks</b> your identity on SYM EMPIRE PLATFORM (S.E.P.).
-        </p>
-      </section>
+      </div>
 
     </main>
+
 
     <!-- ─── FOOTER ──────────────────────────────────────────────────────────── -->
     <footer class="mt-8 border-t border-white/10 px-5 py-4 text-center text-xs text-slate-400 space-y-1">
@@ -411,7 +836,43 @@
     </div>
   </div>
 
+  <!-- ─── KYC GATEKEEPER MODAL ─────────────────────────────────────────── -->
+  <div id="kycGateModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="max-w-md w-full glass-card-gold p-6 space-y-4 relative text-center border-amber-500/50 shadow-2xl">
+      <div class="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center mx-auto text-amber-400 text-2xl shadow-lg shadow-amber-500/20 pulse-live">
+        <i class="fas fa-shield-alt"></i>
+      </div>
+
+      <div class="space-y-1">
+        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase">
+          Pre-Loan Gatekeeper
+        </span>
+        <h3 class="text-base font-black text-white uppercase tracking-wider">Identity Verification Required</h3>
+      </div>
+
+      <p class="text-xs text-slate-300 leading-relaxed">
+        Under SYM EMPIRE PLATFORM (S.E.P.) financial compliance regulations, all clients must verify their identity via <b>Smart NID (Front & Back)</b>, <b>Email OTP</b>, and <b>Live Camera Selfie</b> before submitting money requests.
+      </p>
+
+      <div class="p-3 rounded-xl bg-black/50 border border-white/10 text-left text-xs space-y-1.5 text-slate-400 font-mono">
+        <div class="flex items-center"><i class="fas fa-check text-emerald-400 mr-2 text-[10px]"></i> Smart NID Auto-Extraction</div>
+        <div class="flex items-center"><i class="fas fa-check text-emerald-400 mr-2 text-[10px]"></i> In-Line Email 6-Digit Passcode</div>
+        <div class="flex items-center"><i class="fas fa-check text-emerald-400 mr-2 text-[10px]"></i> One-Click Permanent Live Camera Selfie</div>
+      </div>
+
+      <div class="pt-2 space-y-2">
+        <button id="kycGateModalBtn" class="btn-gold w-full py-3.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-xl flex items-center justify-center cursor-pointer">
+          <i class="fas fa-id-card mr-2"></i> Complete KYC Verification Now
+        </button>
+        <button id="closeKycGateModalBtn" type="button" class="w-full py-2 rounded-xl text-slate-400 hover:text-white text-xs font-bold transition cursor-pointer">
+          Dismiss & View Dashboard
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Client Application Script -->
   <script src="/js/app.js"></script>
 </body>
 </html>
+
