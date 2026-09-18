@@ -13,11 +13,36 @@
 > **Telegram Bot:** `@money_loan_bot` (Live Token: `8846454332:AAGl0VAri-CNPRcDCAjJvsHOcA00BJo6hhI`)  
 > **Technology Stack:** Node.js, Express, Supabase (PostgreSQL), node-telegram-bot-api, node-cron, CORS, Helmet, dotenv, HTML5, Tailwind CSS  
 > **Live Local Server:** `http://localhost:5000`  
-> **Last Synchronized:** 2026-09-18 09:32 Local Time  
+> **Last Synchronized:** 2026-09-18 09:38 Local Time  
 
 ---
 
 ## 🚀 Logged System Updates & Changelog
+
+### [Update-038] — Supabase Auth Identity Linking & Foreign Key Resolution for Contact Registration (2026-09-18)
+**Type:** Database Constraint Resolution, Supabase Auth Integration & Registration Fix  
+**Status:** ✅ COMPLETED & VERIFIED LIVE  
+
+#### User Feedback & Symptom:
+The user clicked the contact sharing card on mobile Telegram (`GIXSAM`, `+880 1612669922`) at 9:34 AM. The bot returned `❌ Service Temporarily Unavailable. Could not save your profile.`
+
+#### Root Cause Analysis:
+1. Reviewing background server task logs revealed:
+   * `[Bot] Contact error: null value in column "id" of relation "client_profiles" violates not-null constraint`.
+   * Further schema diagnosis revealed: `client_profiles.id` is constrained by a foreign key constraint `client_profiles_id_fkey` pointing directly to Supabase's internal `auth.users(id)` table.
+2. Direct insertion without an active Supabase Auth user record fails database validation.
+
+#### Architectural Fix & Calibration:
+1. **Supabase Auth User Provisioning:**
+   * Updated `src/bot/index.js` contact handler to first create an authenticated identity via `supabaseAdmin.auth.admin.createUser({ phone, email, email_confirm: true, phone_confirm: true, user_metadata: { name: fullName, telegram_id: fromId, telegram_username } })`.
+   * Automatically resolves and falls back to existing auth user IDs if already present.
+2. **Linked Profile Upsert:**
+   * Upserts into `client_profiles` using the resolved `authUserId` as the primary key `id`.
+   * Successfully tested with automated test suite and live verified.
+3. **Daemon Reboot:**
+   * Rebooted server daemon (`task-293`) with polling fully active.
+
+---
 
 ### [Update-037] — Telegram Bot Telegram API v1+ Polling Calibration & UI Verification (2026-09-18)
 **Type:** Telegram Bot Bugfix, Interactive Keyboard Fix & HTML Entity Calibration  

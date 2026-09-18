@@ -184,17 +184,43 @@ bot.on('message', async (ctx) => {
       );
     }
 
-    // 2. New client — insert into client_profiles
+    // 2. New client — Register auth user in auth.users first, then upsert client_profiles
+    const userEmail = `${phone.replace(/[^0-9]/g, '')}@telegram.sep`;
+    let authUserId;
+
+    const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
+      phone: phone,
+      email: userEmail,
+      email_confirm: true,
+      phone_confirm: true,
+      user_metadata: {
+        name: fullName,
+        telegram_id: fromId,
+        telegram_username: msg.from?.username || '',
+      }
+    });
+
+    if (authErr) {
+      console.log('[Bot] Auth user exists or returned:', authErr.message);
+      const { data: listData } = await supabaseAdmin.auth.admin.listUsers();
+      const matched = listData?.users?.find(u => u.phone === phone || u.email === userEmail);
+      if (!matched) throw authErr;
+      authUserId = matched.id;
+    } else {
+      authUserId = authData.user.id;
+    }
+
     const { data: newProfile, error: insertErr } = await supabaseAdmin
       .from('client_profiles')
-      .insert({
+      .upsert({
+        id: authUserId,
         name: fullName,
         phone_number: phone,
-        email: `${fromId}@telegram.sep`,
+        email: userEmail,
         nid_url: '',
         status: 'ACTIVE',
         strikes_count: 0,
-        admin_note: `Registered via @money_loan_bot on ${new Date().toISOString()}`,
+        admin_note: `Registered via @money_loan_bot (Telegram ID: ${fromId}) on ${new Date().toISOString()}`,
       })
       .select()
       .single();
