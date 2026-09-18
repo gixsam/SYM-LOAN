@@ -17,6 +17,11 @@
   --rose-glow: 0 0 25px rgba(244, 63, 94, 0.25);
 }
 
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
 body {
   background-color: var(--bg-main);
   color: #f1f5f9;
