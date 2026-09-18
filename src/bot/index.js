@@ -281,9 +281,24 @@ async function sendTelegramOtp(chatId, code, purpose = 'User Login') {
   }
 }
 
+if (typeof bot.catch === 'function') {
+  bot.catch((err) => {
+    console.warn('[Bot] ⚠️ Telegram API error caught:', err.message);
+  });
+}
+
 function startBot() {
-  bot.startPolling();
-  console.log('[Bot] ✅ @money_loan_bot polling started.');
+  try {
+    const pollPromise = bot.startPolling();
+    if (pollPromise && typeof pollPromise.catch === 'function') {
+      pollPromise.catch((err) => {
+        console.warn('[Bot] ⚠️ Telegram polling stopped (token may be revoked or waiting for update):', err.message);
+      });
+    }
+    console.log('[Bot] ✅ @money_loan_bot polling initialized.');
+  } catch (err) {
+    console.warn('[Bot] ⚠️ Could not start bot polling:', err.message);
+  }
 }
 
 module.exports = { bot, startBot, sendTelegramOtp };
