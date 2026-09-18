@@ -23,6 +23,9 @@ require('dotenv').config();
 
 const app = express();
 
+// Trust reverse proxy (Hostinger / Nginx / Cloudflare)
+app.set('trust proxy', 1);
+
 // ─── Security Headers ─────────────────────────────────────────────────────────
 app.use(
   helmet({
@@ -66,12 +69,31 @@ app.use((req, _res, next) => {
 // ─── Static Public Files ──────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, '../public')));
 
+// ─── Telegram Production Webhook Ingestion Route ──────────────────────────────
+app.post('/api/bot/webhook', async (req, res) => {
+  try {
+    const { handleBotWebhookUpdate } = require('./bot/index');
+    if (typeof handleBotWebhookUpdate === 'function') {
+      await handleBotWebhookUpdate(req.body);
+    }
+    res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error('[Webhook] Ingestion error:', err.message);
+    res.status(200).json({ ok: false, error: err.message });
+  }
+});
+
 // ─── Admin API Routes (Exempt from Mobile-only gate, requires Admin Key) ───────
 app.use('/api/admin', adminApiRouter);
 
-// Exempt health, limits, and auth OTP endpoints for app bootstrap
+// Exempt health, limits, auth OTP, and bot webhook from mobile-only gate
 app.use('/api', (req, res, next) => {
-  if (req.path === '/health' || req.path === '/config/limits' || req.path.startsWith('/auth/')) {
+  if (
+    req.path === '/health' ||
+    req.path === '/config/limits' ||
+    req.path.startsWith('/auth/') ||
+    req.path === '/bot/webhook'
+  ) {
     return next();
   }
   verifyMobileDeviceOnly(req, res, next);

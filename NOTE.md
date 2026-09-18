@@ -20,6 +20,42 @@
 
 ## 🚀 Logged System Updates & Changelog
 
+### [Update-052] — Phase 5: Production Cloud Deployment Architecture for Hostinger & Telegram Webhook Engine (2026-09-18)
+**Type:** Production Cloud Deployment, Telegram Webhook Architecture, Reverse Proxy Configuration, Automated Packaging Engine  
+**Status:** ✅ COMPLETED, TESTED & DUAL-SYNCED ACROSS WORKPLACES  
+
+#### User Request & Objectives:
+1. **Hostinger Cloud Deployment (`symloan.best-travel.ltd`):**
+   - Engineer the production deployment package and configuration for hosting SYM LOAN 24/7 on Hostinger Cloud Node.js engine under the dedicated subdomain `https://symloan.best-travel.ltd`.
+2. **Production Telegram Webhook Engine:**
+   - In production cloud environments, polling consumes idle CPU and can be terminated by server process managers.
+   - Implement dual-mode bot operation (`USE_WEBHOOK=true` for production webhook, `false` for local polling).
+   - In webhook mode, register `https://symloan.best-travel.ltd/api/bot/webhook` directly with Telegram servers for instant zero-overhead message handling.
+3. **Reverse Proxy & Security Headers:**
+   - Add Express trust proxy (`app.set('trust proxy', 1)`) to correctly read client IPs and protocol through Hostinger / Cloudflare reverse proxies.
+   - Exempt `/api/bot/webhook` from mobile-only device verification and CORS so Telegram's servers can post updates without interception.
+4. **Automated Packaging & Deployment Script:**
+   - Build an automated packager (`npm run package` / `scripts/package_hostinger.js`) that creates a clean, lightweight zip bundle (`dist/hostinger_deploy.zip`, ~442 KB) excluding `node_modules`, local secrets, and VCS history.
+   - Create `.env.production.example` and LiteSpeed/Apache `.htaccess` reverse proxy rules.
+5. **Comprehensive Deployment Guide:**
+   - Create `HOSTINGER_DEPLOYMENT.md` providing step-by-step instructions for DNS setup (`symloan`), free Let's Encrypt SSL, Hostinger Node.js app creation, environment variables configuration, and GitHub auto-deployment integration.
+
+#### Architecture & Implementation Details:
+1. **Telegram Webhook Core (`src/bot/index.js`, `src/app.js`, `server.js`):**
+   - `startBot()` detects `USE_WEBHOOK=true` and sets webhook URL to `${ROUTING_ENDPOINT_DOMAIN}/api/bot/webhook`.
+   - `POST /api/bot/webhook` ingests updates and calls `handleBotWebhookUpdate()`.
+   - Polling is safely disabled when webhook is active; deleteWebhook is called when switching back to polling.
+2. **Hostinger Server Config (`.htaccess`, `.env.production.example`):**
+   - HTTPS rewrite rules and reverse proxy pass-through to Node.js backend.
+   - Production `.env` template configured for `https://symloan.best-travel.ltd`.
+3. **Packaging Engine (`scripts/package_hostinger.js`, `package.json`):**
+   - Fast native compression producing `dist/hostinger_deploy.zip` with zero file locking.
+   - Added `"package": "node scripts/package_hostinger.js"` in `package.json`.
+4. **Documentation & Deployment Manual (`HOSTINGER_DEPLOYMENT.md`):**
+   - Covers hPanel Node.js application creation, DNS records, SSL setup, and GitHub continuous deployment.
+
+---
+
 ### [Update-051] — Cross-Panel Seamless Admin Navigation, Client Drawer Hardening, Real-Time Client Notification Bell & Progressive Mobile Permissions (2026-09-18)
 **Type:** Full-Stack Security Hardening, Cross-Panel Admin Inspection Mode, Real-Time Client Alerts, Google Play Compliant Progressive Permissions  
 **Status:** ✅ COMPLETED, LIVE TESTED & DUAL-SYNCED ACROSS WORKPLACES  

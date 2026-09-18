@@ -287,18 +287,51 @@ if (typeof bot.catch === 'function') {
   });
 }
 
-function startBot() {
-  try {
-    const pollPromise = bot.startPolling();
-    if (pollPromise && typeof pollPromise.catch === 'function') {
-      pollPromise.catch((err) => {
-        console.warn('[Bot] ⚠️ Telegram polling stopped (token may be revoked or waiting for update):', err.message);
-      });
+async function startBot() {
+  if (!bot) return;
+
+  const useWebhook = process.env.USE_WEBHOOK === 'true';
+  const domain = (process.env.ROUTING_ENDPOINT_DOMAIN || '').replace(/\/$/, '');
+
+  if (useWebhook && domain && domain.startsWith('https://')) {
+    const webhookUrl = `${domain}/api/bot/webhook`;
+    try {
+      console.log(`[Bot] 🌐 Configuring Telegram Webhook: ${webhookUrl}`);
+      if (typeof bot.stop === 'function') {
+        try { await bot.stop(); } catch (_) {}
+      }
+      await bot.api.setWebhook({ url: webhookUrl });
+      console.log('[Bot] ✅ Telegram Webhook registered successfully.');
+    } catch (err) {
+      console.error('[Bot] ⚠️ Telegram Webhook registration error:', err.message);
     }
-    console.log('[Bot] ✅ @money_loan_bot polling initialized.');
-  } catch (err) {
-    console.warn('[Bot] ⚠️ Could not start bot polling:', err.message);
+  } else {
+    // Default: Safe long-polling for local development
+    try {
+      try {
+        await bot.api.deleteWebhook({ drop_pending_updates: false });
+      } catch (_) {}
+
+      const pollPromise = bot.startPolling();
+      if (pollPromise && typeof pollPromise.catch === 'function') {
+        pollPromise.catch((err) => {
+          console.warn('[Bot] ⚠️ Telegram polling stopped (token may be revoked or waiting for update):', err.message);
+        });
+      }
+      console.log('[Bot] ✅ @money_loan_bot polling initialized.');
+    } catch (err) {
+      console.warn('[Bot] ⚠️ Could not start bot polling:', err.message);
+    }
   }
 }
 
-module.exports = { bot, startBot, sendTelegramOtp };
+async function handleBotWebhookUpdate(update) {
+  if (!bot || !update) return;
+  try {
+    await bot.handleUpdate(update);
+  } catch (err) {
+    console.error('[Bot] Error processing webhook update:', err.message);
+  }
+}
+
+module.exports = { bot, startBot, sendTelegramOtp, handleBotWebhookUpdate };

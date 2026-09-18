@@ -28,12 +28,10 @@ app.listen(PORT, () => {
   console.log('╚══════════════════════════════════════════════════════╝');
   console.log('');
 
-  // ─── Start Telegram Bot ─────────────────────────────────────────────────
-  try {
-    startBot();
-  } catch (err) {
-    console.warn('[Server] Bot failed to start:', err.message);
-  }
+  // ─── Start Telegram Bot (Dual Mode: Polling or Webhook) ───────────────────
+  Promise.resolve(startBot()).catch(err => {
+    console.warn('[Server] Bot startup warning:', err.message);
+  });
 
   // ─── Start Cron Engine ──────────────────────────────────────────────────
   startDeadlineStrikeEngine();
