@@ -45,8 +45,9 @@
    - Implemented `buildPhoneSearchFilter(phone)` constructing dynamic Supabase OR queries covering all variations (`+8801...`, `8801...`, `01...`).
    - Applied to `GET /api/clients/lookup/phone`, `POST /api/auth/request-otp`, and `POST /api/auth/verify-otp`, ensuring instant client resolution regardless of database format.
 4. **Telegram Bot Settings & Restriction Resolution Protocol:**
-   - Evaluated the `@BotFather` settings dashboard shown in the photo.
-   - Provided clear distinction between `@BotFather` settings (Group Privacy, Mini Apps) and Telegram Business Chatbot privacy settings (the actual root cause of *"The owner of this bot has restricted access"*).
+   - Identified the exact root cause in BotFather's new WebApp settings (**Photo 3 & 4**): under the **`Access`** section, **`Restrict bot usage`** was toggled **ON** and set to `Allowed users: You`.
+   - Disabling `Restrict bot usage` (toggling to OFF) immediately opens `@money_loan_bot` to all public clients worldwide.
+   - Recommended disabling `Secretary Mode` and setting the bot's public description and command directory in `@BotFather`.
 
 ---
 
