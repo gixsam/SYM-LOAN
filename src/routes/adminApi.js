@@ -60,7 +60,7 @@ router.post('/auth/login-password', (req, res) => {
   return res.status(401).json({ success: false, message: 'Invalid Admin Password.' });
 });
 
-// POST /api/admin/auth/request-otp — Options 2 & 3: Telegram OTP (01337320544) or Email OTP
+// POST /api/admin/auth/request-otp — Options 2 & 3: Telegram OTP (01612669922) or Email OTP
 router.post('/auth/request-otp', async (req, res) => {
   const { email, phone, channel } = req.body;
 
@@ -68,9 +68,9 @@ router.post('/auth/request-otp', async (req, res) => {
   let targetChannel = channel || (phone ? 'TELEGRAM' : 'EMAIL');
 
   if (targetChannel === 'TELEGRAM' || phone) {
-    const rawPhone = (phone || '01337320544').trim();
+    const rawPhone = (phone || '01612669922').trim();
     // Verify admin authorized phone
-    if (!rawPhone.includes('01337320544') && !rawPhone.includes('8801337320544') && !rawPhone.includes('01612669922')) {
+    if (!rawPhone.includes('01612669922') && !rawPhone.includes('8801612669922')) {
       return res.status(403).json({
         success: false,
         message: 'Access Denied: This mobile number is not authorized for executive administrative OTP.',
@@ -158,7 +158,73 @@ router.post('/settings/change-password', requireAdmin, (req, res) => {
   res.json(result);
 });
 
-// POST /api/admin/branding/upload-logo — Unlimited size logo upload
+// POST /api/admin/branding/upload-admin-logo — Unlimited size Admin logo upload
+router.post('/branding/upload-admin-logo', requireAdmin, (req, res) => {
+  uploadBrandLogo.single('logo')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ success: false, message: `Upload error: ${err.message}` });
+    }
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Please select an image file to upload.' });
+    }
+
+    const relativeUrl = `/uploads/branding/${req.file.filename}`;
+    loanSettings.updateAdminLogo(relativeUrl);
+
+    return res.json({
+      success: true,
+      message: 'Admin Panel logo updated successfully.',
+      logo_url: relativeUrl,
+      file_name: req.file.filename,
+      file_size: req.file.size,
+    });
+  });
+});
+
+// POST /api/admin/branding/reset-admin-logo — Reset Admin logo back to default
+router.post('/branding/reset-admin-logo', requireAdmin, (_req, res) => {
+  loanSettings.updateAdminLogo('/images/logo.png');
+  return res.json({
+    success: true,
+    message: 'Admin Panel logo reset to official default.',
+    logo_url: '/images/logo.png',
+  });
+});
+
+// POST /api/admin/branding/upload-client-logo — Unlimited size User/Client logo upload
+router.post('/branding/upload-client-logo', requireAdmin, (req, res) => {
+  uploadBrandLogo.single('logo')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ success: false, message: `Upload error: ${err.message}` });
+    }
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Please select an image file to upload.' });
+    }
+
+    const relativeUrl = `/uploads/branding/${req.file.filename}`;
+    loanSettings.updateClientLogo(relativeUrl);
+
+    return res.json({
+      success: true,
+      message: 'User/Client Panel logo updated successfully.',
+      logo_url: relativeUrl,
+      file_name: req.file.filename,
+      file_size: req.file.size,
+    });
+  });
+});
+
+// POST /api/admin/branding/reset-client-logo — Reset User/Client logo back to default
+router.post('/branding/reset-client-logo', requireAdmin, (_req, res) => {
+  loanSettings.updateClientLogo('/images/logo.png');
+  return res.json({
+    success: true,
+    message: 'User/Client Panel logo reset to official default.',
+    logo_url: '/images/logo.png',
+  });
+});
+
+// POST /api/admin/branding/upload-logo — Unlimited size logo upload (general)
 router.post('/branding/upload-logo', requireAdmin, (req, res) => {
   uploadBrandLogo.single('logo')(req, res, (err) => {
     if (err) {
@@ -189,6 +255,48 @@ router.post('/branding/reset-logo', requireAdmin, (_req, res) => {
     message: 'Brand logo reset to official default.',
     logo_url: '/images/logo.png',
   });
+});
+
+// GET /api/admin/notifications — Live pending notifications for KYC & Loans
+router.get('/notifications', requireAdmin, async (req, res) => {
+  try {
+    // 1. Fetch pending loans with client profiles
+    const { data: pendingLoans } = await supabaseAdmin
+      .from('money_requests')
+      .select('id, amount, status, purpose, created_at, client_profiles (id, name, phone_number)')
+      .eq('status', 'PENDING')
+      .order('created_at', { ascending: false });
+
+    // 2. Fetch pending KYC profiles
+    const { data: clients } = await supabaseAdmin
+      .from('client_profiles')
+      .select('id, name, phone_number');
+
+    const pendingKyc = [];
+    (clients || []).forEach(c => {
+      const kyc = kycManager.getKycProfile(c.id);
+      if (kyc && (kyc.status || 'UNSUBMITTED') === 'PENDING') {
+        pendingKyc.push({
+          client_id: c.id,
+          name: kyc.full_name || c.name,
+          phone: kyc.phone || c.phone_number,
+          submitted_at: kyc.submitted_at,
+          nid_number: kyc.nid_number,
+        });
+      }
+    });
+
+    const totalCount = (pendingLoans || []).length + pendingKyc.length;
+
+    res.json({
+      success: true,
+      count: totalCount,
+      pending_loans: pendingLoans || [],
+      pending_kyc: pendingKyc,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 // POST /api/admin/settings/global

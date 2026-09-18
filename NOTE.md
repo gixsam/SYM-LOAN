@@ -20,6 +20,68 @@
 
 ## 🚀 Logged System Updates & Changelog
 
+### [Update-050] — Compact Mobile 3-Column KPI Stats, Executive Settings Modal Repositioning, Operational Section Renamings, Dual App Logo Managers & Real-Time Notification Center (2026-09-18)
+**Type:** Mobile UI/UX Architecture, Responsive Grid Layout, Settings Modal Restructuring, Authentication Phone Re-routing, Dual Brand Management Engine, Real-Time Notification Center  
+**Status:** ✅ COMPLETED, LIVE TESTED & DUAL-SYNCED ACROSS WORKPLACES  
+
+#### User Request & Objectives:
+1. **Compact Mobile KPI Stats Row:**
+   - On native mobile viewports, the *Loan Applications*, *Registered Clients*, and *Strike Engine* cards were previously taking up excessive vertical screen height.
+   - Refactored into a high-density 3-column row (`grid-cols-3 gap-2 sm:gap-4 md:gap-6`) that fits cleanly side-by-side on any smartphone screen without horizontal overflow or wrapping.
+2. **Resolve "Authenticating..." Freeze & Stuck Loading Tables:**
+   - In user screenshots, `#authStatusBadge` hung perpetually on `Authenticating...` and table bodies hung on `Loading...`.
+   - Diagnosed root cause: missing DOM element lookups for detached settings cards caused uncaught TypeErrors in `setupEvents()`, aborting script execution before `loadAllData()` could run.
+   - Fixed by adding robust DOM elements in `#adminSettingsModal` and safeguarding all event listener attachments with optional chaining `?.addEventListener`.
+3. **Reposition Settings into Navigation Drawer (☰ -> Settings):**
+   - Removed heavy settings cards (*Global Loan Boundaries*, *Admin Master Password & 2FA Security*, *Authorized 2FA Channels*, *Brand & Platform Logo Management*) from the main dashboard body to create a streamlined operational command center.
+   - Placed all configuration inside a dedicated 4-tabbed **Executive Platform Settings Modal** (`#adminSettingsModal`) accessible via the hamburger drawer button (`#drawerOpenSettingsBtn`) and top navbar direct button (`#openSettingsModalBtn`).
+4. **Operational Section Renamings:**
+   - *Global Loan Boundaries* → **`Money and Date Limits`**
+   - *Admin Master Password & 2FA Security* → **`Change Password`**
+   - *Authorized 2FA Channels* → **`Log-in Option`**
+   - *Brand & Platform Logo Management* → **`Change Logo of 'Admin Panel' App`** & **`Change Logo of 'User/Client-Panel' App`**
+   - *KYC Identity Review & Biometric Match Desk* → **`KYC Identity Review`**
+   - *Loan Applications Review & Disbursement* → **`Loan Application Review`**
+   - *Historical Ledger & Google Keep Digitalizer* → **`Copy and Paste from Google Notes`**
+5. **Phone Number Re-routing & User Panel Sanitization:**
+   - Replaced `01337320544` with `01612669922` across all Admin 2FA channels (Telegram OTP dispatcher and UI displays).
+   - Removed `01337320544` completely from the admin panel and backend routes.
+   - Removed `01612669922` from user panel displays and mock fallbacks.
+6. **Dual App Logo Managers (Unlimited File Size Capacity):**
+   - Built independent upload and reset systems for both the **Admin Panel App Logo** (`admin_logo_url`) and the **User/Client Panel App Logo** (`client_logo_url`).
+   - Both uploaders support raw high-resolution images of unlimited file size and provide 1-click restore to official default logos.
+7. **Real-Time Notification Bell & Dropdown Alert Tray:**
+   - Added an amber notification bell button in the top navbar with a pulsating red pending badge.
+   - Added an interactive slide-down tray aggregating pending KYC reviews and pending loan disbursement requests with direct "Review" deep-links.
+   - Implemented 15-second background auto-polling and Web Push Notification support (`Notification.requestPermission()`).
+
+#### Architecture & Implementation Details:
+1. **Frontend HTML Modernization (`public/admin.html`):**
+   - Refactored `#kpiSection` into `grid grid-cols-3 gap-2 sm:gap-4 md:gap-6` with compact badges, truncated labels, and responsive font sizes (`text-xs sm:text-xl md:text-2xl`).
+   - Renamed operational headings: `KYC Identity Review`, `Loan Application Review`, and `Copy and Paste from Google Notes`.
+   - Added Notification Bell (`#adminNotificationBellBtn`), badge (`#adminNotifBadge`), and slide-down dropdown tray (`#notificationDropdown`) in top navbar.
+   - Added direct settings launcher button (`#openSettingsModalBtn`) and drawer navigation button (`#drawerOpenSettingsBtn`).
+   - Inserted `#adminSettingsModal` featuring 4 tab buttons and panes: `Money & Date Limits`, `Change Password`, `Log-in Option` (displaying `01612669922`), and `App Logos` (dual upload forms and previews for Admin and Client apps).
+   - Updated `#adminTelegramPhoneInput` value and prompt text in `#adminLoginModal` to `01612669922`.
+2. **Frontend JavaScript Hardening (`public/js/admin.js`):**
+   - Expanded `DOM` mapping with notification elements, settings modal elements, tabs, and dual logo controls.
+   - Safeguarded all event attachments using optional chaining `?.addEventListener`.
+   - Updated `fetchSettings()` to handle dual logos (`admin_logo_url` and `client_logo_url`).
+   - Implemented `fetchNotifications()` aggregating pending KYC and loan requests, updating bell badge and tray list.
+   - Added 15-second auto-polling interval in `initAdmin()`.
+   - Implemented tab switching and modal controls for `#adminSettingsModal`.
+   - Implemented multipart upload and reset handlers for both `uploadAdminLogoForm` and `uploadClientLogoForm`.
+   - Removed client voucher fallback phone `+8801612669922`.
+3. **Backend Dynamic Branding & Notification APIs (`src/lib/loanSettings.js`, `src/routes/adminApi.js`, `src/routes/api.js`):**
+   - Added `admin_logo_url` and `client_logo_url` state and persistence in `loanSettings.js`.
+   - Added `POST /api/admin/branding/upload-admin-logo`, `POST /api/admin/branding/reset-admin-logo`.
+   - Added `POST /api/admin/branding/upload-client-logo`, `POST /api/admin/branding/reset-client-logo`.
+   - Added `GET /api/admin/notifications` calculating real-time pending counts and formatted notification items.
+   - Updated Telegram 2FA authorized phone to `01612669922`.
+   - Updated `/api/config/limits` and `/api/config/branding` to serve `client_logo_url`.
+
+---
+
 ### [Update-049] — Fintech-Grade KYC Identity Engine, Smart NID Extractor, Email OTP, Immutable Live Selfie & Admin Biometric Match Desk (2026-09-18)
 **Type:** Full-Stack KYC Identity Verification Engine, Pre-Loan Security Gatekeeper, Live Camera Biometrics, OCR Auto-Extractor, Email Verification, Multi-Panel Immutability  
 **Status:** ✅ COMPLETED, TESTED & DUAL-SYNCED ACROSS WORKPLACES  

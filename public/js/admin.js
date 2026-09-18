@@ -146,6 +146,29 @@ const DOM = {
   resendEmailOtpBtn: document.getElementById('resendEmailOtpBtn'),
   verifyEmailOtpBtn: document.getElementById('verifyEmailOtpBtn'),
 
+  // Notification Bell & Tray
+  adminNotificationBellBtn: document.getElementById('adminNotificationBellBtn'),
+  adminNotifBadge: document.getElementById('adminNotifBadge'),
+  notifTrayCountBadge: document.getElementById('notifTrayCountBadge'),
+  notificationDropdown: document.getElementById('notificationDropdown'),
+  notificationList: document.getElementById('notificationList'),
+  refreshNotifsBtn: document.getElementById('refreshNotifsBtn'),
+  enablePushNotifsBtn: document.getElementById('enablePushNotifsBtn'),
+
+  // Executive Settings Modal & Tabs
+  openSettingsModalBtn: document.getElementById('openSettingsModalBtn'),
+  drawerOpenSettingsBtn: document.getElementById('drawerOpenSettingsBtn'),
+  adminSettingsModal: document.getElementById('adminSettingsModal'),
+  closeSettingsModalBtn: document.getElementById('closeSettingsModalBtn'),
+  settingsTabBtnLimits: document.getElementById('settingsTabBtnLimits'),
+  settingsTabBtnPassword: document.getElementById('settingsTabBtnPassword'),
+  settingsTabBtnLogin: document.getElementById('settingsTabBtnLogin'),
+  settingsTabBtnLogos: document.getElementById('settingsTabBtnLogos'),
+  settingsPaneLimits: document.getElementById('settingsPaneLimits'),
+  settingsPanePassword: document.getElementById('settingsPanePassword'),
+  settingsPaneLogin: document.getElementById('settingsPaneLogin'),
+  settingsPaneLogos: document.getElementById('settingsPaneLogos'),
+
   // Admin Master Password Change in Settings
   changePasswordForm: document.getElementById('changePasswordForm'),
   currentAdminPassInput: document.getElementById('currentAdminPassInput'),
@@ -154,7 +177,24 @@ const DOM = {
   changePasswordFeedback: document.getElementById('changePasswordFeedback'),
   saveNewPasswordBtn: document.getElementById('saveNewPasswordBtn'),
 
-  // Brand Logo Management
+  // Dual Logo Management (Admin App Logo & Client App Logo)
+  adminLogoPreview: document.getElementById('adminLogoPreview'),
+  uploadAdminLogoForm: document.getElementById('uploadAdminLogoForm'),
+  adminLogoFileInput: document.getElementById('adminLogoFileInput'),
+  adminLogoFileSelectedName: document.getElementById('adminLogoFileSelectedName'),
+  uploadAdminLogoFeedback: document.getElementById('uploadAdminLogoFeedback'),
+  saveAdminLogoBtn: document.getElementById('saveAdminLogoBtn'),
+  resetAdminLogoBtn: document.getElementById('resetAdminLogoBtn'),
+
+  clientLogoPreview: document.getElementById('clientLogoPreview'),
+  uploadClientLogoForm: document.getElementById('uploadClientLogoForm'),
+  clientLogoFileInput: document.getElementById('clientLogoFileInput'),
+  clientLogoFileSelectedName: document.getElementById('clientLogoFileSelectedName'),
+  uploadClientLogoFeedback: document.getElementById('uploadClientLogoFeedback'),
+  saveClientLogoBtn: document.getElementById('saveClientLogoBtn'),
+  resetClientLogoBtn: document.getElementById('resetClientLogoBtn'),
+
+  // Legacy Brand Logo compatibility aliases
   brandLogoPreview: document.getElementById('brandLogoPreview'),
   uploadLogoForm: document.getElementById('uploadLogoForm'),
   logoFileInput: document.getElementById('logoFileInput'),
@@ -198,9 +238,12 @@ let KYC_CACHE = [];
 let ACTIVE_INSPECT_KYC = null;
 
 function initAdmin() {
-  DOM.adminKeyInput.value = ADMIN_KEY;
+  if (DOM.adminKeyInput) DOM.adminKeyInput.value = ADMIN_KEY;
   setupEvents();
   loadAllData();
+  fetchNotifications();
+  // Auto-polling for notifications every 15 seconds
+  setInterval(fetchNotifications, 15000);
 }
 
 function getHeaders() {
@@ -235,16 +278,20 @@ async function fetchSettings() {
   SETTINGS_CACHE = json.settings;
   const g = json.settings.global;
 
-  DOM.globalMinAmount.value = g.min_amount;
-  DOM.globalMaxAmount.value = g.max_amount;
-  DOM.globalMinDays.value = g.min_duration_days;
-  DOM.globalMaxDays.value = g.max_duration_days;
+  if (DOM.globalMinAmount) DOM.globalMinAmount.value = g.min_amount;
+  if (DOM.globalMaxAmount) DOM.globalMaxAmount.value = g.max_amount;
+  if (DOM.globalMinDays) DOM.globalMinDays.value = g.min_duration_days;
+  if (DOM.globalMaxDays) DOM.globalMaxDays.value = g.max_duration_days;
 
-  // Dynamically update active platform logo everywhere in Admin Panel
-  const logoUrl = json.settings.platform_logo_url || '/images/logo.png';
+  // Dynamically update active admin and client logos
+  const adminLogoUrl = json.settings.admin_logo_url || json.settings.platform_logo_url || '/images/logo.png';
+  const clientLogoUrl = json.settings.client_logo_url || '/images/logo.png';
+
   document.querySelectorAll('.platform-logo-img').forEach(img => {
-    img.src = logoUrl;
+    img.src = adminLogoUrl;
   });
+  if (DOM.adminLogoPreview) DOM.adminLogoPreview.src = adminLogoUrl;
+  if (DOM.clientLogoPreview) DOM.clientLogoPreview.src = clientLogoUrl;
 }
 
 // ─── Clients API ──────────────────────────────────────────────────────────────
@@ -487,7 +534,7 @@ window.viewReceiptImage = function(url) {
 window.downloadVoucher = function(loanId) {
   const loan = LOANS_CACHE.find(l => l.id === loanId);
   if (!loan) return;
-  const client = loan.client_profiles || { name: 'GIXSAM', phone_number: '+8801612669922' };
+  const client = loan.client_profiles || { name: 'Client', phone_number: '—' };
   window.generateLoanVoucherPdf(loan, client);
 };
 
@@ -664,6 +711,68 @@ function downloadSpreadsheetXlsx() {
 
   const dateStr = new Date().toISOString().split('T')[0];
   XLSX.writeFile(workbook, `SYM_LOAN_Master_Spreadsheet_${dateStr}.xlsx`);
+}
+
+// ─── Real-Time Notifications Engine ──────────────────────────────────────────
+async function fetchNotifications() {
+  try {
+    const res = await fetch('/api/admin/notifications', { headers: getHeaders() });
+    if (!res.ok) return;
+    const json = await res.json();
+    if (!json.success) return;
+
+    const notifs = json.notifications || [];
+    const count = json.total_pending !== undefined ? json.total_pending : notifs.length;
+
+    if (DOM.adminNotifBadge) {
+      DOM.adminNotifBadge.textContent = count;
+      if (count > 0) {
+        DOM.adminNotifBadge.classList.remove('hidden');
+      } else {
+        DOM.adminNotifBadge.classList.add('hidden');
+      }
+    }
+
+    if (DOM.notifTrayCountBadge) {
+      DOM.notifTrayCountBadge.textContent = `${count} PENDING`;
+    }
+
+    if (DOM.notificationList) {
+      if (notifs.length === 0) {
+        DOM.notificationList.innerHTML = `
+          <div class="py-6 text-center text-slate-500 text-xs">
+            <i class="fas fa-bell-slash text-base mb-1 block opacity-40"></i>
+            No pending alerts or submissions.
+          </div>
+        `;
+      } else {
+        DOM.notificationList.innerHTML = notifs.map(n => {
+          const isKyc = n.type === 'KYC';
+          const icon = isKyc ? 'fa-id-card text-amber-400' : 'fa-file-invoice-dollar text-emerald-400';
+          const targetSection = isKyc ? '#kycReviewSection' : '#loanInboxSection';
+          return `
+            <div class="p-2.5 rounded-lg bg-black/40 hover:bg-white/5 border border-white/5 transition flex items-start justify-between space-x-2">
+              <div class="flex items-start space-x-2.5">
+                <div class="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <i class="fas ${icon} text-xs"></i>
+                </div>
+                <div>
+                  <div class="font-bold text-white text-xs leading-snug">${n.title}</div>
+                  <div class="text-[11px] text-slate-400">${n.client_name} (${n.phone_number})</div>
+                  <div class="text-[10px] text-amber-400/80 font-mono mt-0.5">${n.time_ago || 'Recent'}</div>
+                </div>
+              </div>
+              <a href="${targetSection}" onclick="DOM.notificationDropdown?.classList.add('hidden')" class="px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-slate-200 text-[10px] font-bold whitespace-nowrap transition">
+                Review <i class="fas fa-arrow-right ml-0.5 text-[9px]"></i>
+              </a>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+  } catch (err) {
+    // Background polling silent catch
+  }
 }
 
 // ─── KYC Identity Verification Admin Desk ────────────────────────────────────
@@ -1028,7 +1137,7 @@ function setupEvents() {
   });
 
   // Global Settings Form
-  DOM.globalForm.addEventListener('submit', async (e) => {
+  DOM.globalForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const min_amount = parseFloat(DOM.globalMinAmount.value);
     const max_amount = parseFloat(DOM.globalMaxAmount.value);
@@ -1057,10 +1166,10 @@ function setupEvents() {
   });
 
   // Client selector
-  DOM.clientSelector.addEventListener('change', (e) => {
+  DOM.clientSelector?.addEventListener('change', (e) => {
     const clientId = e.target.value;
     if (!clientId) {
-      DOM.overridePanel.classList.add('hidden');
+      DOM.overridePanel?.classList.add('hidden');
       return;
     }
     const client = CLIENTS_CACHE.find(c => c.id === clientId);
@@ -1075,13 +1184,13 @@ function setupEvents() {
     DOM.overrideMinDays.value = override.min_duration_days;
     DOM.overrideMaxDays.value = override.max_duration_days;
     DOM.overrideNote.value = override.note || '';
-    DOM.overridePanel.classList.remove('hidden');
+    DOM.overridePanel?.classList.remove('hidden');
   });
 
   // Client Override Submit
-  DOM.clientOverrideForm.addEventListener('submit', async (e) => {
+  DOM.clientOverrideForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const clientId = DOM.clientSelector.value;
+    const clientId = DOM.clientSelector?.value;
     if (!clientId) return;
 
     try {
@@ -1113,8 +1222,8 @@ function setupEvents() {
   });
 
   // Reset Override
-  DOM.resetOverrideBtn.addEventListener('click', async () => {
-    const clientId = DOM.clientSelector.value;
+  DOM.resetOverrideBtn?.addEventListener('click', async () => {
+    const clientId = DOM.clientSelector?.value;
     if (!clientId) return;
     if (!confirm('Remove custom limits for this client?')) return;
 
@@ -1554,89 +1663,275 @@ function setupEvents() {
     });
   }
 
-  // ─── Brand Logo Management Form Handlers ──────────────────────────────────
-  if (DOM.logoFileInput) {
-    DOM.logoFileInput.addEventListener('change', () => {
-      const file = DOM.logoFileInput.files[0];
-      if (file) {
-        DOM.logoFileSelectedName.textContent = `Selected: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          if (DOM.brandLogoPreview) DOM.brandLogoPreview.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-      }
+  // ─── Notification Bell & Dropdown Tray Events ────────────────────────────
+  DOM.adminNotificationBellBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    DOM.notificationDropdown?.classList.toggle('hidden');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (DOM.notificationDropdown && !DOM.notificationDropdown.contains(e.target) && !DOM.adminNotificationBellBtn?.contains(e.target)) {
+      DOM.notificationDropdown.classList.add('hidden');
+    }
+  });
+
+  DOM.refreshNotifsBtn?.addEventListener('click', () => {
+    fetchNotifications();
+  });
+
+  DOM.enablePushNotifsBtn?.addEventListener('click', async () => {
+    if (!('Notification' in window)) {
+      alert('This browser does not support desktop notifications.');
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      alert('🔔 Web Push Notifications enabled! You will be alerted in real-time when new loan and KYC applications arrive.');
+      try {
+        new Notification('SYM EMPIRE Admin Alerts Active', {
+          body: 'Executive alert channel connected for KYC reviews and loan requests.',
+          icon: '/images/logo.png'
+        });
+      } catch (e) {}
+    } else {
+      alert('Notification permissions were not granted.');
+    }
+  });
+
+  // ─── Executive Settings Modal & Tabs ─────────────────────────────────────
+  function switchSettingsTab(tabName) {
+    [DOM.settingsTabBtnLimits, DOM.settingsTabBtnPassword, DOM.settingsTabBtnLogin, DOM.settingsTabBtnLogos].forEach(b => {
+      b?.classList.remove('active');
     });
+    [DOM.settingsPaneLimits, DOM.settingsPanePassword, DOM.settingsPaneLogin, DOM.settingsPaneLogos].forEach(p => {
+      p?.classList.add('hidden');
+    });
+
+    if (tabName === 'limits') {
+      DOM.settingsTabBtnLimits?.classList.add('active');
+      DOM.settingsPaneLimits?.classList.remove('hidden');
+    } else if (tabName === 'password') {
+      DOM.settingsTabBtnPassword?.classList.add('active');
+      DOM.settingsPanePassword?.classList.remove('hidden');
+    } else if (tabName === 'login') {
+      DOM.settingsTabBtnLogin?.classList.add('active');
+      DOM.settingsPaneLogin?.classList.remove('hidden');
+    } else if (tabName === 'logos') {
+      DOM.settingsTabBtnLogos?.classList.add('active');
+      DOM.settingsPaneLogos?.classList.remove('hidden');
+    }
   }
 
+  DOM.settingsTabBtnLimits?.addEventListener('click', () => switchSettingsTab('limits'));
+  DOM.settingsTabBtnPassword?.addEventListener('click', () => switchSettingsTab('password'));
+  DOM.settingsTabBtnLogin?.addEventListener('click', () => switchSettingsTab('login'));
+  DOM.settingsTabBtnLogos?.addEventListener('click', () => switchSettingsTab('logos'));
+
+  const openSettingsModal = () => {
+    DOM.adminSettingsModal?.classList.remove('hidden');
+    switchSettingsTab('limits');
+  };
+
+  const closeSettingsModal = () => {
+    DOM.adminSettingsModal?.classList.add('hidden');
+  };
+
+  DOM.openSettingsModalBtn?.addEventListener('click', openSettingsModal);
+  DOM.drawerOpenSettingsBtn?.addEventListener('click', () => {
+    closeDrawer();
+    openSettingsModal();
+  });
+  DOM.closeSettingsModalBtn?.addEventListener('click', closeSettingsModal);
+  DOM.adminSettingsModal?.addEventListener('click', (e) => {
+    if (e.target === DOM.adminSettingsModal) closeSettingsModal();
+  });
+
+  // ─── Dual Logo Management Form Handlers ──────────────────────────────────
+  // 1. Change Logo of 'Admin Panel' App
+  DOM.adminLogoFileInput?.addEventListener('change', () => {
+    const file = DOM.adminLogoFileInput.files[0];
+    if (file) {
+      if (DOM.adminLogoFileSelectedName) {
+        DOM.adminLogoFileSelectedName.textContent = `Selected: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (DOM.adminLogoPreview) DOM.adminLogoPreview.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  DOM.uploadAdminLogoForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const file = DOM.adminLogoFileInput?.files[0];
+    if (!file) {
+      alert('Please choose an admin logo image file first.');
+      return;
+    }
+
+    DOM.saveAdminLogoBtn.disabled = true;
+    DOM.saveAdminLogoBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i> Uploading...';
+    const feedback = DOM.uploadAdminLogoFeedback;
+    if (feedback) feedback.className = 'hidden text-xs p-2.5 rounded-lg';
+
+    const formData = new FormData();
+    formData.append('logo', file);
+
+    try {
+      const res = await fetch('/api/admin/branding/upload-admin-logo', {
+        method: 'POST',
+        headers: { 'x-admin-key': ADMIN_KEY },
+        body: formData,
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message);
+
+      if (feedback) {
+        feedback.className = 'text-xs p-2.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 block';
+        feedback.textContent = "✅ Logo of 'Admin Panel' App updated & applied live!";
+        setTimeout(() => feedback.classList.add('hidden'), 5000);
+      }
+
+      const updatedUrl = `${json.logo_url}?t=${Date.now()}`;
+      document.querySelectorAll('.platform-logo-img').forEach(img => {
+        img.src = updatedUrl;
+      });
+      if (DOM.adminLogoPreview) DOM.adminLogoPreview.src = updatedUrl;
+      DOM.uploadAdminLogoForm.reset();
+      if (DOM.adminLogoFileSelectedName) DOM.adminLogoFileSelectedName.textContent = 'Supports PNG, JPG, SVG, WebP (Unlimited size)';
+    } catch (err) {
+      if (feedback) {
+        feedback.className = 'text-xs p-2.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30 block';
+        feedback.textContent = `Upload Failed: ${err.message}`;
+      }
+    } finally {
+      DOM.saveAdminLogoBtn.disabled = false;
+      DOM.saveAdminLogoBtn.innerHTML = '<i class="fas fa-upload mr-1.5"></i> Update Admin Logo';
+    }
+  });
+
+  DOM.resetAdminLogoBtn?.addEventListener('click', async () => {
+    if (!confirm("Reset 'Admin Panel' App logo to official default?")) return;
+    DOM.resetAdminLogoBtn.disabled = true;
+    try {
+      const res = await fetch('/api/admin/branding/reset-admin-logo', {
+        method: 'POST',
+        headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message);
+
+      const defUrl = `/images/logo.png?t=${Date.now()}`;
+      document.querySelectorAll('.platform-logo-img').forEach(img => {
+        img.src = defUrl;
+      });
+      if (DOM.adminLogoPreview) DOM.adminLogoPreview.src = defUrl;
+      alert("✅ 'Admin Panel' App logo reset to default.");
+    } catch (err) {
+      alert(`Reset Failed: ${err.message}`);
+    } finally {
+      DOM.resetAdminLogoBtn.disabled = false;
+    }
+  });
+
+  // 2. Change Logo of 'User/Client-Panel' App
+  DOM.clientLogoFileInput?.addEventListener('change', () => {
+    const file = DOM.clientLogoFileInput.files[0];
+    if (file) {
+      if (DOM.clientLogoFileSelectedName) {
+        DOM.clientLogoFileSelectedName.textContent = `Selected: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (DOM.clientLogoPreview) DOM.clientLogoPreview.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  DOM.uploadClientLogoForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const file = DOM.clientLogoFileInput?.files[0];
+    if (!file) {
+      alert('Please choose a client logo image file first.');
+      return;
+    }
+
+    DOM.saveClientLogoBtn.disabled = true;
+    DOM.saveClientLogoBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i> Uploading...';
+    const feedback = DOM.uploadClientLogoFeedback;
+    if (feedback) feedback.className = 'hidden text-xs p-2.5 rounded-lg';
+
+    const formData = new FormData();
+    formData.append('logo', file);
+
+    try {
+      const res = await fetch('/api/admin/branding/upload-client-logo', {
+        method: 'POST',
+        headers: { 'x-admin-key': ADMIN_KEY },
+        body: formData,
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message);
+
+      if (feedback) {
+        feedback.className = 'text-xs p-2.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 block';
+        feedback.textContent = "✅ Logo of 'User/Client-Panel' App updated & applied live!";
+        setTimeout(() => feedback.classList.add('hidden'), 5000);
+      }
+
+      const updatedUrl = `${json.logo_url}?t=${Date.now()}`;
+      if (DOM.clientLogoPreview) DOM.clientLogoPreview.src = updatedUrl;
+      DOM.uploadClientLogoForm.reset();
+      if (DOM.clientLogoFileSelectedName) DOM.clientLogoFileSelectedName.textContent = 'Supports PNG, JPG, SVG, WebP (Unlimited size)';
+    } catch (err) {
+      if (feedback) {
+        feedback.className = 'text-xs p-2.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30 block';
+        feedback.textContent = `Upload Failed: ${err.message}`;
+      }
+    } finally {
+      DOM.saveClientLogoBtn.disabled = false;
+      DOM.saveClientLogoBtn.innerHTML = '<i class="fas fa-upload mr-1.5"></i> Update Client Logo';
+    }
+  });
+
+  DOM.resetClientLogoBtn?.addEventListener('click', async () => {
+    if (!confirm("Reset 'User/Client-Panel' App logo to official default?")) return;
+    DOM.resetClientLogoBtn.disabled = true;
+    try {
+      const res = await fetch('/api/admin/branding/reset-client-logo', {
+        method: 'POST',
+        headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message);
+
+      const defUrl = `/images/logo.png?t=${Date.now()}`;
+      if (DOM.clientLogoPreview) DOM.clientLogoPreview.src = defUrl;
+      alert("✅ 'User/Client-Panel' App logo reset to default.");
+    } catch (err) {
+      alert(`Reset Failed: ${err.message}`);
+    } finally {
+      DOM.resetClientLogoBtn.disabled = false;
+    }
+  });
+
+  // 3. Backward-Compatibility Legacy Logo Handlers
   if (DOM.uploadLogoForm) {
     DOM.uploadLogoForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const file = DOM.logoFileInput?.files[0];
-      if (!file) {
-        alert('Please choose an image file first.');
-        return;
-      }
-
-      DOM.saveLogoBtn.disabled = true;
-      DOM.saveLogoBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Uploading Logo...';
-      const feedback = DOM.uploadLogoFeedback;
-      feedback.className = 'hidden text-xs p-2.5 rounded-lg';
-
+      if (!file) return;
       const formData = new FormData();
       formData.append('logo', file);
-
       try {
-        const res = await fetch('/api/admin/branding/upload-logo', {
+        await fetch('/api/admin/branding/upload-admin-logo', {
           method: 'POST',
           headers: { 'x-admin-key': ADMIN_KEY },
           body: formData,
         });
-        const json = await res.json();
-        if (!res.ok || !json.success) throw new Error(json.message);
-
-        feedback.className = 'text-xs p-2.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 block';
-        feedback.textContent = '✅ Brand logo uploaded & applied live everywhere!';
-
-        const updatedUrl = `${json.logo_url}?t=${Date.now()}`;
-        document.querySelectorAll('.platform-logo-img').forEach(img => {
-          img.src = updatedUrl;
-        });
-        DOM.uploadLogoForm.reset();
-        DOM.logoFileSelectedName.textContent = 'Click to browse or drag & drop logo image';
-        setTimeout(() => feedback.classList.add('hidden'), 5000);
-      } catch (err) {
-        feedback.className = 'text-xs p-2.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30 block';
-        feedback.textContent = `Upload Failed: ${err.message}`;
-      } finally {
-        DOM.saveLogoBtn.disabled = false;
-        DOM.saveLogoBtn.innerHTML = '<i class="fas fa-arrow-up-from-bracket mr-2"></i> Save & Apply Logo Everywhere';
-      }
-    });
-  }
-
-  if (DOM.resetLogoBtn) {
-    DOM.resetLogoBtn.addEventListener('click', async () => {
-      if (!confirm('Reset platform brand logo to the official default logo?')) return;
-      DOM.resetLogoBtn.disabled = true;
-      try {
-        const res = await fetch('/api/admin/branding/reset-logo', {
-          method: 'POST',
-          headers: { ...getHeaders(), 'Content-Type': 'application/json' },
-        });
-        const json = await res.json();
-        if (!res.ok || !json.success) throw new Error(json.message);
-
-        const defUrl = `/images/logo.png?t=${Date.now()}`;
-        document.querySelectorAll('.platform-logo-img').forEach(img => {
-          img.src = defUrl;
-        });
-        alert('✅ Logo reset to official default logo.');
-      } catch (err) {
-        alert(`Reset Failed: ${err.message}`);
-      } finally {
-        DOM.resetLogoBtn.disabled = false;
-      }
+      } catch (e) {}
     });
   }
 

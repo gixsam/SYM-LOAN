@@ -26,6 +26,8 @@ const DEFAULT_GLOBAL = {
 
 const DEFAULT_ADMIN_PASSWORD = 'admin';
 const DEFAULT_PLATFORM_LOGO = '/images/logo.png';
+const DEFAULT_ADMIN_LOGO = '/images/logo.png';
+const DEFAULT_CLIENT_LOGO = '/images/logo.png';
 
 // In-memory cache backed by JSON file
 let settingsState = {
@@ -33,6 +35,8 @@ let settingsState = {
   client_overrides: {},
   admin_password: DEFAULT_ADMIN_PASSWORD,
   platform_logo_url: DEFAULT_PLATFORM_LOGO,
+  admin_logo_url: DEFAULT_ADMIN_LOGO,
+  client_logo_url: DEFAULT_CLIENT_LOGO,
 };
 
 function loadSettings() {
@@ -45,6 +49,8 @@ function loadSettings() {
         client_overrides: parsed.client_overrides || {},
         admin_password: parsed.admin_password || DEFAULT_ADMIN_PASSWORD,
         platform_logo_url: parsed.platform_logo_url || DEFAULT_PLATFORM_LOGO,
+        admin_logo_url: parsed.admin_logo_url || parsed.platform_logo_url || DEFAULT_ADMIN_LOGO,
+        client_logo_url: parsed.client_logo_url || parsed.platform_logo_url || DEFAULT_CLIENT_LOGO,
       };
     } else {
       saveSettings();
@@ -56,6 +62,8 @@ function loadSettings() {
       client_overrides: {},
       admin_password: DEFAULT_ADMIN_PASSWORD,
       platform_logo_url: DEFAULT_PLATFORM_LOGO,
+      admin_logo_url: DEFAULT_ADMIN_LOGO,
+      client_logo_url: DEFAULT_CLIENT_LOGO,
     };
   }
 }
@@ -268,8 +276,34 @@ function getPlatformLogo() {
 function updatePlatformLogo(url) {
   loadSettings();
   settingsState.platform_logo_url = url || DEFAULT_PLATFORM_LOGO;
+  settingsState.admin_logo_url = url || DEFAULT_PLATFORM_LOGO;
+  settingsState.client_logo_url = url || DEFAULT_PLATFORM_LOGO;
   saveSettings();
   return { success: true, logo_url: settingsState.platform_logo_url };
+}
+
+function getAdminLogo() {
+  loadSettings();
+  return settingsState.admin_logo_url || settingsState.platform_logo_url || DEFAULT_ADMIN_LOGO;
+}
+
+function updateAdminLogo(url) {
+  loadSettings();
+  settingsState.admin_logo_url = url || DEFAULT_ADMIN_LOGO;
+  saveSettings();
+  return { success: true, logo_url: settingsState.admin_logo_url };
+}
+
+function getClientLogo() {
+  loadSettings();
+  return settingsState.client_logo_url || settingsState.platform_logo_url || DEFAULT_CLIENT_LOGO;
+}
+
+function updateClientLogo(url) {
+  loadSettings();
+  settingsState.client_logo_url = url || DEFAULT_CLIENT_LOGO;
+  saveSettings();
+  return { success: true, logo_url: settingsState.client_logo_url };
 }
 
 // Initial load on startup
@@ -286,5 +320,11 @@ module.exports = {
   updateAdminPassword,
   getPlatformLogo,
   updatePlatformLogo,
+  getAdminLogo,
+  updateAdminLogo,
+  getClientLogo,
+  updateClientLogo,
   DEFAULT_PLATFORM_LOGO,
+  DEFAULT_ADMIN_LOGO,
+  DEFAULT_CLIENT_LOGO,
 };

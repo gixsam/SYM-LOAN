@@ -68,7 +68,7 @@ router.get('/config/limits', (req, res) => {
   res.json({
     success: true,
     limits,
-    logo_url: loanSettings.getPlatformLogo(),
+    logo_url: loanSettings.getClientLogo(),
   });
 });
 
@@ -76,7 +76,7 @@ router.get('/config/limits', (req, res) => {
 router.get('/config/branding', (_req, res) => {
   res.json({
     success: true,
-    logo_url: loanSettings.getPlatformLogo(),
+    logo_url: loanSettings.getClientLogo(),
   });
 });
 

@@ -37,9 +37,50 @@
       </div>
 
       <!-- Right side: Controls & Login -->
-      <div class="flex items-center space-x-1.5 sm:space-x-2.5 flex-shrink-0">
+      <div class="flex items-center space-x-1 sm:space-x-2 flex-shrink-0 relative">
+        <!-- Notification Bell Icon -->
+        <div class="relative">
+          <button type="button" id="adminNotificationBellBtn" title="Executive Notifications" class="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-amber-400 transition cursor-pointer border border-white/10 flex items-center justify-center">
+            <i class="fas fa-bell text-sm sm:text-base"></i>
+            <span id="adminNotifBadge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-black items-center justify-center animate-pulse shadow-lg ring-2 ring-[#070b14]">0</span>
+          </button>
+
+          <!-- Slide-down Notification Tray / Pop-up -->
+          <div id="notificationDropdown" class="hidden absolute right-0 top-full mt-2 w-80 sm:w-96 glass-card p-4 shadow-2xl border-amber-500/40 z-50 space-y-3">
+            <div class="flex items-center justify-between border-b border-white/10 pb-2.5">
+              <div class="flex items-center space-x-2">
+                <i class="fas fa-bell text-amber-400 text-sm"></i>
+                <h4 class="text-xs font-black text-white uppercase tracking-wider">Executive Alerts</h4>
+                <span id="notifTrayCountBadge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">0 PENDING</span>
+              </div>
+              <button type="button" id="refreshNotifsBtn" class="text-[11px] text-slate-400 hover:text-white cursor-pointer transition" title="Refresh Notifications">
+                <i class="fas fa-sync-alt"></i>
+              </button>
+            </div>
+
+            <div id="notificationList" class="max-h-72 overflow-y-auto space-y-2 text-xs divide-y divide-white/5">
+              <div class="py-6 text-center text-slate-500 text-xs">
+                <i class="fas fa-bell-slash text-base mb-1 block opacity-40"></i>
+                No pending alerts or submissions.
+              </div>
+            </div>
+
+            <div class="border-t border-white/10 pt-2 flex items-center justify-between text-[11px]">
+              <span class="text-slate-500 text-[10px]">Live Auto-Polling: 15s</span>
+              <button type="button" id="enablePushNotifsBtn" class="text-amber-400 hover:underline font-bold flex items-center cursor-pointer">
+                <i class="fas fa-satellite-dish mr-1 text-[10px]"></i> Enable Push Alerts
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Direct Settings Launcher Button -->
+        <button type="button" id="openSettingsModalBtn" title="Platform Settings" class="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-amber-400 transition cursor-pointer border border-white/10 flex items-center justify-center">
+          <i class="fas fa-cog text-sm sm:text-base"></i>
+        </button>
+
         <!-- 3-Option Admin Login Button -->
-        <button id="openAdminLoginBtn" class="px-2.5 sm:px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-black text-xs flex items-center transition shadow-lg shadow-amber-500/20 cursor-pointer">
+        <button type="button" id="openAdminLoginBtn" class="px-2.5 sm:px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-black text-xs flex items-center transition shadow-lg shadow-amber-500/20 cursor-pointer">
           <i class="fas fa-key sm:mr-1.5"></i>
           <span class="hidden sm:inline">Admin Login</span>
         </button>
@@ -80,26 +121,22 @@
           <i class="fas fa-tachometer-alt text-amber-400 w-5"></i>
           <span>Dashboard Overview</span>
         </a>
-        <a href="#globalBoundariesSection" class="drawer-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition">
-          <i class="fas fa-globe text-amber-400 w-5"></i>
-          <span>Global Boundaries</span>
-        </a>
-        <a href="#clientOverridesSection" class="drawer-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition">
-          <i class="fas fa-user-cog text-indigo-400 w-5"></i>
-          <span>Client Limits Override</span>
-        </a>
+        <button type="button" id="drawerOpenSettingsBtn" class="w-full text-left flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-amber-300 hover:text-white hover:bg-white/5 transition cursor-pointer">
+          <i class="fas fa-cog text-amber-400 w-5"></i>
+          <span>⚙️ Settings (Limits, Password, Logos)</span>
+        </button>
         <a href="#kycReviewSection" class="drawer-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition">
           <i class="fas fa-id-card text-amber-400 w-5"></i>
-          <span>KYC Review & Match Desk</span>
+          <span>KYC Identity Review</span>
           <span id="kycPendingBadge" class="ml-auto px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">0</span>
         </a>
         <a href="#loanInboxSection" class="drawer-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition">
           <i class="fas fa-clipboard-check text-emerald-400 w-5"></i>
-          <span>Loan Review & Payout</span>
+          <span>Loan Application Review</span>
         </a>
         <a href="#historicalLedgerSection" class="drawer-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition">
           <i class="fas fa-sticky-note text-amber-400 w-5"></i>
-          <span>Historical Ledger & (+/-) Cash</span>
+          <span>Copy and Paste from Google Notes</span>
         </a>
         <a href="#spreadsheetSection" class="drawer-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition">
           <i class="fas fa-file-excel text-emerald-400 w-5"></i>
@@ -107,15 +144,7 @@
         </a>
         <a href="#clientRegistrySection" class="drawer-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition">
           <i class="fas fa-address-book text-teal-400 w-5"></i>
-          <span>Accounts & Strikes</span>
-        </a>
-        <a href="#brandLogoSection" class="drawer-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition">
-          <i class="fas fa-image text-sky-400 w-5"></i>
-          <span>Brand Logo Upload</span>
-        </a>
-        <a href="#adminSecuritySection" class="drawer-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition">
-          <i class="fas fa-shield-alt text-rose-400 w-5"></i>
-          <span>Admin Security & Password</span>
+          <span>Client Accounts & Strike Register</span>
         </a>
       </nav>
     </div>
@@ -130,7 +159,7 @@
       </a>
       <div class="pt-2 border-t border-white/5 text-[10px] text-slate-400 space-y-1">
         <div>Admin Email: <span class="text-amber-400 font-mono font-bold">zillionprince6@gmail.com</span></div>
-        <div>Admin Phone: <span class="text-emerald-400 font-mono font-bold">01337320544</span></div>
+        <div>Admin Phone: <span class="text-emerald-400 font-mono font-bold">01612669922</span></div>
       </div>
     </div>
   </aside>
@@ -138,306 +167,44 @@
   <!-- ─── DASHBOARD BODY ──────────────────────────────────────────────────── -->
   <div class="max-w-7xl mx-auto px-6 py-8 space-y-8">
 
-    <!-- ─── TOP KPI STATS ──────────────────────────────────────────────────── -->
-    <div id="kpiSection" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="glass-card-gold p-5 flex items-center justify-between">
-        <div>
-          <span class="text-xs font-bold text-amber-400 uppercase tracking-wide">Loan Applications</span>
-          <h3 id="loansCount" class="text-2xl font-black text-white mt-1">0 Application(s)</h3>
-          <p class="text-[11px] text-slate-400 mt-1">Pending and evaluated requests</p>
+    <!-- ─── TOP KPI STATS (COMPACT 3-COLUMN ROW FOR MOBILE & DESKTOP) ────────── -->
+    <div id="kpiSection" class="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6">
+      <div class="glass-card-gold p-2.5 sm:p-4 md:p-5 flex flex-col justify-between relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-[9px] sm:text-xs font-bold text-amber-400 uppercase tracking-tight sm:tracking-wide truncate block">Loan Apps</span>
+          <div class="w-6 h-6 sm:w-9 sm:h-9 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400 text-xs sm:text-base flex-shrink-0 ml-1">
+            <i class="fas fa-file-invoice-dollar"></i>
+          </div>
         </div>
-        <div class="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400 text-xl">
-          <i class="fas fa-file-invoice-dollar"></i>
+        <div class="mt-1 sm:mt-2">
+          <h3 id="loansCount" class="text-xs sm:text-xl md:text-2xl font-black text-white truncate">0 Apps</h3>
+          <p class="text-[8px] sm:text-[11px] text-slate-400 mt-0.5 hidden xs:block truncate">Pending requests</p>
         </div>
       </div>
 
-      <div class="glass-card-emerald p-5 flex items-center justify-between">
-        <div>
-          <span class="text-xs font-bold text-emerald-400 uppercase tracking-wide">Registered Clients</span>
-          <h3 id="clientsCount" class="text-2xl font-black text-white mt-1">0 Registered</h3>
-          <p class="text-[11px] text-slate-400 mt-1">Telegram verified identities</p>
+      <div class="glass-card-emerald p-2.5 sm:p-4 md:p-5 flex flex-col justify-between relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-[9px] sm:text-xs font-bold text-emerald-400 uppercase tracking-tight sm:tracking-wide truncate block">Clients</span>
+          <div class="w-6 h-6 sm:w-9 sm:h-9 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs sm:text-base flex-shrink-0 ml-1">
+            <i class="fas fa-users"></i>
+          </div>
         </div>
-        <div class="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xl">
-          <i class="fas fa-users"></i>
-        </div>
-      </div>
-
-      <div class="glass-card p-5 flex items-center justify-between border-indigo-500/30">
-        <div>
-          <span class="text-xs font-bold text-indigo-400 uppercase tracking-wide">Strike Engine</span>
-          <h3 class="text-2xl font-black text-white mt-1">Daily 01:00 PM</h3>
-          <p class="text-[11px] text-slate-400 mt-1">Automated deadline penalty scanner</p>
-        </div>
-        <div class="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-xl">
-          <i class="fas fa-stopwatch"></i>
+        <div class="mt-1 sm:mt-2">
+          <h3 id="clientsCount" class="text-xs sm:text-xl md:text-2xl font-black text-white truncate">0 Reg.</h3>
+          <p class="text-[8px] sm:text-[11px] text-slate-400 mt-0.5 hidden xs:block truncate">Telegram verified</p>
         </div>
       </div>
-    </div>
 
-    <!-- ─── SETTINGS SECTION: GLOBAL LIMITS & CLIENT OVERRIDES ──────────────── -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-      <!-- 1. Global Limits Configuration -->
-      <div id="globalBoundariesSection" class="glass-card p-6 border-amber-500/30 space-y-4">
-        <div class="flex items-center justify-between border-b border-white/10 pb-3">
-          <div class="flex items-center space-x-2">
-            <div class="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400">
-              <i class="fas fa-globe"></i>
-            </div>
-            <div>
-              <h2 class="text-base font-extrabold text-white">Global Loan Boundaries</h2>
-              <p class="text-[11px] text-slate-400">Applies to all registered clients automatically</p>
-            </div>
-          </div>
-          <span class="text-[10px] font-mono bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded border border-amber-500/20">SYSTEM WIDE</span>
-        </div>
-
-
-        <form id="globalForm" class="space-y-4">
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="text-xs font-bold text-slate-300 block mb-1">Minimum Money Request (৳)</label>
-              <input type="number" id="globalMinAmount" required min="100" class="w-full bg-black/50 border border-slate-700 rounded-lg px-3 py-2 text-sm font-bold text-amber-400 focus:outline-none focus:border-amber-400 font-mono">
-              <span class="text-[10px] text-slate-500">Clients cannot request below this</span>
-            </div>
-            <div>
-              <label class="text-xs font-bold text-slate-300 block mb-1">Maximum Money Request (৳)</label>
-              <input type="number" id="globalMaxAmount" required min="100" class="w-full bg-black/50 border border-slate-700 rounded-lg px-3 py-2 text-sm font-bold text-amber-400 focus:outline-none focus:border-amber-400 font-mono">
-              <span class="text-[10px] text-slate-500">Clients cannot request above this</span>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="text-xs font-bold text-slate-300 block mb-1">Start Duration (Min Days)</label>
-              <input type="number" id="globalMinDays" required min="1" max="90" class="w-full bg-black/50 border border-slate-700 rounded-lg px-3 py-2 text-sm font-bold text-emerald-400 focus:outline-none focus:border-emerald-400 font-mono">
-              <span class="text-[10px] text-slate-500">Earliest allowed deadline from today</span>
-            </div>
-            <div>
-              <label class="text-xs font-bold text-slate-300 block mb-1">Finish Duration (Max Days)</label>
-              <input type="number" id="globalMaxDays" required min="1" max="365" class="w-full bg-black/50 border border-slate-700 rounded-lg px-3 py-2 text-sm font-bold text-emerald-400 focus:outline-none focus:border-emerald-400 font-mono">
-              <span class="text-[10px] text-slate-500">Latest allowed deadline from today</span>
-            </div>
-          </div>
-
-          <div id="globalFeedback" class="hidden"></div>
-
-          <button type="submit" class="btn-gold w-full py-2.5 rounded-lg text-xs font-black uppercase tracking-wider shadow flex items-center justify-center">
-            <i class="fas fa-save mr-2"></i> Save Global Boundaries
-          </button>
-        </form>
-      </div>
-
-      <!-- 2. Individual Client Custom Overrides -->
-      <div id="clientOverridesSection" class="glass-card p-6 border-indigo-500/30 space-y-4">
-        <div class="flex items-center justify-between border-b border-white/10 pb-3">
-          <div class="flex items-center space-x-2">
-            <div class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
-              <i class="fas fa-user-cog"></i>
-            </div>
-            <div>
-              <h2 class="text-base font-extrabold text-white">Client-Specific Limits Override</h2>
-              <p class="text-[11px] text-slate-400">Tailor boundaries for specific VIP or restricted clients</p>
-            </div>
-          </div>
-          <span class="text-[10px] font-mono bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/20">INDIVIDUAL</span>
-        </div>
-
-        <div>
-          <label class="text-xs font-bold text-slate-300 block mb-1">Select Client to Configure</label>
-          <select id="clientOverrideSelect" class="w-full bg-black/50 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-400">
-            <option value="">-- Choose a registered client --</option>
-          </select>
-        </div>
-
-        <div id="overrideFormWrapper" class="hidden space-y-4 pt-2 border-t border-white/5">
-          <form id="clientOverrideForm" class="space-y-4">
-            <input type="hidden" id="overrideClientId">
-
-            <div class="p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-xs">
-              <div class="font-bold text-indigo-300 flex items-center justify-between">
-                <span id="overrideClientName">Selected Client</span>
-                <button type="button" id="resetOverrideBtn" class="text-[10px] text-rose-400 hover:underline">
-                  <i class="fas fa-undo mr-1"></i> Reset to Global Limits
-                </button>
-              </div>
-              <div id="overrideClientPhone" class="text-slate-400 text-[11px] font-mono mt-0.5">Phone</div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="text-[11px] font-bold text-slate-300 block mb-1">Custom Min Amount (৳)</label>
-                <input type="number" id="overrideMinAmount" min="100" class="w-full bg-black/50 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-amber-400 font-bold font-mono">
-              </div>
-              <div>
-                <label class="text-[11px] font-bold text-slate-300 block mb-1">Custom Max Amount (৳)</label>
-                <input type="number" id="overrideMaxAmount" min="100" class="w-full bg-black/50 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-amber-400 font-bold font-mono">
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="text-[11px] font-bold text-slate-300 block mb-1">Custom Min Days</label>
-                <input type="number" id="overrideMinDays" min="1" max="90" class="w-full bg-black/50 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-emerald-400 font-bold font-mono">
-              </div>
-              <div>
-                <label class="text-[11px] font-bold text-slate-300 block mb-1">Custom Max Days</label>
-                <input type="number" id="overrideMaxDays" min="1" max="365" class="w-full bg-black/50 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-emerald-400 font-bold font-mono">
-              </div>
-            </div>
-
-            <div>
-              <label class="text-[11px] font-bold text-slate-300 block mb-1">Internal Note / VIP Reason</label>
-              <input type="text" id="overrideNote" placeholder="e.g. Approved higher limit for verified guarantor" class="w-full bg-black/50 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white">
-            </div>
-
-            <div id="overrideFeedback" class="hidden"></div>
-
-            <button type="submit" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition shadow">
-              Apply Client Override
-            </button>
-          </form>
-        </div>
-
-      </div>
-
-    </div>
-
-    <!-- ─── ADMIN MASTER PASSWORD & SECURITY SETTINGS ────────────────────────── -->
-    <div id="adminSecuritySection" class="glass-card p-6 border-rose-500/30 space-y-4">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
-        <div class="flex items-center space-x-2.5">
-          <div class="w-8 h-8 rounded-lg bg-rose-500/20 flex items-center justify-center text-rose-400 text-sm">
-            <i class="fas fa-shield-alt"></i>
-          </div>
-          <div>
-            <h2 class="text-base font-extrabold text-white flex items-center">
-              Admin Master Password & 2FA Security
-              <span class="ml-2 text-[10px] font-mono bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded border border-rose-500/30">EXECUTIVE</span>
-            </h2>
-            <p class="text-[11px] text-slate-400">Manage master password (default: <code class="text-amber-400 font-mono">admin</code>) and view authorized login channels</p>
+      <div class="glass-card p-2.5 sm:p-4 md:p-5 flex flex-col justify-between border-indigo-500/30 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-[9px] sm:text-xs font-bold text-indigo-400 uppercase tracking-tight sm:tracking-wide truncate block">Strike Engine</span>
+          <div class="w-6 h-6 sm:w-9 sm:h-9 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-xs sm:text-base flex-shrink-0 ml-1">
+            <i class="fas fa-stopwatch"></i>
           </div>
         </div>
-        <span class="text-xs font-mono text-slate-400 bg-white/5 px-3 py-1.5 rounded-lg border border-white/10 self-start sm:self-auto">
-          <i class="fas fa-user-shield text-amber-400 mr-1"></i> Root Administrator
-        </span>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Change Master Password Form -->
-        <form id="changePasswordForm" class="space-y-3 bg-black/30 p-4 rounded-xl border border-white/5">
-          <h3 class="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center">
-            <i class="fas fa-key mr-1.5"></i> Update Master Password
-          </h3>
-          <div>
-            <label class="text-xs font-bold text-slate-300 block mb-1">Current Password:</label>
-            <input type="password" id="currentAdminPassInput" required placeholder="Default is 'admin'" class="w-full bg-black/50 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-mono">
-          </div>
-          <div>
-            <label class="text-xs font-bold text-slate-300 block mb-1">New Master Password:</label>
-            <input type="password" id="newAdminPassInput" required minlength="4" placeholder="Enter new secret password" class="w-full bg-black/50 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-mono">
-          </div>
-          <div>
-            <label class="text-xs font-bold text-slate-300 block mb-1">Confirm New Password:</label>
-            <input type="password" id="confirmAdminPassInput" required minlength="4" placeholder="Re-enter new password" class="w-full bg-black/50 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-mono">
-          </div>
-
-          <div id="changePasswordFeedback" class="hidden text-xs p-2.5 rounded-lg"></div>
-
-          <button type="submit" id="saveNewPasswordBtn" class="btn-gold w-full py-2.5 rounded-lg text-xs font-black uppercase tracking-wider shadow flex items-center justify-center cursor-pointer">
-            <i class="fas fa-save mr-2"></i> Save New Master Password
-          </button>
-        </form>
-
-        <!-- Authorized Channels Info & Fast 2FA Trigger -->
-        <div class="space-y-4 bg-black/30 p-4 rounded-xl border border-white/5 flex flex-col justify-between">
-          <div>
-            <h3 class="text-xs font-black text-emerald-400 uppercase tracking-wider flex items-center mb-3">
-              <i class="fas fa-fingerprint mr-1.5"></i> Authorized 2FA Channels
-            </h3>
-            <div class="space-y-2.5 text-xs">
-              <div class="flex items-center justify-between p-2.5 rounded-lg bg-white/5 border border-white/5">
-                <div class="flex items-center space-x-2">
-                  <i class="fab fa-telegram text-sky-400 text-base"></i>
-                  <div>
-                    <div class="font-bold text-white">Telegram 2FA Channel</div>
-                    <div class="text-[11px] text-slate-400">Bot: @money_loan_bot</div>
-                  </div>
-                </div>
-                <span class="font-mono text-xs text-emerald-400 font-bold">01337320544</span>
-              </div>
-
-              <div class="flex items-center justify-between p-2.5 rounded-lg bg-white/5 border border-white/5">
-                <div class="flex items-center space-x-2">
-                  <i class="fas fa-envelope text-amber-400 text-base"></i>
-                  <div>
-                    <div class="font-bold text-white">Admin Email Channel</div>
-                    <div class="text-[11px] text-slate-400">Emergency recovery channel</div>
-                  </div>
-                </div>
-                <span class="font-mono text-[11px] text-amber-300 font-bold truncate max-w-[150px]">zillionprince6@gmail.com</span>
-              </div>
-            </div>
-          </div>
-
-          <button type="button" id="triggerAdminLoginModalBtn" class="w-full py-2.5 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-bold flex items-center justify-center transition border border-white/10 cursor-pointer">
-            <i class="fas fa-shield-alt mr-2 text-amber-400"></i> Open 3-Option Admin Login Modal
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ─── BRAND LOGO MANAGEMENT (UNLIMITED SIZE) ──────────────────────────── -->
-    <div id="brandLogoSection" class="glass-card p-6 border-sky-500/30 space-y-4">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
-        <div class="flex items-center space-x-2.5">
-          <div class="w-8 h-8 rounded-lg bg-sky-500/20 flex items-center justify-center text-sky-400 text-sm">
-            <i class="fas fa-image"></i>
-          </div>
-          <div>
-            <h2 class="text-base font-extrabold text-white flex items-center">
-              Brand & Platform Logo Management
-              <span class="ml-2 text-[10px] font-mono bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded border border-sky-500/30">NO SIZE LIMIT</span>
-            </h2>
-            <p class="text-[11px] text-slate-400">Upload official logo to update Admin Panel, Client Portal, and APK mobile app simultaneously</p>
-          </div>
-        </div>
-        <button type="button" id="resetLogoBtn" class="text-xs font-mono text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 transition self-start sm:self-auto cursor-pointer flex items-center">
-          <i class="fas fa-undo mr-1.5 text-amber-400"></i> Reset to Default Logo
-        </button>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
-        <!-- Live Logo Preview -->
-        <div class="flex flex-col items-center justify-center p-4 bg-black/40 rounded-xl border border-white/10 text-center space-y-2">
-          <span class="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Current Active Logo</span>
-          <div class="w-28 h-28 sm:w-32 sm:h-32 p-2 rounded-xl bg-[#0a1020] border border-sky-500/30 flex items-center justify-center overflow-hidden shadow-lg shadow-sky-500/10">
-            <img id="brandLogoPreview" src="/images/logo.png" alt="Current Logo" class="platform-logo-img max-w-full max-h-full object-contain">
-          </div>
-          <span class="text-[10px] text-emerald-400 font-mono"><i class="fas fa-check-circle mr-1"></i> Live Everywhere</span>
-        </div>
-
-        <!-- Upload Form -->
-        <div class="md:col-span-2 space-y-4">
-          <form id="uploadLogoForm" class="space-y-3">
-            <div>
-              <label class="text-xs font-bold text-slate-300 block mb-1">Select New Logo Image File:</label>
-              <div class="relative border-2 border-dashed border-sky-500/30 hover:border-sky-400 rounded-xl p-5 bg-black/30 text-center transition cursor-pointer" id="dropLogoZone">
-                <input type="file" id="logoFileInput" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                <div class="space-y-1">
-                  <i class="fas fa-cloud-upload-alt text-2xl text-sky-400"></i>
-                  <div class="text-xs font-bold text-slate-200" id="logoFileSelectedName">Click to browse or drag & drop logo image</div>
-                  <div class="text-[10px] text-slate-400 font-mono">PNG, JPG, SVG, WebP, GIF • Unlimited file size</div>
-                </div>
-              </div>
-            </div>
-
-            <div id="uploadLogoFeedback" class="hidden text-xs p-2.5 rounded-lg"></div>
-
-            <button type="submit" id="saveLogoBtn" class="btn-gold w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow flex items-center justify-center cursor-pointer">
-              <i class="fas fa-arrow-up-from-bracket mr-2"></i> Save & Apply Logo Everywhere
-            </button>
-          </form>
+        <div class="mt-1 sm:mt-2">
+          <h3 class="text-xs sm:text-xl md:text-2xl font-black text-white truncate">01:00 PM</h3>
+          <p class="text-[8px] sm:text-[11px] text-slate-400 mt-0.5 hidden xs:block truncate">Daily scanner</p>
         </div>
       </div>
     </div>
@@ -451,7 +218,7 @@
           </div>
           <div>
             <h2 class="text-base font-extrabold text-white flex items-center">
-              KYC Identity Review & Biometric Match Desk
+              KYC Identity Review
               <span id="kycPendingCounterBadge" class="ml-2 text-[10px] font-mono bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">0 PENDING</span>
             </h2>
             <p class="text-[11px] text-slate-400">Side-by-side inspection of National ID Front, Back, and real-time Live Selfie before loan authorization</p>
@@ -494,7 +261,7 @@
             <i class="fas fa-clipboard-check"></i>
           </div>
           <div>
-            <h2 class="text-base font-extrabold text-white">Loan Applications Review & Disbursement</h2>
+            <h2 class="text-base font-extrabold text-white">Loan Application Review</h2>
             <p class="text-[11px] text-slate-400">Approve with Hand-to-Hand Cash, bKash or Nagad (৳20/1,000 fee calculator)</p>
           </div>
         </div>
@@ -526,7 +293,7 @@
       </div>
     </div>
 
-    <!-- ─── HISTORICAL "GOOGLE KEEP NOTE" LEDGER & DIGITALIZER ──────────────── -->
+    <!-- ─── COPY AND PASTE FROM GOOGLE NOTES ───────────────────────────────── -->
     <div id="historicalLedgerSection" class="glass-card p-6 space-y-5 border-amber-500/20">
       <div class="flex items-center justify-between border-b border-white/10 pb-3">
         <div class="flex items-center space-x-2">
@@ -535,7 +302,7 @@
           </div>
           <div>
             <h2 class="text-base font-extrabold text-white flex items-center">
-              Historical Ledger & Google Keep Digitalizer
+              Copy and Paste from Google Notes
               <span class="ml-2 text-[10px] font-mono bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">MONEY 💰 NOTES</span>
             </h2>
             <p class="text-[11px] text-slate-400">Directly synchronized with your mobile Google Keep notes (+/- cash customizer)</p>
@@ -943,7 +710,7 @@
           </div>
           <div>
             <label class="text-xs font-bold text-slate-300 block mb-1">Admin Telegram Phone Number:</label>
-            <input type="text" id="adminTelegramPhoneInput" value="01337320544" class="w-full bg-black/60 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white font-mono focus:outline-none focus:border-sky-400">
+            <input type="text" id="adminTelegramPhoneInput" value="01612669922" class="w-full bg-black/60 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white font-mono focus:outline-none focus:border-sky-400">
           </div>
           <button type="button" id="sendTelegramOtpBtn" class="w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-sky-500 hover:bg-sky-400 text-black flex items-center justify-center transition shadow-lg shadow-sky-500/20 cursor-pointer">
             <i class="fab fa-telegram-plane mr-2"></i> Send Telegram OTP
@@ -953,7 +720,7 @@
         <div id="telegramOtpStep2" class="space-y-3 hidden">
           <div class="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-300 flex items-center space-x-2">
             <i class="fas fa-check-circle text-emerald-400"></i>
-            <span>OTP sent to Telegram (01337320544)! Valid for 5 minutes.</span>
+            <span>OTP sent to Telegram (01612669922)! Valid for 5 minutes.</span>
           </div>
           <div>
             <label class="text-xs font-bold text-slate-300 block mb-1">Enter 6-Digit Telegram Passcode:</label>
@@ -1131,6 +898,320 @@
           <button type="button" id="approveKycBtn" class="w-1/2 py-3 rounded-xl btn-emerald font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center cursor-pointer">
             <i class="fas fa-check-circle mr-2"></i> Approve & Unlock Loans
           </button>
+        </div>
+      </div>
+    </div>
+  <!-- ─── EXECUTIVE PLATFORM SETTINGS MODAL ──────────────────────────────── -->
+  <div id="adminSettingsModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 hidden overflow-y-auto">
+    <div class="max-w-4xl w-full glass-card p-5 sm:p-6 space-y-5 relative border-amber-500/30 my-8 shadow-2xl">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between border-b border-white/10 pb-4">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-black font-black text-lg shadow-md shadow-amber-500/20">
+            <i class="fas fa-sliders-h"></i>
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-extrabold text-white">Executive Platform Settings</h3>
+            <p class="text-xs text-slate-400">Configure loan limits, credentials, 2FA channels, and platform branding</p>
+          </div>
+        </div>
+        <button id="closeSettingsModalBtn" class="text-slate-400 hover:text-white text-xl p-1.5 rounded-lg hover:bg-white/5 transition cursor-pointer">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Settings Tabs Header -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-black/50 p-1.5 rounded-xl border border-white/10 text-xs font-bold">
+        <button type="button" id="settingsTabBtnLimits" class="settings-tab-btn active py-2 px-2.5 rounded-lg text-center transition flex items-center justify-center space-x-1.5 cursor-pointer">
+          <i class="fas fa-coins text-amber-400 text-xs"></i>
+          <span class="truncate">Money & Date Limits</span>
+        </button>
+        <button type="button" id="settingsTabBtnPassword" class="settings-tab-btn py-2 px-2.5 rounded-lg text-center transition flex items-center justify-center space-x-1.5 cursor-pointer">
+          <i class="fas fa-key text-sky-400 text-xs"></i>
+          <span class="truncate">Change Password</span>
+        </button>
+        <button type="button" id="settingsTabBtnLogin" class="settings-tab-btn py-2 px-2.5 rounded-lg text-center transition flex items-center justify-center space-x-1.5 cursor-pointer">
+          <i class="fas fa-shield-alt text-emerald-400 text-xs"></i>
+          <span class="truncate">Log-in Option</span>
+        </button>
+        <button type="button" id="settingsTabBtnLogos" class="settings-tab-btn py-2 px-2.5 rounded-lg text-center transition flex items-center justify-center space-x-1.5 cursor-pointer">
+          <i class="fas fa-images text-indigo-400 text-xs"></i>
+          <span class="truncate">App Logos</span>
+        </button>
+      </div>
+
+      <!-- TAB PANE 1: Money and Date Limits -->
+      <div id="settingsPaneLimits" class="space-y-6">
+        <!-- 1. Global Money & Date Limits -->
+        <div class="space-y-4">
+          <div class="flex items-center space-x-2 border-b border-white/10 pb-2">
+            <i class="fas fa-globe text-amber-400 text-sm"></i>
+            <h4 class="text-xs sm:text-sm font-bold text-white uppercase tracking-wider">Money and Date Limits (Global)</h4>
+          </div>
+          <form id="globalForm" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <label class="text-[11px] font-bold text-slate-300 block mb-1">Min Loan (BDT):</label>
+              <input type="number" id="globalMinAmount" min="100" step="50" required class="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-amber-400">
+            </div>
+            <div>
+              <label class="text-[11px] font-bold text-slate-300 block mb-1">Max Loan (BDT):</label>
+              <input type="number" id="globalMaxAmount" min="500" step="500" required class="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-amber-400">
+            </div>
+            <div>
+              <label class="text-[11px] font-bold text-slate-300 block mb-1">Min Duration (Days):</label>
+              <input type="number" id="globalMinDays" min="1" max="365" required class="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-amber-400">
+            </div>
+            <div>
+              <label class="text-[11px] font-bold text-slate-300 block mb-1">Max Duration (Days):</label>
+              <input type="number" id="globalMaxDays" min="1" max="365" required class="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-amber-400">
+            </div>
+            <div class="sm:col-span-2 md:col-span-4 flex items-center justify-between pt-1">
+              <span class="text-[10px] text-slate-500">Applies as baseline for all clients unless custom client override exists.</span>
+              <button type="submit" class="btn-gold py-2 px-5 rounded-lg font-black text-xs uppercase tracking-wider cursor-pointer">
+                <i class="fas fa-save mr-1.5"></i> Save Global Limits
+              </button>
+            </div>
+          </form>
+          <div id="globalFeedback" class="hidden text-xs font-bold p-2.5 rounded-lg"></div>
+        </div>
+
+        <!-- 2. Per-Client Custom Overrides -->
+        <div class="space-y-4 pt-4 border-t border-white/10">
+          <div class="flex items-center justify-between border-b border-white/10 pb-2">
+            <div class="flex items-center space-x-2">
+              <i class="fas fa-user-tag text-emerald-400 text-sm"></i>
+              <h4 class="text-xs sm:text-sm font-bold text-white uppercase tracking-wider">Per-Client Custom Limits & Overrides</h4>
+            </div>
+          </div>
+          <div>
+            <label class="text-[11px] font-bold text-slate-300 block mb-1">Select Client to Customize:</label>
+            <select id="clientSelector" class="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400">
+              <option value="">-- Choose a registered client to override limits --</option>
+            </select>
+          </div>
+
+          <div id="overridePanel" class="hidden p-4 rounded-xl bg-black/40 border border-emerald-500/30 space-y-4">
+            <div class="flex items-center justify-between border-b border-white/10 pb-2">
+              <div>
+                <h5 id="clientSelectedName" class="text-xs font-bold text-white">Client Name</h5>
+                <span id="clientSelectedId" class="text-[10px] font-mono text-emerald-400">01xxxxxxxxx</span>
+              </div>
+              <span class="text-[10px] font-mono bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30 font-bold">CUSTOM OVERRIDE</span>
+            </div>
+
+            <form id="clientOverrideForm" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <label class="text-[11px] font-bold text-slate-300 block mb-1">Client Min (BDT):</label>
+                <input type="number" id="overrideMinAmount" min="100" step="50" required class="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-400">
+              </div>
+              <div>
+                <label class="text-[11px] font-bold text-slate-300 block mb-1">Client Max (BDT):</label>
+                <input type="number" id="overrideMaxAmount" min="500" step="500" required class="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-400">
+              </div>
+              <div>
+                <label class="text-[11px] font-bold text-slate-300 block mb-1">Client Min Days:</label>
+                <input type="number" id="overrideMinDays" min="1" max="365" required class="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-400">
+              </div>
+              <div>
+                <label class="text-[11px] font-bold text-slate-300 block mb-1">Client Max Days:</label>
+                <input type="number" id="overrideMaxDays" min="1" max="365" required class="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-400">
+              </div>
+              <div class="sm:col-span-2 md:col-span-4">
+                <label class="text-[11px] font-bold text-slate-300 block mb-1">Reason / Memo for Override:</label>
+                <input type="text" id="overrideNote" placeholder="e.g. Trusted VIP client / Higher credit rating" class="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400">
+              </div>
+              <div class="sm:col-span-2 md:col-span-4 flex items-center justify-between pt-1">
+                <button type="button" id="resetOverrideBtn" class="px-3.5 py-2 rounded-lg bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 text-xs font-bold border border-rose-500/30 transition cursor-pointer">
+                  <i class="fas fa-trash-alt mr-1.5"></i> Clear Override
+                </button>
+                <button type="submit" class="btn-emerald py-2 px-5 rounded-lg font-black text-xs uppercase tracking-wider cursor-pointer">
+                  <i class="fas fa-check mr-1.5"></i> Save Client Override
+                </button>
+              </div>
+            </form>
+            <div id="overrideFeedback" class="hidden text-xs font-bold p-2.5 rounded-lg"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB PANE 2: Change Password -->
+      <div id="settingsPanePassword" class="space-y-4 hidden">
+        <div class="flex items-center space-x-2 border-b border-white/10 pb-2">
+          <i class="fas fa-key text-sky-400 text-sm"></i>
+          <h4 class="text-xs sm:text-sm font-bold text-white uppercase tracking-wider">Change Admin Master Password</h4>
+        </div>
+        <p class="text-xs text-slate-400">Update your root executive password. This password allows instant 1-click administrative unlocking.</p>
+        
+        <form id="changePasswordForm" class="max-w-md space-y-3.5 pt-2">
+          <div>
+            <label class="text-xs font-bold text-slate-300 block mb-1">Current Master Password:</label>
+            <input type="password" id="currentAdminPassInput" placeholder="Enter existing password" required class="w-full bg-black/60 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-sky-400">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-300 block mb-1">New Master Password:</label>
+            <input type="password" id="newAdminPassInput" placeholder="Enter new password (min 4 characters)" required class="w-full bg-black/60 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-sky-400">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-300 block mb-1">Confirm New Master Password:</label>
+            <input type="password" id="confirmAdminPassInput" placeholder="Repeat new password" required class="w-full bg-black/60 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-sky-400">
+          </div>
+          <div id="changePasswordFeedback" class="hidden text-xs font-bold p-2.5 rounded-lg"></div>
+          <button type="submit" id="saveNewPasswordBtn" class="w-full py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-black text-xs uppercase tracking-wider transition shadow cursor-pointer">
+            <i class="fas fa-save mr-2"></i> Save New Master Password
+          </button>
+        </form>
+      </div>
+
+      <!-- TAB PANE 3: Log-in Option -->
+      <div id="settingsPaneLogin" class="space-y-4 hidden">
+        <div class="flex items-center space-x-2 border-b border-white/10 pb-2">
+          <i class="fas fa-shield-alt text-emerald-400 text-sm"></i>
+          <h4 class="text-xs sm:text-sm font-bold text-white uppercase tracking-wider">Authorized 2FA Log-in Options</h4>
+        </div>
+        <p class="text-xs text-slate-400">Active multi-channel credentials authorized for Executive Administrator login.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          <!-- Channel 1: Telegram 2FA -->
+          <div class="p-4 rounded-xl bg-black/40 border border-sky-500/30 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2 text-sky-400 font-bold text-xs">
+                <i class="fab fa-telegram-plane text-base"></i>
+                <span>Telegram 2FA Channel</span>
+              </div>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30 font-bold">CONNECTED</span>
+            </div>
+            <div>
+              <span class="text-[10px] font-bold text-slate-400 uppercase block">Authorized Admin Phone Number:</span>
+              <span class="text-sm font-mono font-bold text-emerald-400 block mt-0.5">01612669922</span>
+            </div>
+            <div class="text-[11px] text-slate-400">
+              Dispatches 6-digit OTP codes via <span class="text-amber-400 font-bold">@money_loan_bot</span>.
+            </div>
+          </div>
+
+          <!-- Channel 2: Email 2FA -->
+          <div class="p-4 rounded-xl bg-black/40 border border-indigo-500/30 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2 text-indigo-400 font-bold text-xs">
+                <i class="fas fa-envelope text-base"></i>
+                <span>Email 2FA Channel</span>
+              </div>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold">VERIFIED</span>
+            </div>
+            <div>
+              <span class="text-[10px] font-bold text-slate-400 uppercase block">Authorized Admin Root Email:</span>
+              <span class="text-sm font-mono font-bold text-amber-300 block mt-0.5">zillionprince6@gmail.com</span>
+            </div>
+            <div class="text-[11px] text-slate-400">
+              Dispatches encrypted single-use codes directly to executive inbox.
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-3 flex items-center justify-between border-t border-white/10">
+          <span class="text-xs text-slate-400">Want to test or switch authentication now?</span>
+          <button type="button" id="triggerAdminLoginModalBtn" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase tracking-wider transition shadow cursor-pointer">
+            <i class="fas fa-lock-open mr-1.5"></i> Open Login Modal
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB PANE 4: App Logos (Admin Panel & User/Client-Panel) -->
+      <div id="settingsPaneLogos" class="space-y-5 hidden">
+        <div class="flex items-center space-x-2 border-b border-white/10 pb-2">
+          <i class="fas fa-images text-indigo-400 text-sm"></i>
+          <h4 class="text-xs sm:text-sm font-bold text-white uppercase tracking-wider">Brand & Platform Logo Management</h4>
+        </div>
+        <p class="text-xs text-slate-400">Customize the branding logos for both the Admin Command Center and the Client Web Portal.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+          <!-- Logo 1: Admin Panel App Logo -->
+          <div class="p-4 rounded-xl bg-black/40 border border-amber-500/30 space-y-4">
+            <div class="flex items-center justify-between border-b border-white/10 pb-2">
+              <div class="flex items-center space-x-2">
+                <i class="fas fa-user-shield text-amber-400 text-sm"></i>
+                <h5 class="text-xs font-extrabold text-white uppercase">Change Logo of 'Admin Panel' App</h5>
+              </div>
+              <span class="text-[10px] font-mono text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/30">ADMIN UI</span>
+            </div>
+
+            <div class="flex items-center space-x-4">
+              <div class="w-16 h-16 rounded-xl bg-black/80 border border-white/10 p-2 flex items-center justify-center flex-shrink-0">
+                <img id="adminLogoPreview" src="/images/logo.png" alt="Admin Logo" class="max-h-full max-w-full object-contain platform-logo-img">
+              </div>
+              <div class="text-xs text-slate-400 space-y-0.5">
+                <div class="font-bold text-white">Current Admin Logo</div>
+                <div class="text-[11px]">Displays on Admin Header, Drawer & Reports.</div>
+              </div>
+            </div>
+
+            <form id="uploadAdminLogoForm" class="space-y-3">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-300 mb-1">Select New Admin Logo Image:</label>
+                <input type="file" id="adminLogoFileInput" accept="image/*" class="w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-white/10 file:text-white hover:file:bg-white/20 cursor-pointer">
+                <span id="adminLogoFileSelectedName" class="text-[10px] text-slate-500 block mt-1">Supports PNG, JPG, SVG, WebP (Unlimited size)</span>
+              </div>
+              <div id="uploadAdminLogoFeedback" class="hidden text-xs font-bold p-2.5 rounded-lg"></div>
+              <div class="flex items-center space-x-2 pt-1">
+                <button type="button" id="resetAdminLogoBtn" class="w-1/3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold border border-white/10 transition cursor-pointer">
+                  Reset Default
+                </button>
+                <button type="submit" id="saveAdminLogoBtn" class="w-2/3 btn-gold py-2 rounded-lg font-black text-xs uppercase tracking-wider cursor-pointer">
+                  <i class="fas fa-upload mr-1.5"></i> Update Admin Logo
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Logo 2: User/Client Panel App Logo -->
+          <div class="p-4 rounded-xl bg-black/40 border border-emerald-500/30 space-y-4">
+            <div class="flex items-center justify-between border-b border-white/10 pb-2">
+              <div class="flex items-center space-x-2">
+                <i class="fas fa-mobile-alt text-emerald-400 text-sm"></i>
+                <h5 class="text-xs font-extrabold text-white uppercase">Change Logo of 'User/Client-Panel' App</h5>
+              </div>
+              <span class="text-[10px] font-mono text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30">CLIENT UI</span>
+            </div>
+
+            <div class="flex items-center space-x-4">
+              <div class="w-16 h-16 rounded-xl bg-black/80 border border-white/10 p-2 flex items-center justify-center flex-shrink-0">
+                <img id="clientLogoPreview" src="/images/logo.png" alt="Client Logo" class="max-h-full max-w-full object-contain">
+              </div>
+              <div class="text-xs text-slate-400 space-y-0.5">
+                <div class="font-bold text-white">Current Client App Logo</div>
+                <div class="text-[11px]">Displays on Client Portal Header, Login & PWA.</div>
+              </div>
+            </div>
+
+            <form id="uploadClientLogoForm" class="space-y-3">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-300 mb-1">Select New Client Logo Image:</label>
+                <input type="file" id="clientLogoFileInput" accept="image/*" class="w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-white/10 file:text-white hover:file:bg-white/20 cursor-pointer">
+                <span id="clientLogoFileSelectedName" class="text-[10px] text-slate-500 block mt-1">Supports PNG, JPG, SVG, WebP (Unlimited size)</span>
+              </div>
+              <div id="uploadClientLogoFeedback" class="hidden text-xs font-bold p-2.5 rounded-lg"></div>
+              <div class="flex items-center space-x-2 pt-1">
+                <button type="button" id="resetClientLogoBtn" class="w-1/3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold border border-white/10 transition cursor-pointer">
+                  Reset Default
+                </button>
+                <button type="submit" id="saveClientLogoBtn" class="w-2/3 btn-emerald py-2 rounded-lg font-black text-xs uppercase tracking-wider cursor-pointer">
+                  <i class="fas fa-upload mr-1.5"></i> Update Client Logo
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Hidden backward-compatibility elements to avoid breaking any legacy references -->
+        <div class="hidden">
+          <img id="brandLogoPreview" src="/images/logo.png">
+          <form id="uploadLogoForm">
+            <input type="file" id="logoFileInput">
+            <span id="logoFileSelectedName"></span>
+            <div id="uploadLogoFeedback"></div>
+            <button id="saveLogoBtn"></button>
+            <button id="resetLogoBtn"></button>
+          </form>
         </div>
       </div>
     </div>
