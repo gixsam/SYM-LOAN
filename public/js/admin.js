@@ -153,6 +153,15 @@ const DOM = {
   confirmAdminPassInput: document.getElementById('confirmAdminPassInput'),
   changePasswordFeedback: document.getElementById('changePasswordFeedback'),
   saveNewPasswordBtn: document.getElementById('saveNewPasswordBtn'),
+
+  // Brand Logo Management
+  brandLogoPreview: document.getElementById('brandLogoPreview'),
+  uploadLogoForm: document.getElementById('uploadLogoForm'),
+  logoFileInput: document.getElementById('logoFileInput'),
+  logoFileSelectedName: document.getElementById('logoFileSelectedName'),
+  uploadLogoFeedback: document.getElementById('uploadLogoFeedback'),
+  saveLogoBtn: document.getElementById('saveLogoBtn'),
+  resetLogoBtn: document.getElementById('resetLogoBtn'),
 };
 
 function initAdmin() {
@@ -196,6 +205,12 @@ async function fetchSettings() {
   DOM.globalMaxAmount.value = g.max_amount;
   DOM.globalMinDays.value = g.min_duration_days;
   DOM.globalMaxDays.value = g.max_duration_days;
+
+  // Dynamically update active platform logo everywhere in Admin Panel
+  const logoUrl = json.settings.platform_logo_url || '/images/logo.png';
+  document.querySelectorAll('.platform-logo-img').forEach(img => {
+    img.src = logoUrl;
+  });
 }
 
 // ─── Clients API ──────────────────────────────────────────────────────────────
@@ -1254,6 +1269,92 @@ function setupEvents() {
       } finally {
         DOM.saveNewPasswordBtn.disabled = false;
         DOM.saveNewPasswordBtn.innerHTML = '<i class="fas fa-save mr-2"></i> Save New Master Password';
+      }
+    });
+  }
+
+  // ─── Brand Logo Management Form Handlers ──────────────────────────────────
+  if (DOM.logoFileInput) {
+    DOM.logoFileInput.addEventListener('change', () => {
+      const file = DOM.logoFileInput.files[0];
+      if (file) {
+        DOM.logoFileSelectedName.textContent = `Selected: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (DOM.brandLogoPreview) DOM.brandLogoPreview.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  if (DOM.uploadLogoForm) {
+    DOM.uploadLogoForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const file = DOM.logoFileInput?.files[0];
+      if (!file) {
+        alert('Please choose an image file first.');
+        return;
+      }
+
+      DOM.saveLogoBtn.disabled = true;
+      DOM.saveLogoBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Uploading Logo...';
+      const feedback = DOM.uploadLogoFeedback;
+      feedback.className = 'hidden text-xs p-2.5 rounded-lg';
+
+      const formData = new FormData();
+      formData.append('logo', file);
+
+      try {
+        const res = await fetch('/api/admin/branding/upload-logo', {
+          method: 'POST',
+          headers: { 'x-admin-key': ADMIN_KEY },
+          body: formData,
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.message);
+
+        feedback.className = 'text-xs p-2.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 block';
+        feedback.textContent = '✅ Brand logo uploaded & applied live everywhere!';
+
+        const updatedUrl = `${json.logo_url}?t=${Date.now()}`;
+        document.querySelectorAll('.platform-logo-img').forEach(img => {
+          img.src = updatedUrl;
+        });
+        DOM.uploadLogoForm.reset();
+        DOM.logoFileSelectedName.textContent = 'Click to browse or drag & drop logo image';
+        setTimeout(() => feedback.classList.add('hidden'), 5000);
+      } catch (err) {
+        feedback.className = 'text-xs p-2.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30 block';
+        feedback.textContent = `Upload Failed: ${err.message}`;
+      } finally {
+        DOM.saveLogoBtn.disabled = false;
+        DOM.saveLogoBtn.innerHTML = '<i class="fas fa-arrow-up-from-bracket mr-2"></i> Save & Apply Logo Everywhere';
+      }
+    });
+  }
+
+  if (DOM.resetLogoBtn) {
+    DOM.resetLogoBtn.addEventListener('click', async () => {
+      if (!confirm('Reset platform brand logo to the official default logo?')) return;
+      DOM.resetLogoBtn.disabled = true;
+      try {
+        const res = await fetch('/api/admin/branding/reset-logo', {
+          method: 'POST',
+          headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.message);
+
+        const defUrl = `/images/logo.png?t=${Date.now()}`;
+        document.querySelectorAll('.platform-logo-img').forEach(img => {
+          img.src = defUrl;
+        });
+        alert('✅ Logo reset to official default logo.');
+      } catch (err) {
+        alert(`Reset Failed: ${err.message}`);
+      } finally {
+        DOM.resetLogoBtn.disabled = false;
       }
     });
   }

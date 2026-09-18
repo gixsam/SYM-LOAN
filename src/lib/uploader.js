@@ -14,8 +14,9 @@ const fs     = require('fs');
 
 const RECEIPTS_DIR = path.join(__dirname, '../../public/uploads/receipts');
 const AVATARS_DIR  = path.join(__dirname, '../../public/uploads/avatars');
+const BRANDING_DIR = path.join(__dirname, '../../public/uploads/branding');
 
-[RECEIPTS_DIR, AVATARS_DIR].forEach(dir => {
+[RECEIPTS_DIR, AVATARS_DIR, BRANDING_DIR].forEach(dir => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
@@ -67,10 +68,37 @@ const uploadAvatar = multer({
   fileFilter: imageFilter,
 });
 
+// ─── 3. Brand & Platform Logo Storage (Unlimited Size) ────────────────────────
+const brandingStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, BRANDING_DIR),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || '.png';
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e4);
+    cb(null, `logo-${uniqueSuffix}${ext}`);
+  },
+});
+
+const uploadBrandLogo = multer({
+  storage: brandingStorage,
+  limits: { fileSize: 250 * 1024 * 1024 }, // 250MB unconstrained size limit
+  fileFilter: (_req, file, cb) => {
+    const allowed = /jpeg|jpg|png|webp|gif|svg|ico/;
+    const isExtOk = allowed.test(path.extname(file.originalname).toLowerCase());
+    const isMimeOk = file.mimetype.startsWith('image/');
+    if (isExtOk || isMimeOk) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files (PNG, JPG, SVG, WebP, GIF) are allowed for brand logos.'));
+    }
+  },
+});
+
 module.exports = {
   uploadReceipt,
   uploadAvatar,
+  uploadBrandLogo,
   RECEIPTS_DIR,
   AVATARS_DIR,
+  BRANDING_DIR,
   UPLOADS_DIR: RECEIPTS_DIR,
 };

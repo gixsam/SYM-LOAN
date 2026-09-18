@@ -16,7 +16,7 @@
 const express          = require('express');
 const { supabaseAdmin } = require('../lib/supabase');
 const loanSettings     = require('../lib/loanSettings');
-const { uploadReceipt } = require('../lib/uploader');
+const { uploadReceipt, uploadBrandLogo } = require('../lib/uploader');
 const otpManager       = require('../lib/otpManager');
 const { sendTelegramOtp } = require('../bot/index');
 
@@ -155,6 +155,39 @@ router.post('/settings/change-password', requireAdmin, (req, res) => {
     return res.status(400).json(result);
   }
   res.json(result);
+});
+
+// POST /api/admin/branding/upload-logo — Unlimited size logo upload
+router.post('/branding/upload-logo', requireAdmin, (req, res) => {
+  uploadBrandLogo.single('logo')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ success: false, message: `Upload error: ${err.message}` });
+    }
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Please select an image file to upload.' });
+    }
+
+    const relativeUrl = `/uploads/branding/${req.file.filename}`;
+    loanSettings.updatePlatformLogo(relativeUrl);
+
+    return res.json({
+      success: true,
+      message: 'Platform brand logo updated successfully.',
+      logo_url: relativeUrl,
+      file_name: req.file.filename,
+      file_size: req.file.size,
+    });
+  });
+});
+
+// POST /api/admin/branding/reset-logo — Reset back to official default
+router.post('/branding/reset-logo', requireAdmin, (_req, res) => {
+  loanSettings.updatePlatformLogo('/images/logo.png');
+  return res.json({
+    success: true,
+    message: 'Brand logo reset to official default.',
+    logo_url: '/images/logo.png',
+  });
 });
 
 // POST /api/admin/settings/global

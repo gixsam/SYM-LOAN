@@ -14,11 +14,51 @@
 > **Telegram Bot:** `@money_loan_bot` (Live Token: `8846454332:AAGl0VAri-CNPRcDCAjJvsHOcA00BJo6hhI`)  
 > **Technology Stack:** Node.js, Express, Supabase (PostgreSQL), Multer, jsPDF, node-telegram-bot-api, node-cron, CORS, Helmet, dotenv, HTML5, Tailwind CSS, FontAwesome 6, Cloudflare Tunnel  
 > **Live Local Server:** `http://localhost:5000` (Client: `/`, Admin: `/admin`)  
-> **Last Synchronized:** 2026-09-18 11:55 Local Time  
+> **Last Synchronized:** 2026-09-18 12:30 Local Time  
 
 ---
 
 ## 🚀 Logged System Updates & Changelog
+
+### [Update-046] — Executive Brand Logo Integration, Navbar Mobile Space Optimization & Unlimited File Size Logo Upload Engine (2026-09-18)
+**Type:** UI/UX Space Optimization, Branding Architecture, Unlimited Multer Upload Engine, Multi-Portal Dynamic Synchronization  
+**Status:** ✅ COMPLETED, TESTED & DUAL-SYNCED ACROSS WORKPLACES  
+
+#### User Request & Objectives:
+1. **Remove Bulky Navbar Header and Replace with Brand Logo (Photo 1 & Photo 2):**
+   - In Admin Panel (`public/admin.html`), remove the crown icon and large 3-line text block (`SYM ADMIN EMPIRE SYM LOAN - Executive Command Center`) circled in green in Photo 1.
+   - Replace it with the official square/monogram brand logo provided in Photo 2 to save maximum horizontal space and eliminate mobile viewport border breaking.
+2. **Dynamic Logo Upload & Management System (Unlimited File Size):**
+   - Add a logo upload section in the Admin Panel with **no size limit** ("There will be no size or limit for logo from the admin panel").
+   - Admin can upload a new brand logo at any time; the uploaded logo instantly and dynamically updates across the Admin Panel, Client/User Portal, and APK mobile app view.
+   - Provide a 1-click "Reset to Default Logo" option.
+
+#### Architecture & Implementation Details:
+1. **Brand Asset Processing & Standardization:**
+   - Extracted official monogram brand logo from user-uploaded Photo 2 (`media_1789712508356.jpg`) and saved to `public/images/logo.png` and `public/uploads/branding/logo.png`.
+   - Linked favicon and Apple touch icon in `public/admin.html` and `public/index.html`.
+2. **Backend Dynamic Logo Settings Architecture (`src/lib/loanSettings.js`):**
+   - Added `DEFAULT_PLATFORM_LOGO = '/images/logo.png'` and `platform_logo_url` in system settings state.
+   - Built `getPlatformLogo()` and `updatePlatformLogo(url)` with JSON persistence in `data/loanSettings.json`.
+   - Included `logo_url` in `getLimitsForClient(clientId)` and `/api/config/limits` payload.
+3. **Unlimited File Size Multer Upload Engine (`src/lib/uploader.js`):**
+   - Configured `uploadBrandLogo` with destination `public/uploads/branding/`.
+   - Enabled unconstrained file size capacity (250MB buffer ceiling) to accept raw high-resolution branding assets with zero size rejection errors, strictly validating image mime types (`image/*`).
+4. **Admin & Public API Endpoints (`src/routes/adminApi.js`, `src/routes/api.js`):**
+   - `POST /api/admin/branding/upload-logo` (requires admin auth key, uploads file, updates settings JSON, returns updated logo URL).
+   - `POST /api/admin/branding/reset-logo` (requires admin auth key, resets logo back to `/images/logo.png`).
+   - `GET /api/config/branding` and `GET /api/config/limits` providing public read access to active platform logo.
+5. **Admin Frontend Modernization (`public/admin.html`, `public/js/admin.js`):**
+   - Top navbar crown icon and bulky 3-line text replaced with `<img id="adminNavLogo" class="platform-logo-img ...">`, reclaiming ~70% navbar width and ensuring pristine mobile rendering with no overflow.
+   - Updated slide-out drawer header with brand logo.
+   - Added drawer menu jump link: `<a href="#brandLogoSection">Brand Logo Upload</a>`.
+   - Built dedicated **Brand & Platform Logo Management** card (`#brandLogoSection`) in Admin Panel featuring live logo preview, drag-and-drop file picker, upload form, and Reset button.
+   - `public/js/admin.js` dynamically binds active logo to all `.platform-logo-img` elements on DOM load, handles AJAX multipart upload with feedback, and handles 1-click reset.
+6. **Client Portal & APK App Dynamic Synchronization (`public/index.html`, `public/js/app.js`):**
+   - Top navbar and login modal header icons replaced with `.platform-logo-img`.
+   - `public/js/app.js` fetches `logo_url` during initial limits configuration and dynamically updates all `.platform-logo-img` elements in real time.
+
+---
 
 ### [Update-045] — Phase 6: 3-Option Admin Authentication, Master Password Management, Native Excel (.xlsx) Export & Mobile Viewport Anti-Overflow (2026-09-18)
 **Type:** Authentication Security, Dynamic Password Management, Multi-Format Ledger Reporting, Mobile UI/UX Hardening & Telegram Access Configuration  

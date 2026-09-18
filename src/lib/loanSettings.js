@@ -25,12 +25,14 @@ const DEFAULT_GLOBAL = {
 };
 
 const DEFAULT_ADMIN_PASSWORD = 'admin';
+const DEFAULT_PLATFORM_LOGO = '/images/logo.png';
 
 // In-memory cache backed by JSON file
 let settingsState = {
   global: { ...DEFAULT_GLOBAL },
   client_overrides: {},
   admin_password: DEFAULT_ADMIN_PASSWORD,
+  platform_logo_url: DEFAULT_PLATFORM_LOGO,
 };
 
 function loadSettings() {
@@ -42,13 +44,19 @@ function loadSettings() {
         global: { ...DEFAULT_GLOBAL, ...(parsed.global || {}) },
         client_overrides: parsed.client_overrides || {},
         admin_password: parsed.admin_password || DEFAULT_ADMIN_PASSWORD,
+        platform_logo_url: parsed.platform_logo_url || DEFAULT_PLATFORM_LOGO,
       };
     } else {
       saveSettings();
     }
   } catch (err) {
     console.error('[LoanSettings] Error loading settings file:', err.message);
-    settingsState = { global: { ...DEFAULT_GLOBAL }, client_overrides: {}, admin_password: DEFAULT_ADMIN_PASSWORD };
+    settingsState = {
+      global: { ...DEFAULT_GLOBAL },
+      client_overrides: {},
+      admin_password: DEFAULT_ADMIN_PASSWORD,
+      platform_logo_url: DEFAULT_PLATFORM_LOGO,
+    };
   }
 }
 
@@ -111,6 +119,7 @@ function getLimitsForClient(clientId) {
     today: formatDate(today),
     note: base.note || null,
     updated_at: base.updated_at || settingsState.global.updated_at,
+    logo_url: settingsState.platform_logo_url || DEFAULT_PLATFORM_LOGO,
   };
 }
 
@@ -251,6 +260,18 @@ function updateAdminPassword(currentPwd, newPwd) {
   return { success: true, message: 'Admin master password updated successfully.' };
 }
 
+function getPlatformLogo() {
+  loadSettings();
+  return settingsState.platform_logo_url || DEFAULT_PLATFORM_LOGO;
+}
+
+function updatePlatformLogo(url) {
+  loadSettings();
+  settingsState.platform_logo_url = url || DEFAULT_PLATFORM_LOGO;
+  saveSettings();
+  return { success: true, logo_url: settingsState.platform_logo_url };
+}
+
 // Initial load on startup
 loadSettings();
 
@@ -263,4 +284,7 @@ module.exports = {
   validateLoanRequest,
   verifyAdminPassword,
   updateAdminPassword,
+  getPlatformLogo,
+  updatePlatformLogo,
+  DEFAULT_PLATFORM_LOGO,
 };

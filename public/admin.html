@@ -13,6 +13,9 @@
   <!-- jsPDF for vector voucher generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="/js/voucher.js"></script>
+  <!-- Favicon & PWA Branding -->
+  <link rel="icon" type="image/png" href="/images/logo.png">
+  <link rel="apple-touch-icon" href="/images/logo.png">
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body class="bg-[#070b14] text-slate-100 min-h-screen">
@@ -20,25 +23,17 @@
   <!-- ─── TOP NAVBAR (MOBILE RESPONSIVE & EXECUTIVE) ────────────────────────── -->
   <nav class="sticky top-0 z-30 bg-[#070b14]/90 backdrop-blur-xl border-b border-white/10 px-3 sm:px-6 py-2.5 sm:py-3.5">
     <div class="max-w-7xl mx-auto flex items-center justify-between gap-2">
-      <!-- Left side: Hamburger + Logo + Title -->
+      <!-- Left side: Hamburger + Official Brand Logo (Space-Saving) -->
       <div class="flex items-center space-x-2 sm:space-x-3 min-w-0">
         <!-- Hamburger Menu Button -->
         <button id="hamburgerBtn" title="Open Navigation Menu" class="p-2 sm:p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-amber-400 border border-white/10 text-sm sm:text-base transition flex-shrink-0 flex items-center justify-center cursor-pointer">
           <i class="fas fa-bars"></i>
         </button>
 
-        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-black font-black text-sm sm:text-lg shadow-lg shadow-amber-500/20 flex-shrink-0">
-          <i class="fas fa-crown"></i>
-        </div>
-        <div class="min-w-0">
-          <div class="flex items-center space-x-1.5 sm:space-x-2">
-            <span class="text-[10px] sm:text-xs font-black tracking-widest text-amber-400 uppercase">SYM EMPIRE</span>
-            <span class="text-[9px] sm:text-[10px] font-mono bg-amber-500/20 text-amber-300 px-1 py-0.2 rounded border border-amber-500/30">ADMIN</span>
-          </div>
-          <h1 class="text-xs sm:text-sm md:text-base font-extrabold text-white truncate max-w-[150px] sm:max-w-xs md:max-w-none">
-            Executive Command Center
-          </h1>
-        </div>
+        <!-- Official Brand Logo (Replaces bulky text & crown to save maximum space) -->
+        <a href="/admin" class="flex items-center flex-shrink-0 group">
+          <img id="adminNavLogo" class="platform-logo-img h-8 sm:h-10 w-auto max-w-[150px] sm:max-w-[180px] rounded-lg object-contain shadow-md transition group-hover:scale-105 border border-white/10 p-0.5 bg-black/40" src="/images/logo.png" alt="SYM EMPIRE">
+        </a>
       </div>
 
       <!-- Right side: Controls & Login -->
@@ -69,9 +64,7 @@
     <div class="space-y-6">
       <div class="flex items-center justify-between border-b border-white/10 pb-4">
         <div class="flex items-center space-x-2.5">
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-black font-black text-sm">
-            <i class="fas fa-crown"></i>
-          </div>
+          <img class="platform-logo-img h-8 w-auto rounded-lg object-contain shadow-md border border-white/10 p-0.5 bg-black/40" src="/images/logo.png" alt="SYM EMPIRE">
           <div>
             <div class="text-[10px] font-black tracking-widest text-amber-400">SYM EMPIRE</div>
             <div class="text-xs font-bold text-white">Section Menu</div>
@@ -110,6 +103,10 @@
         <a href="#clientRegistrySection" class="drawer-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition">
           <i class="fas fa-address-book text-teal-400 w-5"></i>
           <span>Accounts & Strikes</span>
+        </a>
+        <a href="#brandLogoSection" class="drawer-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition">
+          <i class="fas fa-image text-sky-400 w-5"></i>
+          <span>Brand Logo Upload</span>
         </a>
         <a href="#adminSecuritySection" class="drawer-link flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition">
           <i class="fas fa-shield-alt text-rose-400 w-5"></i>
@@ -381,6 +378,61 @@
           <button type="button" id="triggerAdminLoginModalBtn" class="w-full py-2.5 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-bold flex items-center justify-center transition border border-white/10 cursor-pointer">
             <i class="fas fa-shield-alt mr-2 text-amber-400"></i> Open 3-Option Admin Login Modal
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── BRAND LOGO MANAGEMENT (UNLIMITED SIZE) ──────────────────────────── -->
+    <div id="brandLogoSection" class="glass-card p-6 border-sky-500/30 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-sky-500/20 flex items-center justify-center text-sky-400 text-sm">
+            <i class="fas fa-image"></i>
+          </div>
+          <div>
+            <h2 class="text-base font-extrabold text-white flex items-center">
+              Brand & Platform Logo Management
+              <span class="ml-2 text-[10px] font-mono bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded border border-sky-500/30">NO SIZE LIMIT</span>
+            </h2>
+            <p class="text-[11px] text-slate-400">Upload official logo to update Admin Panel, Client Portal, and APK mobile app simultaneously</p>
+          </div>
+        </div>
+        <button type="button" id="resetLogoBtn" class="text-xs font-mono text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 transition self-start sm:self-auto cursor-pointer flex items-center">
+          <i class="fas fa-undo mr-1.5 text-amber-400"></i> Reset to Default Logo
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+        <!-- Live Logo Preview -->
+        <div class="flex flex-col items-center justify-center p-4 bg-black/40 rounded-xl border border-white/10 text-center space-y-2">
+          <span class="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Current Active Logo</span>
+          <div class="w-28 h-28 sm:w-32 sm:h-32 p-2 rounded-xl bg-[#0a1020] border border-sky-500/30 flex items-center justify-center overflow-hidden shadow-lg shadow-sky-500/10">
+            <img id="brandLogoPreview" src="/images/logo.png" alt="Current Logo" class="platform-logo-img max-w-full max-h-full object-contain">
+          </div>
+          <span class="text-[10px] text-emerald-400 font-mono"><i class="fas fa-check-circle mr-1"></i> Live Everywhere</span>
+        </div>
+
+        <!-- Upload Form -->
+        <div class="md:col-span-2 space-y-4">
+          <form id="uploadLogoForm" class="space-y-3">
+            <div>
+              <label class="text-xs font-bold text-slate-300 block mb-1">Select New Logo Image File:</label>
+              <div class="relative border-2 border-dashed border-sky-500/30 hover:border-sky-400 rounded-xl p-5 bg-black/30 text-center transition cursor-pointer" id="dropLogoZone">
+                <input type="file" id="logoFileInput" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                <div class="space-y-1">
+                  <i class="fas fa-cloud-upload-alt text-2xl text-sky-400"></i>
+                  <div class="text-xs font-bold text-slate-200" id="logoFileSelectedName">Click to browse or drag & drop logo image</div>
+                  <div class="text-[10px] text-slate-400 font-mono">PNG, JPG, SVG, WebP, GIF • Unlimited file size</div>
+                </div>
+              </div>
+            </div>
+
+            <div id="uploadLogoFeedback" class="hidden text-xs p-2.5 rounded-lg"></div>
+
+            <button type="submit" id="saveLogoBtn" class="btn-gold w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow flex items-center justify-center cursor-pointer">
+              <i class="fas fa-arrow-up-from-bracket mr-2"></i> Save & Apply Logo Everywhere
+            </button>
+          </form>
         </div>
       </div>
     </div>

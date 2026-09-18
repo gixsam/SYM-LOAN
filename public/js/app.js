@@ -165,6 +165,10 @@ async function fetchLimits(clientId) {
     const json = await res.json();
     if (res.ok && json.success) {
       applyLimits(json.limits);
+      const logoUrl = json.logo_url || json.limits?.logo_url || '/images/logo.png';
+      document.querySelectorAll('.platform-logo-img').forEach(img => {
+        img.src = logoUrl;
+      });
     }
   } catch (err) {
     console.error('Error fetching limits:', err);

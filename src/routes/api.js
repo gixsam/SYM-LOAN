@@ -43,13 +43,22 @@ router.get('/health', (req, res) => {
 });
 
 // ─── Loan Constraints & Dynamic Limits ────────────────────────────────────────
-// Returns dynamic Min/Max amounts and Min/Max allowed deadline dates
+// Returns dynamic Min/Max amounts, Min/Max allowed deadline dates, and active brand logo
 router.get('/config/limits', (req, res) => {
   const clientId = req.query.client_id;
   const limits = loanSettings.getLimitsForClient(clientId);
   res.json({
     success: true,
     limits,
+    logo_url: loanSettings.getPlatformLogo(),
+  });
+});
+
+// ─── Brand Identity & Logo ───────────────────────────────────────────────────
+router.get('/config/branding', (_req, res) => {
+  res.json({
+    success: true,
+    logo_url: loanSettings.getPlatformLogo(),
   });
 });
 
