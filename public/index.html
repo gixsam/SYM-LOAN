@@ -158,6 +158,19 @@
         </div>
 
         <div class="flex items-center space-x-2">
+          <!-- Client Live Clock Ticker (HH:MM:SS | DD/MM/YY) -->
+          <div id="clientLiveClockTicker" class="hidden sm:flex items-center space-x-2 px-2.5 py-1.5 rounded-xl bg-black/60 border border-amber-500/30 text-[11px] font-mono shadow-inner">
+            <div class="flex items-center text-amber-300 font-bold">
+              <i class="far fa-calendar-alt text-[10px] mr-1 text-amber-400"></i>
+              <span id="clientLiveDateText">--/--/--</span>
+            </div>
+            <span class="text-slate-600">|</span>
+            <div class="flex items-center text-emerald-400 font-bold tracking-wider">
+              <i class="far fa-clock text-[10px] mr-1 text-emerald-400 animate-pulse"></i>
+              <span id="clientLiveTimeText">--:--:--</span>
+            </div>
+          </div>
+
           <!-- Client Real-Time Notification Bell Button -->
           <div class="relative">
             <button id="clientNotifBellBtn" title="Account Notifications & Alerts" class="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-300 hover:text-amber-400 transition cursor-pointer relative">
@@ -722,14 +735,18 @@
 
 
     <!-- ─── FOOTER ──────────────────────────────────────────────────────────── -->
-    <footer class="mt-8 border-t border-white/10 px-5 py-4 text-center text-xs text-slate-400 space-y-1">
-      <div class="flex justify-center space-x-4 text-[11px] font-bold">
-        <a href="/admin" class="text-amber-400 hover:underline"><i class="fas fa-lock mr-1"></i> Admin Panel</a>
+    <footer class="mt-8 border-t border-white/10 px-5 py-5 text-center text-xs text-slate-400 space-y-2">
+      <div class="flex flex-wrap justify-center items-center gap-3 text-[11px] font-semibold">
+        <button type="button" class="terms-policy-btn text-slate-400 hover:text-amber-400 transition cursor-pointer" data-tab="terms">Terms of Service</button>
         <span>•</span>
-        <span class="text-slate-400">Domain: symloan.best-travel.ltd</span>
+        <button type="button" class="terms-policy-btn text-slate-400 hover:text-amber-400 transition cursor-pointer" data-tab="privacy">Privacy Policy</button>
+        <span>•</span>
+        <button type="button" class="terms-policy-btn text-slate-400 hover:text-amber-400 transition cursor-pointer" data-tab="loan-policy">Loan Agreement & Rights</button>
+        <span>•</span>
+        <a href="/admin" class="text-amber-400 hover:underline"><i class="fas fa-lock mr-1"></i> Admin Panel</a>
       </div>
-      <p class="text-[10px] text-slate-400">
-        © 2026 'SYM EMPIRE' PLATFORM (S.E.P.). All rights reserved.
+      <p class="text-[10px] text-slate-500">
+        © 2026 'SYM EMPIRE' PLATFORM (S.E.P.) • All rights reserved • Domain: symloan.best-travel.ltd
       </p>
     </footer>
 
@@ -1094,6 +1111,100 @@
         </button>
         <button type="button" id="permissionModalAllowBtn" class="w-2/3 btn-gold py-2.5 rounded-xl font-black text-xs uppercase tracking-wider cursor-pointer shadow">
           Grant Permission
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── TERMS AND POLICY MODAL ─────────────────────────────────────────── -->
+  <div id="termsPolicyModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="max-w-2xl w-full glass-card p-6 space-y-4 relative border-amber-500/30 shadow-2xl max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-base border border-amber-500/30">
+            <i class="fas fa-file-contract"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-extrabold text-white">Terms of Service & Policy Framework</h3>
+            <p class="text-[11px] text-slate-400">SYM EMPIRE PLATFORM (S.E.P.) Financial Architecture</p>
+          </div>
+        </div>
+        <button type="button" id="closeTermsModalBtn" class="text-slate-400 hover:text-white text-lg p-1 cursor-pointer">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Policy Navigation Tabs -->
+      <div class="flex items-center space-x-2 border-b border-white/10 pb-2 shrink-0">
+        <button type="button" class="terms-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-amber-500/20 text-amber-300 border border-amber-500/30" data-tab="terms">
+          Terms of Service
+        </button>
+        <button type="button" class="terms-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white/5 text-slate-400 hover:text-white" data-tab="privacy">
+          Privacy Policy
+        </button>
+        <button type="button" class="terms-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white/5 text-slate-400 hover:text-white" data-tab="loan-policy">
+          Loan Agreement & Rights
+        </button>
+      </div>
+
+      <!-- Policy Content Container (Scrollable) -->
+      <div class="overflow-y-auto space-y-4 pr-1 text-xs text-slate-300 leading-relaxed font-sans flex-1" id="termsModalContent">
+        <!-- Pane 1: Terms of Service -->
+        <div class="terms-pane space-y-3" id="termsPaneTerms">
+          <div class="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-1.5">
+            <h4 class="font-extrabold text-white text-sm">1. Acceptance of Terms</h4>
+            <p class="text-slate-400">By accessing or using SYM LOAN and the SYM EMPIRE PLATFORM (S.E.P.), you acknowledge that you have read, understood, and agreed to be legally bound by these Terms of Service.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-1.5">
+            <h4 class="font-extrabold text-white text-sm">2. Borrower Eligibility & Identity Requirements</h4>
+            <p class="text-slate-400">All borrowers must be at least 18 years of age and legal citizens of Bangladesh. Valid Smart National ID (NID) registration, live biometric selfie verification, and mobile phone authentication via Telegram or SMS are strictly mandatory.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-1.5">
+            <h4 class="font-extrabold text-white text-sm">3. Repayment Schedule & Default Remedies</h4>
+            <p class="text-slate-400">Loan principal and agreed fee schedules must be repaid on or before the due date. Failure to repay triggers automatic strike escalation. Borrowers reaching 3 strikes are permanently blacklisted across S.E.P. credit networks and subject to lawful recovery.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-1.5">
+            <h4 class="font-extrabold text-white text-sm">4. Amendments & Platform Authority</h4>
+            <p class="text-slate-400">SYM EMPIRE PLATFORM reserves the exclusive right to modify limits, fees, and operational policies with notice via the client notifications desk.</p>
+          </div>
+        </div>
+
+        <!-- Pane 2: Privacy Policy -->
+        <div class="terms-pane space-y-3 hidden" id="termsPanePrivacy">
+          <div class="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-1.5">
+            <h4 class="font-extrabold text-white text-sm">1. Data Collection & Security</h4>
+            <p class="text-slate-400">We collect your verified telephone number, Smart NID document scans, email, and live camera capture solely for fraud prevention, KYC verification, and transaction auditing. All data in transit and at rest is secured using industry-standard 256-bit encryption.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-1.5">
+            <h4 class="font-extrabold text-white text-sm">2. Non-Disclosure Commitment</h4>
+            <p class="text-slate-400">Your personal documents, financial ledger history, and contact details will never be sold, rented, or shared with commercial marketing agencies.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-1.5">
+            <h4 class="font-extrabold text-white text-sm">3. Camera & Biometric Permissions</h4>
+            <p class="text-slate-400">Camera access is utilized strictly for one-time live KYC selfie capture to verify physical ownership of the applicant identity, eliminating stolen ID fraud.</p>
+          </div>
+        </div>
+
+        <!-- Pane 3: Loan Agreement -->
+        <div class="terms-pane space-y-3 hidden" id="termsPaneLoanPolicy">
+          <div class="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-1.5">
+            <h4 class="font-extrabold text-white text-sm">1. Loan Issuance & Disbursement</h4>
+            <p class="text-slate-400">Approved funds are disbursed via secure Mobile Financial Services (bKash, Nagad, Rocket) or bank wire. Official digital payment vouchers are issued with unique cryptographically traceable transaction IDs.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-1.5">
+            <h4 class="font-extrabold text-white text-sm">2. Transparent Fees (Zero Hidden Charges)</h4>
+            <p class="text-slate-400">All disbursement fees, interest or service charges are explicitly displayed prior to loan acceptance. S.E.P. guarantees 100% transparency with zero undisclosed surcharges.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-1.5">
+            <h4 class="font-extrabold text-white text-sm">3. Dispute Resolution & Legal Jurisdiction</h4>
+            <p class="text-slate-400">Any legal claims, disputes, or recovery proceedings arising out of this agreement shall be governed under the laws and competent financial courts of Dhaka, Bangladesh.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-white/10 flex justify-end shrink-0">
+        <button type="button" id="termsModalOkBtn" class="btn-gold px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer">
+          I Understand & Agree
         </button>
       </div>
     </div>

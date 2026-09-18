@@ -36,6 +36,19 @@
         </a>
       </div>
 
+      <!-- Executive Live Time & Date Display (Step 2) -->
+      <div id="adminLiveClockTicker" class="flex items-center space-x-2 px-2.5 sm:px-3.5 py-1 rounded-xl bg-black/70 border border-amber-500/30 text-xs shadow-inner">
+        <div class="flex items-center text-amber-300 font-bold space-x-1 text-[11px] sm:text-xs">
+          <i class="far fa-calendar-alt text-[10px] text-amber-400"></i>
+          <span id="liveDateText" class="font-mono">--/--/--</span>
+        </div>
+        <span class="text-slate-600 hidden xs:inline">|</span>
+        <div class="flex items-center text-emerald-400 font-black space-x-1 text-[11px] sm:text-xs">
+          <i class="far fa-clock text-[10px] animate-pulse"></i>
+          <span id="liveTimeText" class="font-mono tracking-wider">--:--:--</span>
+        </div>
+      </div>
+
       <!-- Right side: Controls & Login -->
       <div class="flex items-center space-x-1 sm:space-x-2 flex-shrink-0 relative">
         <!-- Notification Bell Icon -->
@@ -167,44 +180,61 @@
   <!-- ─── DASHBOARD BODY ──────────────────────────────────────────────────── -->
   <div class="max-w-7xl mx-auto px-6 py-8 space-y-8">
 
-    <!-- ─── TOP KPI STATS (COMPACT 3-COLUMN ROW FOR MOBILE & DESKTOP) ────────── -->
-    <div id="kpiSection" class="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6">
-      <div class="glass-card-gold p-2.5 sm:p-4 md:p-5 flex flex-col justify-between relative overflow-hidden">
+    <!-- ─── TOP KPI STATS (4-COLUMN EXECUTIVE FINTECH GRID) ────────────────── -->
+    <div id="kpiSection" class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+      <!-- Pending Loan Apps -->
+      <div class="glass-card-gold p-3 sm:p-4.5 flex flex-col justify-between relative overflow-hidden">
         <div class="flex items-center justify-between">
-          <span class="text-[9px] sm:text-xs font-bold text-amber-400 uppercase tracking-tight sm:tracking-wide truncate block">Loan Apps</span>
-          <div class="w-6 h-6 sm:w-9 sm:h-9 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400 text-xs sm:text-base flex-shrink-0 ml-1">
+          <span class="text-[10px] sm:text-xs font-bold text-amber-400 uppercase tracking-tight sm:tracking-wide truncate block">Loan Apps</span>
+          <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400 text-xs sm:text-sm flex-shrink-0 ml-1">
             <i class="fas fa-file-invoice-dollar"></i>
           </div>
         </div>
-        <div class="mt-1 sm:mt-2">
-          <h3 id="loansCount" class="text-xs sm:text-xl md:text-2xl font-black text-white truncate">0 Apps</h3>
-          <p class="text-[8px] sm:text-[11px] text-slate-400 mt-0.5 hidden xs:block truncate">Pending requests</p>
+        <div class="mt-2">
+          <h3 id="loansCount" class="text-sm sm:text-xl md:text-2xl font-black text-white truncate">0 Apps</h3>
+          <p class="text-[9px] sm:text-[11px] text-slate-400 mt-0.5 truncate">Pending requests</p>
         </div>
       </div>
 
-      <div class="glass-card-emerald p-2.5 sm:p-4 md:p-5 flex flex-col justify-between relative overflow-hidden">
+      <!-- Verified Clients -->
+      <div class="glass-card-emerald p-3 sm:p-4.5 flex flex-col justify-between relative overflow-hidden">
         <div class="flex items-center justify-between">
-          <span class="text-[9px] sm:text-xs font-bold text-emerald-400 uppercase tracking-tight sm:tracking-wide truncate block">Clients</span>
-          <div class="w-6 h-6 sm:w-9 sm:h-9 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs sm:text-base flex-shrink-0 ml-1">
+          <span class="text-[10px] sm:text-xs font-bold text-emerald-400 uppercase tracking-tight sm:tracking-wide truncate block">Clients</span>
+          <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs sm:text-sm flex-shrink-0 ml-1">
             <i class="fas fa-users"></i>
           </div>
         </div>
-        <div class="mt-1 sm:mt-2">
-          <h3 id="clientsCount" class="text-xs sm:text-xl md:text-2xl font-black text-white truncate">0 Reg.</h3>
-          <p class="text-[8px] sm:text-[11px] text-slate-400 mt-0.5 hidden xs:block truncate">Telegram verified</p>
+        <div class="mt-2">
+          <h3 id="clientsCount" class="text-sm sm:text-xl md:text-2xl font-black text-white truncate">0 Reg.</h3>
+          <p class="text-[9px] sm:text-[11px] text-slate-400 mt-0.5 truncate">Telegram verified</p>
         </div>
       </div>
 
-      <div class="glass-card p-2.5 sm:p-4 md:p-5 flex flex-col justify-between border-indigo-500/30 relative overflow-hidden">
+      <!-- Step 4: Total Digitized Google Notes Money -->
+      <div class="glass-card p-3 sm:p-4.5 flex flex-col justify-between border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-transparent relative overflow-hidden">
         <div class="flex items-center justify-between">
-          <span class="text-[9px] sm:text-xs font-bold text-indigo-400 uppercase tracking-tight sm:tracking-wide truncate block">Strike Engine</span>
-          <div class="w-6 h-6 sm:w-9 sm:h-9 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-xs sm:text-base flex-shrink-0 ml-1">
-            <i class="fas fa-stopwatch"></i>
+          <span class="text-[10px] sm:text-xs font-bold text-amber-300 uppercase tracking-tight sm:tracking-wide truncate block">Notes Total 💰</span>
+          <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-300 text-xs sm:text-sm flex-shrink-0 ml-1">
+            <i class="fas fa-sticky-note"></i>
           </div>
         </div>
-        <div class="mt-1 sm:mt-2">
-          <h3 class="text-xs sm:text-xl md:text-2xl font-black text-white truncate">01:00 PM</h3>
-          <p class="text-[8px] sm:text-[11px] text-slate-400 mt-0.5 hidden xs:block truncate">Daily scanner</p>
+        <div class="mt-2">
+          <h3 id="kpiTotalLedgerMoney" class="text-sm sm:text-xl md:text-2xl font-mono font-black text-amber-400 truncate">৳ 0</h3>
+          <p class="text-[9px] sm:text-[11px] text-slate-400 mt-0.5 truncate">Digitized Keep notes</p>
+        </div>
+      </div>
+
+      <!-- Step 3: Upcoming Loan Repayments Inflow -->
+      <div class="glass-card p-3 sm:p-4.5 flex flex-col justify-between border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-transparent relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] sm:text-xs font-bold text-cyan-400 uppercase tracking-tight sm:tracking-wide truncate block">Upcoming Inflows</span>
+          <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-400 text-xs sm:text-sm flex-shrink-0 ml-1">
+            <i class="fas fa-hand-holding-usd"></i>
+          </div>
+        </div>
+        <div class="mt-2">
+          <h3 id="kpiUpcomingInflow" class="text-sm sm:text-xl md:text-2xl font-mono font-black text-cyan-300 truncate">৳ 0</h3>
+          <p class="text-[9px] sm:text-[11px] text-slate-400 mt-0.5 truncate">Expected from active loans</p>
         </div>
       </div>
     </div>
@@ -293,6 +323,173 @@
       </div>
     </div>
 
+    <!-- ─── UPCOMING LOAN REPAYMENTS & COLLECTION SCHEDULE (STEP 3) ─────────── -->
+    <div id="upcomingRepaymentsSection" class="glass-card p-6 space-y-5 border-cyan-500/30">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-400 text-base">
+            <i class="fas fa-calendar-check"></i>
+          </div>
+          <div>
+            <h2 class="text-base font-extrabold text-white flex items-center">
+              Upcoming Loan Repayments & Inflows
+              <span class="ml-2 text-[10px] font-mono bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded border border-cyan-500/30 font-bold">COLLECTIONS 📅</span>
+            </h2>
+            <p class="text-[11px] text-slate-400">Chronological timeline of loans maturing for repayment with 1-click reminders</p>
+          </div>
+        </div>
+        <button id="refreshUpcomingRepaymentsBtn" class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition flex items-center cursor-pointer">
+          <i class="fas fa-sync-alt mr-1.5"></i> Refresh Timeline
+        </button>
+      </div>
+
+      <!-- Quick Urgency Pill Metrics -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+        <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30">
+          <div class="text-[10px] font-extrabold text-rose-400 uppercase flex items-center">
+            <i class="fas fa-exclamation-circle mr-1"></i> Overdue Loans
+          </div>
+          <div class="text-base sm:text-lg font-mono font-black text-rose-300 mt-1" id="overdueCountBadge">0 (৳ 0)</div>
+        </div>
+        <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+          <div class="text-[10px] font-extrabold text-amber-400 uppercase flex items-center">
+            <i class="fas fa-bell mr-1"></i> Due Today
+          </div>
+          <div class="text-base sm:text-lg font-mono font-black text-amber-300 mt-1" id="dueTodayCountBadge">0 (৳ 0)</div>
+        </div>
+        <div class="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
+          <div class="text-[10px] font-extrabold text-cyan-400 uppercase flex items-center">
+            <i class="fas fa-clock mr-1"></i> Due Next 3 Days
+          </div>
+          <div class="text-base sm:text-lg font-mono font-black text-cyan-300 mt-1" id="due3DaysCountBadge">0 (৳ 0)</div>
+        </div>
+        <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+          <div class="text-[10px] font-extrabold text-emerald-400 uppercase flex items-center">
+            <i class="fas fa-coins mr-1"></i> Total Inflow Expected
+          </div>
+          <div class="text-base sm:text-lg font-mono font-black text-emerald-300 mt-1" id="totalInflowsText">৳ 0</div>
+        </div>
+      </div>
+
+      <!-- Upcoming Repayments Table -->
+      <div class="overflow-x-auto max-h-80 overflow-y-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="border-b border-white/10 text-[11px] font-mono text-slate-400 uppercase sticky top-0 bg-[#0d1527]">
+              <th class="py-2.5 px-3">Client & Contact</th>
+              <th class="py-2.5 px-3">Loan Principal</th>
+              <th class="py-2.5 px-3">Total Repayable</th>
+              <th class="py-2.5 px-3">Maturity Deadline</th>
+              <th class="py-2.5 px-3">Urgency Status</th>
+              <th class="py-2.5 px-3 text-right">Quick Reminders</th>
+            </tr>
+          </thead>
+          <tbody id="upcomingRepaymentsTableBody">
+            <tr>
+              <td colspan="6" class="p-6 text-center text-slate-500 text-xs">
+                <i class="fas fa-spinner fa-spin mr-2"></i> Loading repayment maturities...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ─── PHASE 8: DAILY EXPENSE TRACKING & LEDGER COST SPLIT ENGINE ───────── -->
+    <div id="expenseTrackingSection" class="glass-card p-6 space-y-5 border-emerald-500/30">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-base">
+            <i class="fas fa-receipt"></i>
+          </div>
+          <div>
+            <h2 class="text-base font-extrabold text-white flex items-center">
+              Daily Expense Tracking & Cost Split Engine
+              <span class="ml-2 text-[10px] font-mono bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30 font-bold">PHASE 8</span>
+            </h2>
+            <p class="text-[11px] text-slate-400">Record daily operational expenditures and allocate cost splits across client portfolios</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span id="expenseCountBadge" class="text-xs font-mono font-bold bg-white/5 text-slate-300 px-2.5 py-1 rounded border border-white/10">0 Expenses</span>
+          <button id="exportExpensesBtn" class="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-xs font-bold text-emerald-300 transition flex items-center cursor-pointer">
+            <i class="fas fa-file-excel mr-1.5"></i> Export
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Expense Logging Form -->
+      <form id="expenseForm" class="p-4 rounded-xl bg-black/40 border border-white/5 space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div>
+            <label class="text-[11px] font-bold text-slate-300 block mb-1">Expense Amount (৳) *</label>
+            <input type="number" id="expenseAmountInput" placeholder="e.g. 1500" required class="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-amber-400">
+          </div>
+          <div>
+            <label class="text-[11px] font-bold text-slate-300 block mb-1">Category *</label>
+            <select id="expenseCategorySelect" class="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-400 cursor-pointer">
+              <option value="LOAN_DISBURSEMENT">Disbursement Capital</option>
+              <option value="FIELD_RECOVERY_TRANSPORT">Field Recovery & Transport</option>
+              <option value="MFS_CASHOUT_FEE">MFS Cash-Out Charges</option>
+              <option value="OFFICE_OVERHEAD">Office Overhead</option>
+              <option value="COMMUNICATION_SMS_INTERNET">Communication & SMS</option>
+              <option value="LEGAL_COMPLIANCE">Legal & Verification</option>
+              <option value="MISCELLANEOUS" selected>Miscellaneous</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[11px] font-bold text-slate-300 block mb-1">Payee / Vendor / Purpose</label>
+            <input type="text" id="expensePayeeInput" placeholder="e.g. Uber, bKash fee, Stationery" class="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400">
+          </div>
+          <div>
+            <label class="text-[11px] font-bold text-slate-300 block mb-1">Date</label>
+            <input type="date" id="expenseDateInput" class="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-amber-400 cursor-pointer">
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+          <input type="text" id="expenseNoteInput" placeholder="Additional notes or client debt allocation memo..." class="flex-1 bg-black/60 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-amber-400">
+          <button type="submit" id="logExpenseBtn" class="btn-emerald px-4 py-2 rounded-lg font-bold text-xs flex items-center justify-center shrink-0 cursor-pointer shadow">
+            <i class="fas fa-plus-circle mr-1.5"></i> Log Daily Expense
+          </button>
+        </div>
+      </form>
+
+      <!-- Expense Ledger Table -->
+      <div class="overflow-x-auto max-h-80 overflow-y-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="border-b border-white/10 text-[11px] font-mono text-slate-400 uppercase sticky top-0 bg-[#0d1527]">
+              <th class="py-2.5 px-3">Date</th>
+              <th class="py-2.5 px-3">Category</th>
+              <th class="py-2.5 px-3">Payee / Vendor</th>
+              <th class="py-2.5 px-3">Notes & Memo</th>
+              <th class="py-2.5 px-3">Amount (BDT)</th>
+              <th class="py-2.5 px-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="expensesTableBody">
+            <tr>
+              <td colspan="6" class="p-6 text-center text-slate-500 text-xs">
+                <i class="fas fa-spinner fa-spin mr-2"></i> Loading daily expense ledger...
+              </td>
+            </tr>
+          </tbody>
+          <tfoot class="border-t-2 border-emerald-500/40 bg-[#0d1527] sticky bottom-0 font-bold">
+            <tr class="text-xs">
+              <td colspan="4" class="py-3 px-3 text-emerald-400 font-extrabold uppercase tracking-wide">
+                <i class="fas fa-wallet mr-1.5"></i> TOTAL EXPENSES
+              </td>
+              <td class="py-3 px-3 font-mono font-black text-amber-400 text-sm" id="expensesTotalAmount">৳ 0</td>
+              <td class="py-3 px-3 text-right text-[11px] text-slate-400 font-normal">
+                Monthly: <span id="expensesThisMonthAmount" class="font-mono text-white font-bold">৳ 0</span>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
     <!-- ─── COPY AND PASTE FROM GOOGLE NOTES ───────────────────────────────── -->
     <div id="historicalLedgerSection" class="glass-card p-6 space-y-5 border-amber-500/20">
       <div class="flex items-center justify-between border-b border-white/10 pb-3">
@@ -344,7 +541,227 @@
               </td>
             </tr>
           </tbody>
+          <tfoot class="border-t-2 border-amber-500/40 bg-[#0d1527] sticky bottom-0 font-bold">
+            <tr class="text-xs">
+              <td class="py-3 px-3 text-amber-400 font-extrabold uppercase tracking-wide">
+                <i class="fas fa-calculator mr-1.5 text-amber-400"></i> TOTAL MONEY
+              </td>
+              <td class="py-3 px-3 font-mono font-black text-emerald-400 text-sm" id="historicalTotalMoney">৳ 0</td>
+              <td colspan="3" class="py-3 px-3 text-right text-[11px] text-slate-400 font-normal">
+                Sum of all digitized Google Keep notes
+              </td>
+            </tr>
+          </tfoot>
         </table>
+      </div>
+    </div>
+
+    <!-- ─── S.E.P. EXECUTIVE OPERATIONS SUITE (STEP 6) ───────────────────────── -->
+    <div id="executiveSuiteSection" class="glass-card p-6 space-y-5 border-amber-500/40 shadow-2xl">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center text-black font-black text-base shadow-lg shadow-amber-500/20">
+            <i class="fas fa-briefcase"></i>
+          </div>
+          <div>
+            <h2 class="text-base font-extrabold text-white flex items-center">
+              S.E.P. Executive Operations Suite
+              <span class="ml-2 text-[10px] font-mono bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/40 font-black">ALL-IN-ONE ⚡</span>
+            </h2>
+            <p class="text-[11px] text-slate-400">Keep Notepad • Interactive Calendar • Alarm Clock & Reminder • Google Maps & Routes</p>
+          </div>
+        </div>
+
+        <!-- Suite Tab Navigation -->
+        <div class="flex items-center space-x-1 bg-black/60 p-1 rounded-xl border border-white/10">
+          <button type="button" id="tabBtnNotepad" class="suite-tab-btn active px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center cursor-pointer bg-amber-500 text-black shadow">
+            <i class="fas fa-sticky-note mr-1.5"></i> Keep Notes
+          </button>
+          <button type="button" id="tabBtnCalendar" class="suite-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center cursor-pointer text-slate-300 hover:text-white">
+            <i class="fas fa-calendar-alt mr-1.5 text-cyan-400"></i> Calendar
+          </button>
+          <button type="button" id="tabBtnClock" class="suite-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center cursor-pointer text-slate-300 hover:text-white">
+            <i class="fas fa-stopwatch mr-1.5 text-indigo-400"></i> Clock & Alarm
+          </button>
+          <button type="button" id="tabBtnMaps" class="suite-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center cursor-pointer text-slate-300 hover:text-white">
+            <i class="fas fa-map-marked-alt mr-1.5 text-emerald-400"></i> Maps & Routes
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab 1: Executive Keep Notepad -->
+      <div id="suiteTabContentNotepad" class="space-y-4">
+        <!-- New Note Creator Card -->
+        <div class="p-4 rounded-xl bg-black/50 border border-amber-500/20 space-y-3">
+          <div class="flex items-center justify-between">
+            <input type="text" id="suiteNoteTitleInput" placeholder="Note Title / Meeting Objective..." class="bg-transparent text-sm font-bold text-white placeholder-slate-500 focus:outline-none w-full">
+            <label class="flex items-center space-x-1.5 text-xs text-slate-400 cursor-pointer ml-2 shrink-0">
+              <input type="checkbox" id="suiteNotePinnedInput" class="rounded accent-amber-500 cursor-pointer">
+              <span class="text-[11px]"><i class="fas fa-thumbtack text-amber-400"></i> Pin</span>
+            </label>
+          </div>
+          <textarea id="suiteNoteContentInput" rows="3" placeholder="Jot down meeting minutes, loan discussion notes, or paste Google Keep lines..." class="w-full bg-black/40 border border-slate-700/60 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-amber-400"></textarea>
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <div class="flex items-center space-x-2">
+              <select id="suiteNoteTagSelect" class="bg-black/60 border border-slate-700 text-[11px] text-slate-300 rounded px-2 py-1 cursor-pointer">
+                <option value="MEETING">Meeting</option>
+                <option value="LOAN_PLAN">Loan Plan</option>
+                <option value="RECOVERY">Field Recovery</option>
+                <option value="TODO">To-Do Task</option>
+                <option value="GENERAL" selected>General</option>
+              </select>
+            </div>
+            <button type="button" id="saveSuiteNoteBtn" class="btn-gold px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider flex items-center cursor-pointer shadow">
+              <i class="fas fa-save mr-1.5"></i> Save Note
+            </button>
+          </div>
+        </div>
+
+        <!-- Notes Grid -->
+        <div id="suiteNotesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          <!-- Loaded dynamically -->
+        </div>
+      </div>
+
+      <!-- Tab 2: Calendar & Event Scheduler -->
+      <div id="suiteTabContentCalendar" class="space-y-4 hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <!-- Event Creator Form -->
+          <div class="p-4 rounded-xl bg-black/50 border border-white/10 space-y-3">
+            <h4 class="text-xs font-black uppercase text-cyan-400 tracking-wider flex items-center">
+              <i class="fas fa-calendar-plus mr-1.5"></i> Schedule Meeting / Event
+            </h4>
+            <div class="space-y-2 text-xs">
+              <div>
+                <label class="text-[10px] text-slate-400 block mb-1">Event Title *</label>
+                <input type="text" id="suiteEventTitle" placeholder="e.g. Client Recovery Visit" class="w-full bg-black/60 border border-slate-700 rounded-lg p-2 text-white">
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="text-[10px] text-slate-400 block mb-1">Date *</label>
+                  <input type="date" id="suiteEventDate" class="w-full bg-black/60 border border-slate-700 rounded-lg p-2 text-white font-mono">
+                </div>
+                <div>
+                  <label class="text-[10px] text-slate-400 block mb-1">Time</label>
+                  <input type="time" id="suiteEventTime" value="15:00" class="w-full bg-black/60 border border-slate-700 rounded-lg p-2 text-white font-mono">
+                </div>
+              </div>
+              <div>
+                <label class="text-[10px] text-slate-400 block mb-1">Client / Person</label>
+                <input type="text" id="suiteEventClient" placeholder="e.g. Rakib (+88017...)" class="w-full bg-black/60 border border-slate-700 rounded-lg p-2 text-white">
+              </div>
+              <div>
+                <label class="text-[10px] text-slate-400 block mb-1">Location / Meeting Point</label>
+                <input type="text" id="suiteEventLocation" placeholder="e.g. Mirpur 10, Dhaka" class="w-full bg-black/60 border border-slate-700 rounded-lg p-2 text-white">
+              </div>
+              <div>
+                <label class="text-[10px] text-slate-400 block mb-1">Description / Notes</label>
+                <textarea id="suiteEventDesc" rows="2" placeholder="Agenda or loan details..." class="w-full bg-black/60 border border-slate-700 rounded-lg p-2 text-white"></textarea>
+              </div>
+              <button type="button" id="createSuiteEventBtn" class="w-full py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center transition cursor-pointer shadow">
+                <i class="fas fa-calendar-check mr-1.5"></i> Schedule & Sync
+              </button>
+            </div>
+          </div>
+
+          <!-- Events Timeline & Google Calendar Sync List -->
+          <div class="lg:col-span-2 space-y-3">
+            <div class="flex items-center justify-between border-b border-white/10 pb-2">
+              <h4 class="text-xs font-bold text-white uppercase flex items-center">
+                <i class="fas fa-list-ul mr-1.5 text-cyan-400"></i> Scheduled Meetings & Deadlines
+              </h4>
+              <span class="text-[10px] text-slate-400 font-mono">1-Click Google Calendar Sync</span>
+            </div>
+            <div id="suiteEventsList" class="space-y-2 max-h-96 overflow-y-auto pr-1">
+              <!-- Loaded dynamically -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Alarm Clock & Reminder -->
+      <div id="suiteTabContentClock" class="space-y-4 hidden">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Big Digital Clock & Alarm Setter -->
+          <div class="p-6 rounded-2xl bg-black/60 border border-indigo-500/30 text-center space-y-4 flex flex-col justify-center items-center">
+            <div class="text-[11px] font-mono text-indigo-300 font-bold uppercase tracking-widest flex items-center">
+              <span class="w-2 h-2 rounded-full bg-indigo-400 animate-ping mr-2"></span> S.E.P. Live Master Clock
+            </div>
+            <div id="bigLiveClockDisplay" class="text-3xl sm:text-4xl md:text-5xl font-mono font-black text-white tracking-widest py-2 px-4 rounded-xl bg-black/80 border border-white/10 shadow-2xl">
+              --:--:--
+            </div>
+            <div id="bigLiveDateDisplay" class="text-xs font-mono font-bold text-slate-400">
+              --/--/----
+            </div>
+            <div class="pt-2 flex items-center space-x-2">
+              <button type="button" id="testChimeSoundBtn" class="px-3 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-bold hover:bg-indigo-500/30 transition cursor-pointer flex items-center">
+                <i class="fas fa-volume-up mr-1.5"></i> Test Chime Audio
+              </button>
+            </div>
+          </div>
+
+          <!-- Add Alarm / Reminder Form & Active Alarms -->
+          <div class="p-4 rounded-xl bg-black/50 border border-white/10 space-y-3">
+            <h4 class="text-xs font-black uppercase text-indigo-400 tracking-wider flex items-center">
+              <i class="fas fa-bell mr-1.5"></i> Set Alarm / Meeting Reminder
+            </h4>
+            <div class="space-y-2 text-xs">
+              <div>
+                <label class="text-[10px] text-slate-400 block mb-1">Alarm Time (HH:MM)</label>
+                <input type="time" id="suiteAlarmTimeInput" class="w-full bg-black/60 border border-slate-700 rounded-lg p-2 text-white font-mono text-base">
+              </div>
+              <div>
+                <label class="text-[10px] text-slate-400 block mb-1">Reminder Label</label>
+                <input type="text" id="suiteAlarmLabelInput" placeholder="e.g. Call client for loan collection" class="w-full bg-black/60 border border-slate-700 rounded-lg p-2 text-white">
+              </div>
+              <button type="button" id="saveSuiteAlarmBtn" class="w-full py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center transition cursor-pointer shadow">
+                <i class="fas fa-plus-circle mr-1.5"></i> Activate Alarm Reminder
+              </button>
+            </div>
+
+            <!-- Active Alarms List -->
+            <div class="pt-2 border-t border-white/10 space-y-1.5 max-h-48 overflow-y-auto" id="suiteAlarmsList">
+              <!-- Loaded dynamically -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 4: Google Maps & Field Recovery Route Planner -->
+      <div id="suiteTabContentMaps" class="space-y-4 hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <!-- Route Search & Address Inputs -->
+          <div class="p-4 rounded-xl bg-black/50 border border-white/10 space-y-3 text-xs">
+            <h4 class="text-xs font-black uppercase text-emerald-400 tracking-wider flex items-center">
+              <i class="fas fa-route mr-1.5"></i> Route & Navigation Planner
+            </h4>
+            <div>
+              <label class="text-[10px] text-slate-400 block mb-1">Origin (Your Office / Start Point)</label>
+              <input type="text" id="mapOriginInput" value="Central Office, Dhaka, Bangladesh" class="w-full bg-black/60 border border-slate-700 rounded-lg p-2 text-white text-xs">
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 block mb-1">Destination (Client Location / Recovery Spot)</label>
+              <input type="text" id="mapDestinationInput" placeholder="e.g. Mirpur-10, Uttara, or Client Address" class="w-full bg-black/60 border border-slate-700 rounded-lg p-2 text-white text-xs">
+            </div>
+            <div class="pt-1 space-y-2">
+              <button type="button" id="updateMapRouteBtn" class="w-full py-2 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 font-bold text-xs flex items-center justify-center transition cursor-pointer">
+                <i class="fas fa-search-location mr-1.5 text-amber-400"></i> Preview On Map
+              </button>
+              <button type="button" id="launchGoogleMapsBtn" class="w-full py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center transition cursor-pointer shadow">
+                <i class="fas fa-location-arrow mr-1.5"></i> Open in Google Maps App
+              </button>
+            </div>
+            <div class="p-2.5 rounded-lg bg-black/60 border border-white/5 text-[11px] text-slate-400 space-y-1">
+              <div>📍 Real-time turn-by-turn navigation</div>
+              <div>⚡ Direct Google Maps mobile app intent</div>
+            </div>
+          </div>
+
+          <!-- Embedded Map Viewframe -->
+          <div class="lg:col-span-2 rounded-2xl overflow-hidden border border-white/10 bg-black min-h-[350px] relative shadow-2xl">
+            <iframe id="googleMapsEmbedFrame" width="100%" height="380" style="border:0;" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=Dhaka%20Bangladesh&t=&z=13&ie=UTF8&iwloc=&output=embed"></iframe>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -395,6 +812,17 @@
               </td>
             </tr>
           </tbody>
+          <tfoot class="border-t-2 border-emerald-500/40 bg-[#0d1527] sticky bottom-0 font-bold">
+            <tr>
+              <td colspan="4" class="py-2.5 px-3 text-emerald-400 font-extrabold uppercase tracking-wide">
+                <i class="fas fa-coins mr-1"></i> MASTER SPREADSHEET TOTALS
+              </td>
+              <td class="py-2.5 px-3 font-mono font-bold text-amber-300" id="ssTotalHistoricalDebt">৳ 0</td>
+              <td class="py-2.5 px-3 font-mono font-bold text-cyan-300" id="ssTotalBorrowed">৳ 0</td>
+              <td class="py-2.5 px-3 font-mono font-black text-emerald-400 text-sm" id="ssTotalOutstanding">৳ 0</td>
+              <td class="py-2.5 px-3 text-slate-400 text-[10px]">All registered clients</td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>
@@ -1218,6 +1646,147 @@
       </div>
     </div>
   </div>
+
+  <!-- ─── ALARM RINGING & AUDIO ALERT MODAL ──────────────────────────────── -->
+  <div id="alarmAlertModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-lg flex items-center justify-center p-4 hidden animate-pulse">
+    <div class="max-w-md w-full glass-card p-6 space-y-4 text-center border-indigo-500/60 shadow-2xl relative overflow-hidden">
+      <div class="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/20 rounded-full blur-2xl"></div>
+      <div class="w-16 h-16 rounded-2xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center mx-auto text-indigo-400 text-3xl shadow-lg shadow-indigo-500/30 animate-bounce">
+        <i class="fas fa-bell"></i>
+      </div>
+      <div class="space-y-1">
+        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 uppercase">
+          ⚡ Alarm Reminder Alert
+        </span>
+        <h3 class="text-lg font-black text-white" id="alarmAlertTitle">Scheduled Reminder</h3>
+        <div class="text-2xl font-mono font-black text-amber-400" id="alarmAlertTime">--:--</div>
+      </div>
+      <p class="text-xs text-slate-300 bg-black/50 p-3 rounded-xl border border-white/10" id="alarmAlertMessage">
+        Time for scheduled reminder.
+      </p>
+      <div class="pt-2 flex items-center space-x-3">
+        <button type="button" id="snoozeAlarmBtn" class="w-1/2 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-bold transition cursor-pointer">
+          <i class="fas fa-clock mr-1.5"></i> Snooze 5 Min
+        </button>
+        <button type="button" id="dismissAlarmBtn" class="w-1/2 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-black uppercase tracking-wider transition cursor-pointer shadow">
+          <i class="fas fa-check-circle mr-1.5"></i> Dismiss Alarm
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── TERMS AND POLICY MODAL ─────────────────────────────────────────── -->
+  <div id="termsPolicyModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="max-w-2xl w-full glass-card p-6 space-y-4 relative border-amber-500/30 shadow-2xl max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-base border border-amber-500/30">
+            <i class="fas fa-file-contract"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-extrabold text-white">Terms of Service & Policy Framework</h3>
+            <p class="text-[11px] text-slate-400">SYM EMPIRE PLATFORM (S.E.P.) Financial Architecture</p>
+          </div>
+        </div>
+        <button type="button" id="closeTermsModalBtn" class="text-slate-400 hover:text-white text-lg p-1 cursor-pointer">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Policy Navigation Tabs -->
+      <div class="flex items-center space-x-2 border-b border-white/10 pb-2 shrink-0">
+        <button type="button" class="terms-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-amber-500/20 text-amber-300 border border-amber-500/30" data-tab="terms">
+          Terms of Service
+        </button>
+        <button type="button" class="terms-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white/5 text-slate-400 hover:text-white" data-tab="privacy">
+          Privacy Policy
+        </button>
+        <button type="button" class="terms-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white/5 text-slate-400 hover:text-white" data-tab="loan-policy">
+          Loan Agreement & Compliance
+        </button>
+      </div>
+
+      <!-- Policy Content Container (Scrollable) -->
+      <div class="overflow-y-auto space-y-4 pr-1 text-xs text-slate-300 leading-relaxed font-sans flex-1" id="termsModalContent">
+        <!-- Pane 1: Terms of Service -->
+        <div class="terms-pane space-y-3" id="termsPaneTerms">
+          <div class="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-1.5">
+            <h4 class="font-extrabold text-white text-sm">1. Acceptance of Terms</h4>
+            <p class="text-slate-400">By accessing or using SYM LOAN and the SYM EMPIRE PLATFORM (S.E.P.), you acknowledge that you have read, understood, and agreed to be legally bound by these Terms of Service.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-1.5">
+            <h4 class="font-extrabold text-white text-sm">2. Borrower Eligibility & Identity Requirements</h4>
+            <p class="text-slate-400">All borrowers must be at least 18 years of age and legal citizens of Bangladesh. Valid Smart National ID (NID) registration, live biometric selfie verification, and mobile phone authentication via Telegram or SMS are strictly mandatory.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-1.5">
+            <h4 class="font-extrabold text-white text-sm">3. Repayment Schedule & Default Remedies</h4>
+            <p class="text-slate-400">Loan principal and agreed fee schedules must be repaid on or before the due date. Failure to repay triggers automatic strike escalation. Borrowers reaching 3 strikes are permanently blacklisted across S.E.P. credit networks and subject to lawful recovery.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-1.5">
+            <h4 class="font-extrabold text-white text-sm">4. Amendments & Platform Authority</h4>
+            <p class="text-slate-400">SYM EMPIRE PLATFORM reserves the exclusive right to modify limits, fees, and operational policies with notice via the client notifications desk.</p>
+          </div>
+        </div>
+
+        <!-- Pane 2: Privacy Policy -->
+        <div class="terms-pane space-y-3 hidden" id="termsPanePrivacy">
+          <div class="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-1.5">
+            <h4 class="font-extrabold text-white text-sm">1. Data Collection & Security</h4>
+            <p class="text-slate-400">We collect your verified telephone number, Smart NID document scans, email, and live camera capture solely for fraud prevention, KYC verification, and transaction auditing. All data in transit and at rest is secured using industry-standard 256-bit encryption.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-1.5">
+            <h4 class="font-extrabold text-white text-sm">2. Non-Disclosure Commitment</h4>
+            <p class="text-slate-400">Your personal documents, financial ledger history, and contact details will never be sold, rented, or shared with commercial marketing agencies.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-1.5">
+            <h4 class="font-extrabold text-white text-sm">3. Camera & Biometric Permissions</h4>
+            <p class="text-slate-400">Camera access is utilized strictly for one-time live KYC selfie capture to verify physical ownership of the applicant identity, eliminating stolen ID fraud.</p>
+          </div>
+        </div>
+
+        <!-- Pane 3: Loan Agreement -->
+        <div class="terms-pane space-y-3 hidden" id="termsPaneLoanPolicy">
+          <div class="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-1.5">
+            <h4 class="font-extrabold text-white text-sm">1. Loan Issuance & Disbursement</h4>
+            <p class="text-slate-400">Approved funds are disbursed via secure Mobile Financial Services (bKash, Nagad, Rocket) or bank wire. Official digital payment vouchers are issued with unique cryptographically traceable transaction IDs.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-1.5">
+            <h4 class="font-extrabold text-white text-sm">2. Transparent Fees (Zero Hidden Charges)</h4>
+            <p class="text-slate-400">All disbursement fees, interest or service charges are explicitly displayed prior to loan acceptance. S.E.P. guarantees 100% transparency with zero undisclosed surcharges.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-black/50 border border-white/10 space-y-1.5">
+            <h4 class="font-extrabold text-white text-sm">3. Dispute Resolution & Legal Jurisdiction</h4>
+            <p class="text-slate-400">Any legal claims, disputes, or recovery proceedings arising out of this agreement shall be governed under the laws and competent financial courts of Dhaka, Bangladesh.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-white/10 flex justify-end shrink-0">
+        <button type="button" id="termsModalOkBtn" class="btn-gold px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer">
+          I Understand & Agree
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── FOOTER ─────────────────────────────────────────────────────────── -->
+  <footer class="border-t border-white/10 px-6 py-6 text-center text-xs text-slate-400 space-y-2 mt-12">
+    <div class="flex flex-wrap justify-center items-center gap-4 text-xs font-semibold">
+      <button type="button" class="terms-policy-btn text-slate-400 hover:text-amber-400 transition cursor-pointer" data-tab="terms">Terms of Service</button>
+      <span>•</span>
+      <button type="button" class="terms-policy-btn text-slate-400 hover:text-amber-400 transition cursor-pointer" data-tab="privacy">Privacy Policy</button>
+      <span>•</span>
+      <button type="button" class="terms-policy-btn text-slate-400 hover:text-amber-400 transition cursor-pointer" data-tab="loan-policy">Loan Agreement & Legal Compliance</button>
+      <span>•</span>
+      <a href="/" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition"><i class="fas fa-external-link-alt mr-1"></i> Client Portal</a>
+    </div>
+    <div class="text-[11px] text-slate-400">
+      SYM EMPIRE PLATFORM (S.E.P.) • Executive Financial Architecture • Bangladesh Financial Compliance
+    </div>
+    <div class="text-[10px] text-slate-500">
+      © 2026 'SYM EMPIRE' PLATFORM (S.E.P.). All rights reserved.
+    </div>
+  </footer>
 
   <script src="/js/admin.js"></script>
 </body>

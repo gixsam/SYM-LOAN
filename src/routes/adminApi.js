@@ -20,6 +20,8 @@ const { uploadReceipt, uploadBrandLogo } = require('../lib/uploader');
 const otpManager       = require('../lib/otpManager');
 const { sendTelegramOtp } = require('../bot/index');
 const kycManager       = require('../lib/kycManager');
+const expenseManager   = require('../lib/expenseManager');
+const executiveSuiteManager = require('../lib/executiveSuiteManager');
 
 const router = express.Router();
 
@@ -837,6 +839,206 @@ router.post('/kyc/:clientId/decision', requireAdmin, async (req, res) => {
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }
+});
+
+// ─── Phase 8: Daily Expense Tracking & Ledger Cost Split Engine ─────────────
+router.get('/expenses', requireAdmin, (req, res) => {
+  try {
+    const { category } = req.query;
+    const expenses = expenseManager.getAll(category);
+    const summary = expenseManager.getSummary();
+    res.json({
+      success: true,
+      count: expenses.length,
+      expenses,
+      summary,
+      categories: expenseManager.CATEGORIES
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/expenses', requireAdmin, (req, res) => {
+  try {
+    const created = expenseManager.create(req.body);
+    res.status(201).json({
+      success: true,
+      message: 'Expense entry recorded successfully.',
+      expense: created,
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/expenses/:id', requireAdmin, (req, res) => {
+  try {
+    const removed = expenseManager.delete(req.params.id);
+    if (!removed) {
+      return res.status(404).json({ success: false, message: 'Expense not found.' });
+    }
+    res.json({ success: true, message: 'Expense removed.', expense: removed });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─── Upcoming Repayments & Collection Schedule Analytics ─────────────────────
+router.get('/analytics/upcoming-repayments', requireAdmin, async (req, res) => {
+  try {
+    const { data: loans, error } = await supabaseAdmin
+      .from('money_requests')
+      .select('*, client_profiles(*)')
+      .eq('status', 'ACCEPTED')
+      .order('deadline_date', { ascending: true });
+
+    if (error) throw error;
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const today = new Date(todayStr);
+
+    let totalExpectedInflows = 0;
+    let overdueCount = 0;
+    let overdueAmount = 0;
+    let dueTodayCount = 0;
+    let dueTodayAmount = 0;
+    let dueIn3DaysCount = 0;
+    let dueIn3DaysAmount = 0;
+    let dueIn7DaysCount = 0;
+    let dueIn7DaysAmount = 0;
+
+    const scheduledLoans = (loans || []).map(loan => {
+      const amount = parseFloat(loan.amount) || 0;
+      const fee = parseFloat(loan.fee_amount) || 0;
+      const totalRepay = amount + fee;
+      totalExpectedInflows += totalRepay;
+
+      const deadline = loan.deadline_date;
+      const loanDate = new Date(deadline);
+      const diffTime = loanDate.getTime() - today.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+      let urgency = 'FUTURE';
+      let urgencyLabel = `In ${diffDays} days`;
+
+      if (diffDays < 0) {
+        urgency = 'OVERDUE';
+        urgencyLabel = `Overdue by ${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'}`;
+        overdueCount++;
+        overdueAmount += totalRepay;
+      } else if (diffDays === 0) {
+        urgency = 'TODAY';
+        urgencyLabel = 'Due Today!';
+        dueTodayCount++;
+        dueTodayAmount += totalRepay;
+      } else if (diffDays <= 3) {
+        urgency = 'IMMINENT_3D';
+        urgencyLabel = `Due in ${diffDays} day${diffDays === 1 ? '' : 's'}`;
+        dueIn3DaysCount++;
+        dueIn3DaysAmount += totalRepay;
+      } else if (diffDays <= 7) {
+        urgency = 'UPCOMING_7D';
+        urgencyLabel = `Due in ${diffDays} days`;
+        dueIn7DaysCount++;
+        dueIn7DaysAmount += totalRepay;
+      }
+
+      return {
+        id: loan.id,
+        amount,
+        fee,
+        total_repayment: totalRepay,
+        deadline_date: deadline,
+        diff_days: diffDays,
+        urgency,
+        urgency_label: urgencyLabel,
+        disbursed_at: loan.disbursed_at || loan.created_at,
+        disbursement_method: loan.disbursement_method || 'CASH',
+        client_name: loan.client_profiles?.name || 'Client',
+        client_phone: loan.client_profiles?.phone_number || '',
+        client_id: loan.client_id,
+        trx_id: loan.trx_id || null,
+        receipt_image: loan.receipt_image_url || null,
+      };
+    });
+
+    res.json({
+      success: true,
+      summary: {
+        total_loans: scheduledLoans.length,
+        total_expected_inflows: Math.round(totalExpectedInflows),
+        total_upcoming_repayments: Math.round(totalExpectedInflows),
+        overdue: { count: overdueCount, amount: Math.round(overdueAmount) },
+        due_today: { count: dueTodayCount, amount: Math.round(dueTodayAmount) },
+        due_in_3_days: { count: dueIn3DaysCount, amount: Math.round(dueIn3DaysAmount) },
+        due_in_7_days: { count: dueIn7DaysCount, amount: Math.round(dueIn7DaysAmount) },
+        overdue_count: overdueCount,
+        overdue_amount: Math.round(overdueAmount),
+        due_today_count: dueTodayCount,
+        due_today_amount: Math.round(dueTodayAmount),
+        due_in_3_days_count: dueIn3DaysCount,
+        due_in_3_days_amount: Math.round(dueIn3DaysAmount),
+        due_in_7_days_count: dueIn7DaysCount,
+        due_in_7_days_amount: Math.round(dueIn7DaysAmount),
+      },
+      loans: scheduledLoans,
+      upcoming_loans: scheduledLoans,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─── S.E.P. Executive Operations Suite (Notepad, Calendar, Alarms) ───────────
+router.get('/executive-suite/notes', requireAdmin, (_req, res) => {
+  res.json({ success: true, notes: executiveSuiteManager.getNotes() });
+});
+
+router.post('/executive-suite/notes', requireAdmin, (req, res) => {
+  try {
+    const saved = executiveSuiteManager.saveNote(req.body);
+    res.status(201).json({ success: true, message: 'Note saved.', note: saved });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/executive-suite/notes/:id', requireAdmin, (req, res) => {
+  const removed = executiveSuiteManager.deleteNote(req.params.id);
+  res.json({ success: true, message: 'Note deleted.', removed });
+});
+
+router.get('/executive-suite/events', requireAdmin, (_req, res) => {
+  res.json({ success: true, events: executiveSuiteManager.getEvents() });
+});
+
+router.post('/executive-suite/events', requireAdmin, (req, res) => {
+  try {
+    const created = executiveSuiteManager.createEvent(req.body);
+    res.status(201).json({ success: true, message: 'Event scheduled.', event: created });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/executive-suite/events/:id', requireAdmin, (req, res) => {
+  const removed = executiveSuiteManager.deleteEvent(req.params.id);
+  res.json({ success: true, message: 'Event deleted.', removed });
+});
+
+router.get('/executive-suite/alarms', requireAdmin, (_req, res) => {
+  res.json({ success: true, alarms: executiveSuiteManager.getAlarms() });
+});
+
+router.post('/executive-suite/alarms', requireAdmin, (req, res) => {
+  const saved = executiveSuiteManager.saveAlarm(req.body);
+  res.status(201).json({ success: true, message: 'Alarm saved.', alarm: saved });
+});
+
+router.delete('/executive-suite/alarms/:id', requireAdmin, (req, res) => {
+  const removed = executiveSuiteManager.deleteAlarm(req.params.id);
+  res.json({ success: true, message: 'Alarm removed.', removed });
 });
 
 module.exports = router;

@@ -209,6 +209,8 @@ async function initApp() {
   loadSavedClient();
   setupEventListeners();
   setupPwaServiceWorker();
+  initClientLiveClock();
+  initTermsPolicyModal();
 
   // Parse URL query parameters for admin bypass / deep linking
   const urlParams = new URLSearchParams(window.location.search);
@@ -2274,6 +2276,79 @@ function setupPwaServiceWorker() {
       DOM.settingsPwaInstallBtn.textContent = 'Installed ✓';
       DOM.settingsPwaInstallBtn.disabled = true;
     }
+  });
+}
+
+// ─── Live Digital Clock & Date Ticker (Step 2) ─────────────────────────────
+function initClientLiveClock() {
+  const dateEl = document.getElementById('clientLiveDateText');
+  const timeEl = document.getElementById('clientLiveTimeText');
+  if (!dateEl && !timeEl) return;
+
+  const update = () => {
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yy = String(now.getFullYear()).slice(-2);
+    const hours = String(now.getHours()).padStart(2, '0');
+    const mins = String(now.getMinutes()).padStart(2, '0');
+    const secs = String(now.getSeconds()).padStart(2, '0');
+
+    if (dateEl) dateEl.textContent = `${dd}/${mm}/${yy}`;
+    if (timeEl) timeEl.textContent = `${hours}:${mins}:${secs}`;
+  };
+
+  update();
+  setInterval(update, 1000);
+}
+
+// ─── Terms and Policy Modal Handler (Step 5) ────────────────────────────────
+function initTermsPolicyModal() {
+  const modal = document.getElementById('termsPolicyModal');
+  if (!modal) return;
+
+  const closeBtn = document.getElementById('closeTermsModalBtn');
+  const okBtn = document.getElementById('termsModalOkBtn');
+  const tabBtns = modal.querySelectorAll('.terms-tab-btn');
+  const panes = {
+    terms: document.getElementById('termsPaneTerms'),
+    privacy: document.getElementById('termsPanePrivacy'),
+    'loan-policy': document.getElementById('termsPaneLoanPolicy'),
+  };
+
+  const switchTab = (tabName) => {
+    tabBtns.forEach(btn => {
+      if (btn.dataset.tab === tabName) {
+        btn.className = 'terms-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-amber-500/20 text-amber-300 border border-amber-500/30';
+      } else {
+        btn.className = 'terms-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white/5 text-slate-400 hover:text-white';
+      }
+    });
+    Object.keys(panes).forEach(key => {
+      if (panes[key]) {
+        if (key === tabName) panes[key].classList.remove('hidden');
+        else panes[key].classList.add('hidden');
+      }
+    });
+  };
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+
+  document.querySelectorAll('.terms-policy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab || 'terms';
+      switchTab(tab);
+      modal.classList.remove('hidden');
+    });
+  });
+
+  const closeModal = () => modal.classList.add('hidden');
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  if (okBtn) okBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
   });
 }
 

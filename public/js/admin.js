@@ -236,13 +236,106 @@ const DOM = {
   inspectFeedback: document.getElementById('inspectFeedback'),
   rejectKycBtn: document.getElementById('rejectKycBtn'),
   approveKycBtn: document.getElementById('approveKycBtn'),
+
+  // Live Clock & Chime Elements (Step 2 & 6)
+  adminLiveClockTicker: document.getElementById('adminLiveClockTicker'),
+  liveDateText: document.getElementById('liveDateText'),
+  liveTimeText: document.getElementById('liveTimeText'),
+  bigLiveClockDisplay: document.getElementById('bigLiveClockDisplay'),
+  bigLiveDateDisplay: document.getElementById('bigLiveDateDisplay'),
+  testChimeSoundBtn: document.getElementById('testChimeSoundBtn'),
+
+  // Top KPI Stats & Totals (Step 4)
+  kpiTotalLedgerMoney: document.getElementById('kpiTotalLedgerMoney'),
+  kpiUpcomingInflow: document.getElementById('kpiUpcomingInflow'),
+  historicalTotalMoney: document.getElementById('historicalTotalMoney'),
+  ssTotalHistoricalDebt: document.getElementById('ssTotalHistoricalDebt'),
+  ssTotalBorrowed: document.getElementById('ssTotalBorrowed'),
+  ssTotalOutstanding: document.getElementById('ssTotalOutstanding'),
+
+  // Upcoming Repayments Analytics Elements (Step 3)
+  refreshUpcomingRepaymentsBtn: document.getElementById('refreshUpcomingRepaymentsBtn'),
+  badgeRepayOverdue: document.getElementById('badgeRepayOverdue'),
+  badgeRepayToday: document.getElementById('badgeRepayToday'),
+  badgeRepay3Days: document.getElementById('badgeRepay3Days'),
+  badgeRepay7Days: document.getElementById('badgeRepay7Days'),
+  badgeRepayTotalInflow: document.getElementById('badgeRepayTotalInflow'),
+  upcomingRepaymentsTableBody: document.getElementById('upcomingRepaymentsTableBody'),
+
+  // Daily Expense Tracking Elements (Step 1)
+  expenseForm: document.getElementById('expenseForm'),
+  expenseCategory: document.getElementById('expenseCategory'),
+  expenseAmount: document.getElementById('expenseAmount'),
+  expenseDate: document.getElementById('expenseDate'),
+  expensePayer: document.getElementById('expensePayer'),
+  expenseSplitWith: document.getElementById('expenseSplitWith'),
+  expenseDescription: document.getElementById('expenseDescription'),
+  submitExpenseBtn: document.getElementById('submitExpenseBtn'),
+  refreshExpensesBtn: document.getElementById('refreshExpensesBtn'),
+  exportExpensesBtn: document.getElementById('exportExpensesBtn'),
+  filterExpenseCategory: document.getElementById('filterExpenseCategory'),
+  expensesTableBody: document.getElementById('expensesTableBody'),
+  totalExpensesFooterAmount: document.getElementById('totalExpensesFooterAmount'),
+
+  // Executive Operations Suite Elements (Step 6)
+  suiteTabBtnNotes: document.getElementById('suiteTabBtnNotes'),
+  suiteTabBtnCalendar: document.getElementById('suiteTabBtnCalendar'),
+  suiteTabBtnClock: document.getElementById('suiteTabBtnClock'),
+  suiteTabBtnMaps: document.getElementById('suiteTabBtnMaps'),
+  suiteTabContentNotes: document.getElementById('suiteTabContentNotes'),
+  suiteTabContentCalendar: document.getElementById('suiteTabContentCalendar'),
+  suiteTabContentClock: document.getElementById('suiteTabContentClock'),
+  suiteTabContentMaps: document.getElementById('suiteTabContentMaps'),
+  suiteNoteTitleInput: document.getElementById('suiteNoteTitleInput'),
+  suiteNoteCategoryInput: document.getElementById('suiteNoteCategoryInput'),
+  suiteNoteContentInput: document.getElementById('suiteNoteContentInput'),
+  saveSuiteNoteBtn: document.getElementById('saveSuiteNoteBtn'),
+  suiteNotesGrid: document.getElementById('suiteNotesGrid'),
+  suiteEventTitleInput: document.getElementById('suiteEventTitleInput'),
+  suiteEventDateInput: document.getElementById('suiteEventDateInput'),
+  suiteEventTimeInput: document.getElementById('suiteEventTimeInput'),
+  suiteEventClientInput: document.getElementById('suiteEventClientInput'),
+  suiteEventDescriptionInput: document.getElementById('suiteEventDescriptionInput'),
+  saveSuiteEventBtn: document.getElementById('saveSuiteEventBtn'),
+  suiteEventsList: document.getElementById('suiteEventsList'),
+  suiteAlarmTimeInput: document.getElementById('suiteAlarmTimeInput'),
+  suiteAlarmLabelInput: document.getElementById('suiteAlarmLabelInput'),
+  saveSuiteAlarmBtn: document.getElementById('saveSuiteAlarmBtn'),
+  suiteAlarmsList: document.getElementById('suiteAlarmsList'),
+  mapOriginInput: document.getElementById('mapOriginInput'),
+  mapDestinationInput: document.getElementById('mapDestinationInput'),
+  updateMapRouteBtn: document.getElementById('updateMapRouteBtn'),
+  launchGoogleMapsBtn: document.getElementById('launchGoogleMapsBtn'),
+  googleMapsEmbedFrame: document.getElementById('googleMapsEmbedFrame'),
+
+  // Alarm Alert Modal Elements
+  alarmAlertModal: document.getElementById('alarmAlertModal'),
+  alarmAlertTitle: document.getElementById('alarmAlertTitle'),
+  alarmAlertTime: document.getElementById('alarmAlertTime'),
+  alarmAlertMessage: document.getElementById('alarmAlertMessage'),
+  dismissAlarmBtn: document.getElementById('dismissAlarmBtn'),
+  snoozeAlarmBtn: document.getElementById('snoozeAlarmBtn'),
+
+  // Terms and Policy Modal Elements (Step 5)
+  termsPolicyModal: document.getElementById('termsPolicyModal'),
+  closeTermsModalBtn: document.getElementById('closeTermsModalBtn'),
+  termsModalOkBtn: document.getElementById('termsModalOkBtn'),
 };
 
 let KYC_CACHE = [];
 let ACTIVE_INSPECT_KYC = null;
+let EXPENSES_CACHE = [];
+let UPCOMING_REPAYMENTS_CACHE = [];
+let SUITE_NOTES_CACHE = [];
+let SUITE_EVENTS_CACHE = [];
+let SUITE_ALARMS_CACHE = [];
+let ACTIVE_ALARM_INTERVAL = null;
+let ACTIVE_ALARM_OBJ = null;
 
 function initAdmin() {
   if (DOM.adminKeyInput) DOM.adminKeyInput.value = ADMIN_KEY;
+  initLiveClockTicker();
+  initTermsPolicyModal();
   setupEvents();
   loadAllData();
   fetchNotifications();
@@ -265,6 +358,11 @@ async function loadAllData() {
     await fetchLoans();
     await fetchHistoricalLedgers();
     await fetchMasterSpreadsheet();
+    await fetchUpcomingRepaymentsAnalytics();
+    await fetchExpenses();
+    await fetchSuiteNotes();
+    await fetchSuiteEvents();
+    await fetchSuiteAlarms();
     DOM.authStatusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center';
     DOM.authStatusBadge.innerHTML = '<i class="fas fa-shield-alt mr-1.5"></i> Authenticated';
   } catch (err) {
@@ -550,6 +648,16 @@ async function fetchHistoricalLedgers() {
     if (res.ok && json.success) {
       const list = json.ledgers || [];
       DOM.historicalCountBadge.textContent = `${list.length} Records`;
+
+      // Step 4: Calculate TOTAL MONEY from all digitized Google Keep Notes
+      const totalNotesMoney = list.reduce((sum, item) => sum + (parseFloat(item.historical_balance) || 0), 0);
+      if (DOM.historicalTotalMoney) {
+        DOM.historicalTotalMoney.textContent = `৳ ${Math.round(totalNotesMoney).toLocaleString()}`;
+      }
+      if (DOM.kpiTotalLedgerMoney) {
+        DOM.kpiTotalLedgerMoney.textContent = `৳ ${Math.round(totalNotesMoney).toLocaleString()}`;
+      }
+
       DOM.historicalTableBody.innerHTML = list.map(item => `
         <tr class="border-b border-white/5 hover:bg-white/[0.02] text-xs">
           <td class="py-2.5 px-3 font-bold text-white">${item.old_name}</td>
@@ -620,8 +728,20 @@ function renderSpreadsheetTable(rows) {
         <td colspan="8" class="p-6 text-center text-slate-500">No client records found.</td>
       </tr>
     `;
+    if (DOM.ssTotalHistoricalDebt) DOM.ssTotalHistoricalDebt.textContent = '৳ 0';
+    if (DOM.ssTotalBorrowed) DOM.ssTotalBorrowed.textContent = '৳ 0';
+    if (DOM.ssTotalOutstanding) DOM.ssTotalOutstanding.textContent = '৳ 0';
     return;
   }
+
+  // Calculate Master Spreadsheet footer totals
+  const totalHistDebt = rows.reduce((acc, r) => acc + (parseFloat(r.historical_debt) || 0), 0);
+  const totalBorrowed = rows.reduce((acc, r) => acc + (parseFloat(r.total_borrowed) || 0), 0);
+  const totalOutstanding = rows.reduce((acc, r) => acc + (parseFloat(r.net_outstanding) || 0), 0);
+
+  if (DOM.ssTotalHistoricalDebt) DOM.ssTotalHistoricalDebt.textContent = `৳ ${Math.round(totalHistDebt).toLocaleString()}`;
+  if (DOM.ssTotalBorrowed) DOM.ssTotalBorrowed.textContent = `৳ ${Math.round(totalBorrowed).toLocaleString()}`;
+  if (DOM.ssTotalOutstanding) DOM.ssTotalOutstanding.textContent = `৳ ${Math.round(totalOutstanding).toLocaleString()}`;
 
   DOM.spreadsheetTableBody.innerHTML = rows.map(r => {
     const statusColor = r.status === 'ACTIVE' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
@@ -1997,6 +2117,753 @@ function setupEvents() {
         DOM.inspectRejectReasonInput.focus();
       }
     });
+  });
+
+  // ─── Live Clock & Chime Listeners (Step 2 & 6) ────────────────────────────
+  DOM.testChimeSoundBtn?.addEventListener('click', playChimeSound);
+
+  // ─── Upcoming Repayments Analytics Listeners (Step 3) ─────────────────────
+  DOM.refreshUpcomingRepaymentsBtn?.addEventListener('click', fetchUpcomingRepaymentsAnalytics);
+
+  // ─── Daily Expenses Tracking Listeners (Step 1) ───────────────────────────
+  DOM.expenseForm?.addEventListener('submit', logExpense);
+  DOM.refreshExpensesBtn?.addEventListener('click', fetchExpenses);
+  DOM.exportExpensesBtn?.addEventListener('click', exportExpensesXlsx);
+  DOM.filterExpenseCategory?.addEventListener('change', (e) => filterExpensesByCategory(e.target.value));
+
+  // ─── Executive Operations Suite Listeners (Step 6) ────────────────────────
+  DOM.suiteTabBtnNotes?.addEventListener('click', () => switchSuiteTab('notes'));
+  DOM.suiteTabBtnCalendar?.addEventListener('click', () => switchSuiteTab('calendar'));
+  DOM.suiteTabBtnClock?.addEventListener('click', () => switchSuiteTab('clock'));
+  DOM.suiteTabBtnMaps?.addEventListener('click', () => switchSuiteTab('maps'));
+
+  DOM.saveSuiteNoteBtn?.addEventListener('click', saveSuiteNote);
+  DOM.saveSuiteEventBtn?.addEventListener('click', saveSuiteEvent);
+  DOM.saveSuiteAlarmBtn?.addEventListener('click', saveSuiteAlarm);
+
+  DOM.dismissAlarmBtn?.addEventListener('click', dismissAlarm);
+  DOM.snoozeAlarmBtn?.addEventListener('click', snoozeAlarm);
+
+  DOM.updateMapRouteBtn?.addEventListener('click', updateMapRoute);
+  DOM.launchGoogleMapsBtn?.addEventListener('click', openGoogleMapsRoute);
+}
+
+// ─── Step 2 & 6: Real-time Live Clock & Web Audio Synthesizer ─────────────────
+function initLiveClockTicker() {
+  const updateClock = () => {
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yy = String(now.getFullYear()).slice(-2);
+    const hours = String(now.getHours()).padStart(2, '0');
+    const mins = String(now.getMinutes()).padStart(2, '0');
+    const secs = String(now.getSeconds()).padStart(2, '0');
+
+    const dateStr = `${dd}/${mm}/${yy}`;
+    const timeStr = `${hours}:${mins}:${secs}`;
+
+    if (DOM.liveDateText) DOM.liveDateText.textContent = dateStr;
+    if (DOM.liveTimeText) DOM.liveTimeText.textContent = timeStr;
+
+    if (DOM.bigLiveClockDisplay) DOM.bigLiveClockDisplay.textContent = timeStr;
+    if (DOM.bigLiveDateDisplay) {
+      DOM.bigLiveDateDisplay.textContent = now.toLocaleDateString(undefined, {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    }
+  };
+
+  updateClock();
+  setInterval(updateClock, 1000);
+  setInterval(checkActiveAlarms, 10000);
+}
+
+function playChimeSound() {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const now = ctx.currentTime;
+
+    // Pleasant Melodic Two-Tone Chime: D5 (587.33 Hz) -> A5 (880.00 Hz)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(587.33, now);
+    gain1.gain.setValueAtTime(0.2, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.5);
+
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(880.00, now + 0.2);
+    gain2.gain.setValueAtTime(0.25, now + 0.2);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.2);
+    osc2.stop(now + 0.85);
+  } catch (err) {
+    console.warn('Web Audio chime synth warning:', err);
+  }
+}
+
+// ─── Step 3: Upcoming Loan Repayments Analytics ─────────────────────────────
+async function fetchUpcomingRepaymentsAnalytics() {
+  try {
+    const res = await fetch('/api/admin/analytics/upcoming-repayments', { headers: getHeaders() });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    UPCOMING_REPAYMENTS_CACHE = json.upcoming_loans || [];
+    const s = json.summary || {};
+
+    if (DOM.badgeRepayOverdue) DOM.badgeRepayOverdue.textContent = `${s.overdue_count || 0} Overdue (৳${Math.round(s.overdue_amount || 0).toLocaleString()})`;
+    if (DOM.badgeRepayToday) DOM.badgeRepayToday.textContent = `${s.due_today_count || 0} Today (৳${Math.round(s.due_today_amount || 0).toLocaleString()})`;
+    if (DOM.badgeRepay3Days) DOM.badgeRepay3Days.textContent = `${s.due_in_3_days_count || 0} In 3 Days (৳${Math.round(s.due_in_3_days_amount || 0).toLocaleString()})`;
+    if (DOM.badgeRepay7Days) DOM.badgeRepay7Days.textContent = `${s.due_in_7_days_count || 0} In 7 Days (৳${Math.round(s.due_in_7_days_amount || 0).toLocaleString()})`;
+    if (DOM.badgeRepayTotalInflow) DOM.badgeRepayTotalInflow.textContent = `৳ ${Math.round(s.total_upcoming_repayments || 0).toLocaleString()}`;
+    if (DOM.kpiUpcomingInflow) DOM.kpiUpcomingInflow.textContent = `৳ ${Math.round(s.total_upcoming_repayments || 0).toLocaleString()}`;
+
+    renderUpcomingRepaymentsTable(UPCOMING_REPAYMENTS_CACHE);
+  } catch (err) {
+    console.error('Failed to fetch upcoming repayments:', err);
+  }
+}
+
+function renderUpcomingRepaymentsTable(loans) {
+  if (!DOM.upcomingRepaymentsTableBody) return;
+  if (!loans || loans.length === 0) {
+    DOM.upcomingRepaymentsTableBody.innerHTML = `
+      <tr>
+        <td colspan="6" class="p-6 text-center text-slate-500">
+          <i class="fas fa-check-circle text-emerald-400 mr-2"></i> No upcoming loan repayments scheduled at this time.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  DOM.upcomingRepaymentsTableBody.innerHTML = loans.map(item => {
+    const client = item.client || { name: 'Client', phone_number: '—' };
+    const urgency = item.urgency;
+    let urgencyBadge = '';
+    if (urgency === 'OVERDUE') {
+      urgencyBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse">OVERDUE (${Math.abs(item.days_remaining)}d)</span>`;
+    } else if (urgency === 'DUE_TODAY') {
+      urgencyBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">DUE TODAY</span>`;
+    } else if (urgency === 'DUE_IN_3_DAYS') {
+      urgencyBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-500/20 text-yellow-300 border border-yellow-500/30">In ${item.days_remaining} days</span>`;
+    } else {
+      urgencyBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">In ${item.days_remaining} days</span>`;
+    }
+
+    return `
+      <tr class="border-b border-white/5 hover:bg-white/[0.02] text-xs">
+        <td class="py-2.5 px-3">
+          <div class="font-bold text-white">${client.name}</div>
+          <div class="text-[10px] text-slate-400 font-mono">${client.phone_number}</div>
+        </td>
+        <td class="py-2.5 px-3 font-mono text-slate-300">${item.deadline_date || '—'}</td>
+        <td class="py-2.5 px-3">${urgencyBadge}</td>
+        <td class="py-2.5 px-3 font-mono">৳${parseFloat(item.amount || 0).toLocaleString()}</td>
+        <td class="py-2.5 px-3 font-mono font-black text-emerald-400">৳${parseFloat(item.total_repayable || item.amount || 0).toLocaleString()}</td>
+        <td class="py-2.5 px-3 text-right">
+          <a href="tel:${client.phone_number}" class="px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white font-bold text-[10px] inline-flex items-center mr-1">
+            <i class="fas fa-phone mr-1 text-emerald-400"></i> Call
+          </a>
+          <button onclick="openGoogleCalendarQuickEvent('${encodeURIComponent(client.name)}', '${item.deadline_date}', ${item.total_repayable || item.amount})" class="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-bold text-[10px] inline-flex items-center cursor-pointer">
+            <i class="fas fa-calendar-plus mr-1"></i> Add Cal
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+window.openGoogleCalendarQuickEvent = function(clientName, dueDate, amount) {
+  const title = `Loan Repayment: ${decodeURIComponent(clientName)} (৳${amount})`;
+  const dateClean = (dueDate || '').replace(/-/g, '');
+  const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${dateClean}/${dateClean}&details=Follow+up+with+${clientName}+for+loan+repayment+of+BDT+${amount}&location=SYM+EMPIRE+(S.E.P.)`;
+  window.open(url, '_blank');
+};
+
+// ─── Step 1: Daily Expense Tracking & Split Engine ──────────────────────────
+async function fetchExpenses() {
+  try {
+    const res = await fetch('/api/admin/expenses', { headers: getHeaders() });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    EXPENSES_CACHE = json.expenses || [];
+    renderExpensesTable(EXPENSES_CACHE);
+  } catch (err) {
+    console.error('Failed to fetch daily expenses:', err);
+  }
+}
+
+function renderExpensesTable(list) {
+  if (!DOM.expensesTableBody) return;
+  if (!list || list.length === 0) {
+    DOM.expensesTableBody.innerHTML = `
+      <tr>
+        <td colspan="7" class="p-6 text-center text-slate-500">
+          No daily expenses recorded yet. Use the form above to log operational costs.
+        </td>
+      </tr>
+    `;
+    if (DOM.totalExpensesFooterAmount) DOM.totalExpensesFooterAmount.textContent = '৳ 0';
+    return;
+  }
+
+  const total = list.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+  if (DOM.totalExpensesFooterAmount) {
+    DOM.totalExpensesFooterAmount.textContent = `৳ ${Math.round(total).toLocaleString()}`;
+  }
+
+  DOM.expensesTableBody.innerHTML = list.map(item => {
+    let catClass = 'bg-slate-700/50 text-slate-300 border-slate-600';
+    if (item.category === 'OFFICE_RENT') catClass = 'bg-blue-500/20 text-blue-300 border-blue-500/40';
+    else if (item.category === 'TEA_FOOD') catClass = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+    else if (item.category === 'CONVEYANCE') catClass = 'bg-teal-500/20 text-teal-300 border-teal-500/40';
+    else if (item.category === 'MFS_FEE') catClass = 'bg-purple-500/20 text-purple-300 border-purple-500/40';
+    else if (item.category === 'UTILITIES') catClass = 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40';
+
+    return `
+      <tr class="border-b border-white/5 hover:bg-white/[0.02] text-xs">
+        <td class="py-2.5 px-3 font-mono text-slate-300">${item.date || '—'}</td>
+        <td class="py-2.5 px-3">
+          <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${catClass}">${item.category}</span>
+        </td>
+        <td class="py-2.5 px-3 text-white font-medium">${item.description || '—'}</td>
+        <td class="py-2.5 px-3 font-mono font-bold text-amber-300">৳${parseFloat(item.amount || 0).toLocaleString()}</td>
+        <td class="py-2.5 px-3 text-slate-300">${item.payer || 'Admin'}</td>
+        <td class="py-2.5 px-3 text-slate-400 text-[11px]">${item.split_with || 'Platform'}</td>
+        <td class="py-2.5 px-3 text-right">
+          <button onclick="deleteExpenseRecord('${item.id}')" class="px-2 py-1 rounded bg-rose-500/10 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-[10px] transition cursor-pointer">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function logExpense(e) {
+  e.preventDefault();
+  const category = DOM.expenseCategory?.value;
+  const amount = parseFloat(DOM.expenseAmount?.value);
+  const date = DOM.expenseDate?.value;
+  const payer = DOM.expensePayer?.value || 'Admin';
+  const split_with = DOM.expenseSplitWith?.value || 'Platform';
+  const description = (DOM.expenseDescription?.value || '').trim();
+
+  if (!category || isNaN(amount) || amount <= 0 || !date) {
+    alert('Please provide valid expense category, amount, and date.');
+    return;
+  }
+
+  DOM.submitExpenseBtn.disabled = true;
+  DOM.submitExpenseBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Saving...';
+
+  try {
+    const res = await fetch('/api/admin/expenses', {
+      method: 'POST',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category, amount, date, payer, split_with, description }),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    DOM.expenseAmount.value = '';
+    DOM.expenseDescription.value = '';
+    await fetchExpenses();
+  } catch (err) {
+    alert(`Expense Save Error: ${err.message}`);
+  } finally {
+    DOM.submitExpenseBtn.disabled = false;
+    DOM.submitExpenseBtn.innerHTML = '<i class="fas fa-plus-circle mr-1.5"></i> Save Expense Record';
+  }
+}
+
+window.deleteExpenseRecord = async function(id) {
+  if (!confirm('Are you sure you want to delete this expense record?')) return;
+  try {
+    const res = await fetch(`/api/admin/expenses/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+    await fetchExpenses();
+  } catch (err) {
+    alert(`Delete Error: ${err.message}`);
+  }
+};
+
+function filterExpensesByCategory(cat) {
+  if (!cat) {
+    renderExpensesTable(EXPENSES_CACHE);
+  } else {
+    const filtered = EXPENSES_CACHE.filter(e => e.category === cat);
+    renderExpensesTable(filtered);
+  }
+}
+
+function exportExpensesXlsx() {
+  if (!EXPENSES_CACHE || EXPENSES_CACHE.length === 0) {
+    alert('No expenses to export.');
+    return;
+  }
+
+  const csvRows = [
+    ['Expense ID', 'Date', 'Category', 'Description', 'Amount (BDT)', 'Paid By', 'Split With'],
+    ...EXPENSES_CACHE.map(e => [
+      `"${e.id}"`,
+      `"${e.date}"`,
+      `"${e.category}"`,
+      `"${(e.description || '').replace(/"/g, '""')}"`,
+      e.amount,
+      `"${e.payer || 'Admin'}"`,
+      `"${e.split_with || 'Platform'}"`
+    ])
+  ];
+
+  const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + csvRows.map(r => r.join(',')).join('\n');
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement('a');
+  link.setAttribute('href', encodedUri);
+  link.setAttribute('download', `SYM_Expenses_Export_${new Date().toISOString().slice(0, 10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// ─── Step 6: S.E.P. Executive Operations Suite ──────────────────────────────
+function switchSuiteTab(tab) {
+  const tabs = ['notes', 'calendar', 'clock', 'maps'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`suiteTabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
+    const pane = document.getElementById(`suiteTabContent${t.charAt(0).toUpperCase() + t.slice(1)}`);
+    if (t === tab) {
+      btn?.classList.add('bg-white/10', 'text-white', 'border-white/20');
+      btn?.classList.remove('text-slate-400');
+      pane?.classList.remove('hidden');
+    } else {
+      btn?.classList.remove('bg-white/10', 'text-white', 'border-white/20');
+      btn?.classList.add('text-slate-400');
+      pane?.classList.add('hidden');
+    }
+  });
+}
+
+// Keep Notes
+async function fetchSuiteNotes() {
+  try {
+    const res = await fetch('/api/admin/executive-suite/notes', { headers: getHeaders() });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+    SUITE_NOTES_CACHE = json.notes || [];
+    renderSuiteNotes(SUITE_NOTES_CACHE);
+  } catch (err) {
+    console.error('Failed to fetch suite notes:', err);
+  }
+}
+
+function renderSuiteNotes(notes) {
+  if (!DOM.suiteNotesGrid) return;
+  if (!notes || notes.length === 0) {
+    DOM.suiteNotesGrid.innerHTML = `
+      <div class="col-span-full p-6 text-center text-slate-500">
+        No notes recorded yet. Add plans, meeting memos, or debtor notes above.
+      </div>
+    `;
+    return;
+  }
+
+  DOM.suiteNotesGrid.innerHTML = notes.map(n => `
+    <div class="p-4 rounded-xl bg-black/60 border border-amber-500/20 hover:border-amber-500/40 transition space-y-2.5 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between">
+          <h5 class="text-xs font-black text-white truncate">${n.title || 'Untitled Note'}</h5>
+          <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">${n.category || 'PLAN'}</span>
+        </div>
+        <p class="text-xs text-slate-300 whitespace-pre-wrap mt-1 leading-relaxed max-h-36 overflow-y-auto">${n.content}</p>
+      </div>
+      <div class="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-500">
+        <span>${new Date(n.created_at).toLocaleDateString()}</span>
+        <div class="flex items-center space-x-1.5">
+          <button onclick="sendNoteToParser('${n.id}')" class="px-2 py-0.5 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 font-bold cursor-pointer transition" title="Paste into Historical Notes Parser">
+            <i class="fas fa-file-import mr-1"></i> To Parser
+          </button>
+          <button onclick="deleteSuiteNoteRecord('${n.id}')" class="p-1 text-slate-500 hover:text-rose-400 cursor-pointer transition">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function saveSuiteNote() {
+  const title = (DOM.suiteNoteTitleInput?.value || '').trim();
+  const category = DOM.suiteNoteCategoryInput?.value || 'PLAN';
+  const content = (DOM.suiteNoteContentInput?.value || '').trim();
+
+  if (!content) {
+    alert('Please enter note content.');
+    return;
+  }
+
+  DOM.saveSuiteNoteBtn.disabled = true;
+  try {
+    const res = await fetch('/api/admin/executive-suite/notes', {
+      method: 'POST',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: title || 'Executive Memo', category, content }),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    DOM.suiteNoteTitleInput.value = '';
+    DOM.suiteNoteContentInput.value = '';
+    await fetchSuiteNotes();
+  } catch (err) {
+    alert(`Save Note Error: ${err.message}`);
+  } finally {
+    DOM.saveSuiteNoteBtn.disabled = false;
+  }
+}
+
+window.sendNoteToParser = function(id) {
+  const note = SUITE_NOTES_CACHE.find(n => n.id === id);
+  if (!note) return;
+  if (DOM.rawNoteInput) {
+    DOM.rawNoteInput.value = note.content;
+    const historicalSection = document.getElementById('historicalLedgerSection');
+    historicalSection?.scrollIntoView({ behavior: 'smooth' });
+    DOM.rawNoteInput.focus();
+    DOM.rawNoteInput.classList.add('ring-2', 'ring-amber-400');
+    setTimeout(() => DOM.rawNoteInput.classList.remove('ring-2', 'ring-amber-400'), 2500);
+  }
+};
+
+window.deleteSuiteNoteRecord = async function(id) {
+  if (!confirm('Delete this note?')) return;
+  try {
+    const res = await fetch(`/api/admin/executive-suite/notes/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+    await fetchSuiteNotes();
+  } catch (err) {
+    alert(`Delete Error: ${err.message}`);
+  }
+};
+
+// Google Calendar & Events
+async function fetchSuiteEvents() {
+  try {
+    const res = await fetch('/api/admin/executive-suite/events', { headers: getHeaders() });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+    SUITE_EVENTS_CACHE = json.events || [];
+    renderSuiteEvents(SUITE_EVENTS_CACHE);
+  } catch (err) {
+    console.error('Failed to fetch suite events:', err);
+  }
+}
+
+function renderSuiteEvents(events) {
+  if (!DOM.suiteEventsList) return;
+  if (!events || events.length === 0) {
+    DOM.suiteEventsList.innerHTML = `
+      <div class="p-6 text-center text-slate-500">
+        No calendar events scheduled yet.
+      </div>
+    `;
+    return;
+  }
+
+  DOM.suiteEventsList.innerHTML = events.map(ev => {
+    const calDate = (ev.event_date || '').replace(/-/g, '');
+    const calTime = (ev.event_time || '09:00').replace(/:/g, '') + '00';
+    const calStart = `${calDate}T${calTime}`;
+    const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(ev.title)}&dates=${calStart}/${calStart}&details=${encodeURIComponent(ev.description || 'Client: ' + (ev.client_name || ''))}&location=SYM%20EMPIRE%20(S.E.P.)`;
+
+    return `
+      <div class="p-3 rounded-xl bg-black/60 border border-teal-500/20 hover:border-teal-500/40 transition flex items-center justify-between gap-3 text-xs">
+        <div class="space-y-0.5">
+          <div class="font-bold text-white flex items-center">
+            ${ev.title}
+            ${ev.client_name ? `<span class="ml-2 px-1.5 py-0.2 rounded text-[9px] bg-teal-500/20 text-teal-300 font-mono">${ev.client_name}</span>` : ''}
+          </div>
+          <div class="text-[11px] text-slate-400 flex items-center space-x-2 font-mono">
+            <span><i class="far fa-calendar text-teal-400 mr-1"></i> ${ev.event_date}</span>
+            <span><i class="far fa-clock text-amber-400 mr-1"></i> ${ev.event_time || 'All Day'}</span>
+          </div>
+          ${ev.description ? `<p class="text-[11px] text-slate-400 font-sans">${ev.description}</p>` : ''}
+        </div>
+        <div class="flex items-center space-x-2 shrink-0">
+          <a href="${gCalUrl}" target="_blank" class="px-2.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-black text-[10px] uppercase tracking-wider flex items-center transition shadow">
+            <i class="fab fa-google mr-1"></i> Google Cal
+          </a>
+          <button onclick="deleteSuiteEventRecord('${ev.id}')" class="p-1.5 text-slate-500 hover:text-rose-400 transition cursor-pointer">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function saveSuiteEvent() {
+  const title = (DOM.suiteEventTitleInput?.value || '').trim();
+  const event_date = DOM.suiteEventDateInput?.value;
+  const event_time = DOM.suiteEventTimeInput?.value || '10:00';
+  const client_name = (DOM.suiteEventClientInput?.value || '').trim();
+  const description = (DOM.suiteEventDescriptionInput?.value || '').trim();
+
+  if (!title || !event_date) {
+    alert('Please provide event title and date.');
+    return;
+  }
+
+  DOM.saveSuiteEventBtn.disabled = true;
+  try {
+    const res = await fetch('/api/admin/executive-suite/events', {
+      method: 'POST',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, event_date, event_time, client_name, description }),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    DOM.suiteEventTitleInput.value = '';
+    DOM.suiteEventClientInput.value = '';
+    DOM.suiteEventDescriptionInput.value = '';
+    await fetchSuiteEvents();
+  } catch (err) {
+    alert(`Save Event Error: ${err.message}`);
+  } finally {
+    DOM.saveSuiteEventBtn.disabled = false;
+  }
+}
+
+window.deleteSuiteEventRecord = async function(id) {
+  if (!confirm('Delete this event?')) return;
+  try {
+    const res = await fetch(`/api/admin/executive-suite/events/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+    await fetchSuiteEvents();
+  } catch (err) {
+    alert(`Delete Error: ${err.message}`);
+  }
+};
+
+// Alarms & Reminders
+async function fetchSuiteAlarms() {
+  try {
+    const res = await fetch('/api/admin/executive-suite/alarms', { headers: getHeaders() });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+    SUITE_ALARMS_CACHE = json.alarms || [];
+    renderSuiteAlarms(SUITE_ALARMS_CACHE);
+  } catch (err) {
+    console.error('Failed to fetch suite alarms:', err);
+  }
+}
+
+function renderSuiteAlarms(alarms) {
+  if (!DOM.suiteAlarmsList) return;
+  if (!alarms || alarms.length === 0) {
+    DOM.suiteAlarmsList.innerHTML = `
+      <div class="p-3 text-center text-slate-500 text-xs">
+        No active alarms configured. Set one above.
+      </div>
+    `;
+    return;
+  }
+
+  DOM.suiteAlarmsList.innerHTML = alarms.map(a => `
+    <div class="p-2.5 rounded-lg bg-black/60 border border-indigo-500/20 flex items-center justify-between text-xs">
+      <div class="flex items-center space-x-2.5">
+        <i class="fas fa-bell text-indigo-400"></i>
+        <div>
+          <span class="font-mono font-black text-amber-400 text-sm">${a.time}</span>
+          <span class="text-[11px] text-slate-300 ml-2">${a.label || 'Reminder'}</span>
+        </div>
+      </div>
+      <button onclick="deleteSuiteAlarmRecord('${a.id}')" class="text-slate-500 hover:text-rose-400 text-xs p-1 cursor-pointer transition">
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
+  `).join('');
+}
+
+async function saveSuiteAlarm() {
+  const time = DOM.suiteAlarmTimeInput?.value;
+  const label = (DOM.suiteAlarmLabelInput?.value || '').trim();
+
+  if (!time) {
+    alert('Please pick an alarm time (HH:MM).');
+    return;
+  }
+
+  DOM.saveSuiteAlarmBtn.disabled = true;
+  try {
+    const res = await fetch('/api/admin/executive-suite/alarms', {
+      method: 'POST',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ time, label: label || 'Alarm Reminder' }),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    DOM.suiteAlarmLabelInput.value = '';
+    await fetchSuiteAlarms();
+  } catch (err) {
+    alert(`Save Alarm Error: ${err.message}`);
+  } finally {
+    DOM.saveSuiteAlarmBtn.disabled = false;
+  }
+}
+
+window.deleteSuiteAlarmRecord = async function(id) {
+  try {
+    const res = await fetch(`/api/admin/executive-suite/alarms/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+    await fetchSuiteAlarms();
+  } catch (err) {
+    alert(`Delete Error: ${err.message}`);
+  }
+};
+
+let LAST_TRIGGERED_MINUTE = null;
+
+function checkActiveAlarms() {
+  const now = new Date();
+  const currentHM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  if (currentHM === LAST_TRIGGERED_MINUTE) return;
+
+  const matched = SUITE_ALARMS_CACHE.find(a => a.time === currentHM && a.active !== false);
+  if (matched) {
+    LAST_TRIGGERED_MINUTE = currentHM;
+    triggerAlarmAlert(matched);
+  }
+}
+
+function triggerAlarmAlert(alarm) {
+  ACTIVE_ALARM_OBJ = alarm;
+  if (DOM.alarmAlertTitle) DOM.alarmAlertTitle.textContent = alarm.label || 'Scheduled Reminder';
+  if (DOM.alarmAlertTime) DOM.alarmAlertTime.textContent = alarm.time;
+  if (DOM.alarmAlertMessage) DOM.alarmAlertMessage.textContent = `Scheduled alarm for ${alarm.time}: ${alarm.label || 'Action Required'}`;
+
+  DOM.alarmAlertModal?.classList.remove('hidden');
+
+  playChimeSound();
+  if (ACTIVE_ALARM_INTERVAL) clearInterval(ACTIVE_ALARM_INTERVAL);
+  ACTIVE_ALARM_INTERVAL = setInterval(playChimeSound, 2500);
+}
+
+function dismissAlarm() {
+  if (ACTIVE_ALARM_INTERVAL) {
+    clearInterval(ACTIVE_ALARM_INTERVAL);
+    ACTIVE_ALARM_INTERVAL = null;
+  }
+  DOM.alarmAlertModal?.classList.add('hidden');
+}
+
+function snoozeAlarm() {
+  dismissAlarm();
+  const now = new Date(Date.now() + 5 * 60 * 1000);
+  const snoozedTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  SUITE_ALARMS_CACHE.push({
+    id: 'snooze_' + Date.now(),
+    time: snoozedTime,
+    label: (ACTIVE_ALARM_OBJ?.label || 'Reminder') + ' (Snoozed 5m)',
+    active: true,
+  });
+  renderSuiteAlarms(SUITE_ALARMS_CACHE);
+}
+
+// Google Maps & Route Planner
+function updateMapRoute() {
+  const dest = (DOM.mapDestinationInput?.value || '').trim() || 'Dhaka Bangladesh';
+  if (DOM.googleMapsEmbedFrame) {
+    DOM.googleMapsEmbedFrame.src = `https://maps.google.com/maps?q=${encodeURIComponent(dest)}&t=&z=14&ie=UTF8&iwloc=&output=embed`;
+  }
+}
+
+function openGoogleMapsRoute() {
+  const origin = (DOM.mapOriginInput?.value || '').trim() || 'Central Office, Dhaka, Bangladesh';
+  const dest = (DOM.mapDestinationInput?.value || '').trim() || 'Dhaka, Bangladesh';
+  const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(dest)}`;
+  window.open(url, '_blank');
+}
+
+// ─── Step 5: Terms of Service & Privacy Policy Modal ─────────────────────────
+function initTermsPolicyModal() {
+  const modal = DOM.termsPolicyModal;
+  if (!modal) return;
+
+  const tabBtns = modal.querySelectorAll('.terms-tab-btn');
+  const panes = {
+    terms: document.getElementById('termsPaneTerms'),
+    privacy: document.getElementById('termsPanePrivacy'),
+    'loan-policy': document.getElementById('termsPaneLoanPolicy'),
+  };
+
+  const switchTab = (tabName) => {
+    tabBtns.forEach(btn => {
+      if (btn.dataset.tab === tabName) {
+        btn.className = 'terms-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-amber-500/20 text-amber-300 border border-amber-500/30';
+      } else {
+        btn.className = 'terms-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white/5 text-slate-400 hover:text-white';
+      }
+    });
+    Object.keys(panes).forEach(key => {
+      if (panes[key]) {
+        if (key === tabName) panes[key].classList.remove('hidden');
+        else panes[key].classList.add('hidden');
+      }
+    });
+  };
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+
+  document.querySelectorAll('.terms-policy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab || 'terms';
+      switchTab(tab);
+      modal.classList.remove('hidden');
+    });
+  });
+
+  const closeModal = () => modal.classList.add('hidden');
+  if (DOM.closeTermsModalBtn) DOM.closeTermsModalBtn.addEventListener('click', closeModal);
+  if (DOM.termsModalOkBtn) DOM.termsModalOkBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
   });
 }
 
