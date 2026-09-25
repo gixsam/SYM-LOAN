@@ -401,13 +401,13 @@ async function loadAllData() {
     await Promise.allSettled(tasks);
     const badge = DOM.authStatusBadge || document.getElementById('authStatusBadge');
     if (badge) {
-      badge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center';
+      badge.className = 'hidden md:flex px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 items-center';
       badge.innerHTML = '<i class="fas fa-shield-alt mr-1.5"></i> Authenticated';
     }
   } catch (err) {
     const badge = DOM.authStatusBadge || document.getElementById('authStatusBadge');
     if (badge) {
-      badge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center';
+      badge.className = 'hidden md:flex px-3 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 items-center';
       badge.innerHTML = '<i class="fas fa-lock mr-1.5"></i> Invalid Key';
     }
   }
@@ -4841,7 +4841,7 @@ function initDeskSwitcher() {
 // ─── Module 4: Mobile Web Pull-To-Refresh ──────────────────────────────────────
 function initPullToRefresh() {
   const spinner = document.getElementById('pullToRefreshSpinner');
-  if (!spinner) return;
+  if (!spinner || typeof window === 'undefined' || typeof window.addEventListener !== 'function') return;
 
   let startY = 0;
   let currentY = 0;
@@ -4918,6 +4918,7 @@ window.loadUnifiedClientRoster = async function() {
     if (countBadge) countBadge.textContent = `${UNIFIED_ROSTER_CACHE.length} Clients`;
 
     renderUnifiedRosterTable(UNIFIED_ROSTER_CACHE);
+    filterUnifiedRoster();
 
     // Update Summary Footer
     const s = json.summary || {};
@@ -4934,7 +4935,7 @@ window.loadUnifiedClientRoster = async function() {
   } catch (err) {
     console.error('[Unified Roster] Error:', err);
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-rose-400">Failed to load client roster: ${err.message}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-rose-400">Failed to load client roster: ${err.message}</td></tr>`;
     }
   }
 };
@@ -4944,7 +4945,7 @@ function renderUnifiedRosterTable(list) {
   if (!tbody) return;
 
   if (!list || list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="py-10 text-center text-slate-500">No clients matching query.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="py-10 text-center text-slate-500">No clients matching query.</td></tr>`;
     return;
   }
 
@@ -4953,15 +4954,31 @@ function renderUnifiedRosterTable(list) {
   };
 
   tbody.innerHTML = list.map(c => {
-    // Col 1: Identity & Date
-    const isHist = c.is_historical;
-    const phoneDisplay = c.phone_number ? `<a href="tel:${c.phone_number}" class="text-emerald-400 font-mono hover:underline block">${c.phone_number}</a>` : `<span class="text-slate-500 italic text-[11px]">[No Phone]</span>`;
-    const sourceBadge = isHist 
-      ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono bg-amber-500/10 text-amber-300 border border-amber-500/20">${stitch.get('calendar', { size: 10 })} Keep Note</span>`
-      : `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono bg-sky-500/10 text-sky-300 border border-sky-500/20">${stitch.get('bolt', { size: 10 })} Telegram</span>`;
+    // Col 1: USER (Legal Name with Strike Badge, Phone, Email, Joined Date)
+    const strikes = Number(c.strikes_count || 0);
+    let strikeBadge = '';
+    if (strikes === 0) {
+      strikeBadge = `<span class="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20" title="0/3 Strikes (Safe)">${stitch.get('strike-safe', { size: 12 })} 0/3</span>`;
+    } else if (strikes === 1) {
+      strikeBadge = `<span class="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20" title="1/3 Strikes (Warning)">${stitch.get('strike-warning', { size: 12 })} 1/3</span>`;
+    } else if (strikes === 2) {
+      strikeBadge = `<span class="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded border border-orange-500/20" title="2/3 Strikes (Critical)">${stitch.get('strike-critical', { size: 12 })} 2/3</span>`;
+    } else {
+      strikeBadge = `<span class="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20" title="3/3 Strikes (Blocked)">${stitch.get('strike-blocked', { size: 12 })} 3/3</span>`;
+    }
+
+    const phoneDisplay = c.phone_number 
+      ? `<a href="tel:${c.phone_number}" class="text-emerald-400 font-mono text-[11px] hover:underline block leading-tight">${c.phone_number}</a>` 
+      : `<span class="text-slate-500 italic text-[11px] block leading-tight">[No Phone]</span>`;
+
+    const emailDisplay = c.email 
+      ? `<a href="mailto:${c.email}" class="text-slate-400 font-mono text-[11px] hover:text-slate-200 block truncate max-w-[170px] leading-tight" title="${escapeHtml(c.email)}">${escapeHtml(c.email)}</a>` 
+      : `<span class="text-slate-500 italic text-[11px] block leading-tight">[No Email]</span>`;
+
     const recordDate = c.joined_at ? new Date(c.joined_at).toISOString().split('T')[0] : '—';
 
     // Col 2: Total Balance
+    const isHist = c.is_historical;
     const totalBal = Number(c.current_total_balance || 0).toLocaleString();
     const balBreakdown = isHist 
       ? `<span class="text-[10px] text-slate-400 block font-mono">Note: ৳${(c.historical_balance || 0).toLocaleString()}</span>`
@@ -5018,58 +5035,45 @@ function renderUnifiedRosterTable(list) {
     const kycBadgeColor = c.kyc_status === 'VERIFIED' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : (c.kyc_status === 'HISTORICAL' ? 'bg-amber-500/10 text-amber-300 border-amber-500/30' : 'bg-slate-800 text-slate-400 border-slate-700');
     const categoryColor = c.category_tag === 'VIP' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-black' : (c.category_tag === 'DEFAULT RISK' || c.category_tag === 'FRAUD CLIENT' ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 font-bold' : 'bg-slate-800 text-slate-300 border-slate-700');
 
-    // Col 7: Strike Gauge (0-3)
-    let strikeIcon = stitch.get('strike-safe', { size: 18 });
-    let strikeText = '0/3 Safe';
-    if (c.strikes_count === 1) {
-      strikeIcon = stitch.get('strike-warning', { size: 18 });
-      strikeText = '1/3 Warning';
-    } else if (c.strikes_count === 2) {
-      strikeIcon = stitch.get('strike-critical', { size: 18 });
-      strikeText = '2/3 Critical';
-    } else if (c.strikes_count >= 3) {
-      strikeIcon = stitch.get('strike-blocked', { size: 18 });
-      strikeText = '3/3 Blocked';
-    }
-
-    // Col 8: Executive Action Bar using Google Stitch Custom Icons
+    // Return Row (Clean 7 Columns with Unified Google Stitch EDIT Button)
     return `
       <tr class="hover:bg-slate-900/50 transition border-b border-white/5" data-client-name="${escapeHtml(c.name)}" data-client-phone="${escapeHtml(c.phone_number || '')}" data-client-id="${c.id}">
-        <!-- Col 1: Identity & Date -->
-        <td class="py-3 px-3.5">
-          <div class="font-extrabold text-white text-xs hover:text-amber-400 cursor-pointer" onclick="openClient360Modal('${c.id}')">
-            ${escapeHtml(c.name)}
+        <!-- Col 1: USER -->
+        <td class="py-3 px-3.5 space-y-0.5">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="font-extrabold text-white text-xs hover:text-amber-400 cursor-pointer" onclick="openClient360Modal('${c.id}')">
+              ${escapeHtml(c.name)}
+            </span>
+            ${strikeBadge}
           </div>
           ${phoneDisplay}
-          <div class="flex items-center gap-1.5 mt-1">
-            ${sourceBadge}
-            <span class="text-[10px] text-slate-500 font-mono">${recordDate}</span>
-          </div>
+          ${emailDisplay}
+          <div class="text-[10px] text-slate-500 font-mono leading-tight">${recordDate}</div>
         </td>
 
-        <!-- Col 2: Total Balance -->
+        <!-- Col 2: BALANCE -->
         <td class="py-3 px-3.5 font-mono">
           <div class="text-sm font-black text-amber-400">৳ ${totalBal}</div>
           ${balBreakdown}
         </td>
 
-        <!-- Col 3: Active Request -->
+        <!-- Col 3: REQUEST -->
         <td class="py-3 px-3.5">
           ${activeReqHtml}
         </td>
 
-        <!-- Col 4: Method & TrxID -->
+        <!-- Col 4: METHOD -->
         <td class="py-3 px-3.5 space-y-1">
           ${methodBadge}
           ${trxIdDisplay}
         </td>
 
-        <!-- Col 5: Deadline & Urgency -->
+        <!-- Col 5: DEADLINE -->
         <td class="py-3 px-3.5">
           ${deadlineHtml}
         </td>
 
-        <!-- Col 6: Status & Category -->
+        <!-- Col 6: STATUS -->
         <td class="py-3 px-3.5 space-y-1">
           <div>
             <span class="inline-block px-1.5 py-0.5 rounded text-[9px] font-mono border ${kycBadgeColor}">
@@ -5084,48 +5088,12 @@ function renderUnifiedRosterTable(list) {
           ${c.admin_note ? `<span class="text-[10px] text-slate-400 block truncate max-w-[130px]" title="${escapeHtml(c.admin_note)}">${escapeHtml(c.admin_note)}</span>` : ''}
         </td>
 
-        <!-- Col 7: Strike Gauge -->
+        <!-- Col 7: ACTION (Prominent Single Google Stitch EDIT Button) -->
         <td class="py-3 px-3.5 text-center">
-          <div class="flex flex-col items-center justify-center">
-            ${strikeIcon}
-            <span class="text-[9px] font-mono mt-0.5 text-slate-400">${strikeText}</span>
-          </div>
-        </td>
-
-        <!-- Col 8: Executive Actions (Stitch Custom Icons) -->
-        <td class="py-3 px-3.5 text-center">
-          <div class="flex items-center justify-center gap-1 flex-wrap max-w-[160px] mx-auto">
-            <!-- Voucher / Clearance PDF -->
-            <button type="button" onclick="downloadClientClearanceVoucher('${c.id}')" title="Download Official Clearance Voucher (PDF)" class="stitch-btn p-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 transition cursor-pointer">
-              ${stitch.get('voucher', { size: 14 })}
-            </button>
-
-            <!-- Limits Override -->
-            <button type="button" onclick="openLimitsModalForClient('${c.id}', '${escapeHtml(c.name)}')" title="Configure Custom Limit Override" class="stitch-btn p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/25 border border-blue-500/30 text-blue-300 transition cursor-pointer">
-              ${stitch.get('limits', { size: 14 })}
-            </button>
-
-            <!-- Adjust Cash (+/-) -->
-            <button type="button" onclick="openAdjustCashForClient('${c.id}', '${escapeHtml(c.name)}', ${c.current_total_balance || 0})" title="Adjust Client Cash (+ / -)" class="stitch-btn p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 transition cursor-pointer">
-              ${stitch.get('cash-adjust', { size: 14 })}
-            </button>
-
-            <!-- Call / Phone -->
-            ${c.phone_number ? `
-            <a href="tel:${c.phone_number}" title="Call Client Phone" class="stitch-btn p-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 transition cursor-pointer inline-flex items-center justify-center">
-              ${stitch.get('call', { size: 14 })}
-            </a>` : ''}
-
-            <!-- 360 Profile Edit -->
-            <button type="button" onclick="openClient360Modal('${c.id}')" title="Open 360° Profile Hub" class="stitch-btn p-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 transition cursor-pointer">
-              ${stitch.get('edit', { size: 14 })}
-            </button>
-
-            <!-- Delete User -->
-            <button type="button" onclick="openDeleteClientModal('${c.id}', '${escapeHtml(c.name)}')" title="Permanently Delete Client" class="stitch-btn p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/30 text-rose-400 transition cursor-pointer">
-              ${stitch.get('delete', { size: 14 })}
-            </button>
-          </div>
+          <button type="button" onclick="openClient360Modal('${c.id}')" title="Open 360° Profile & User Management Hub" class="stitch-btn px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-black text-xs uppercase tracking-wider inline-flex items-center justify-center gap-1.5 shadow-sm transition active:scale-95 cursor-pointer">
+            ${stitch.get('edit', { size: 14 })}
+            <span>EDIT</span>
+          </button>
         </td>
       </tr>
     `;
@@ -5134,18 +5102,45 @@ function renderUnifiedRosterTable(list) {
 
 window.filterUnifiedRoster = function() {
   const query = (document.getElementById('unifiedRosterSearchInput')?.value || '').trim().toLowerCase();
-  if (!query) {
-    renderUnifiedRosterTable(UNIFIED_ROSTER_CACHE);
-    return;
+  const sortMode = document.getElementById('unifiedRosterSortFilter')?.value || 'highest_loan';
+
+  let list = Array.isArray(UNIFIED_ROSTER_CACHE) ? [...UNIFIED_ROSTER_CACHE] : [];
+
+  // 1. Text Search Filter
+  if (query) {
+    list = list.filter(c => {
+      return (c.name || '').toLowerCase().includes(query) ||
+             (c.phone_number || '').includes(query) ||
+             (c.email || '').toLowerCase().includes(query) ||
+             (c.id || '').toLowerCase().includes(query) ||
+             (c.category_tag || '').toLowerCase().includes(query) ||
+             (c.trx_id || '').toLowerCase().includes(query);
+    });
   }
-  const filtered = UNIFIED_ROSTER_CACHE.filter(c => {
-    return (c.name || '').toLowerCase().includes(query) ||
-           (c.phone_number || '').includes(query) ||
-           (c.id || '').toLowerCase().includes(query) ||
-           (c.category_tag || '').toLowerCase().includes(query) ||
-           (c.trx_id || '').toLowerCase().includes(query);
-  });
-  renderUnifiedRosterTable(filtered);
+
+  // 2. Sorting & View Filters
+  if (sortMode === 'active_requests') {
+    list = list.filter(c => Boolean(c.active_request));
+    list.sort((a, b) => Number(b.active_request?.amount || 0) - Number(a.active_request?.amount || 0));
+  } else if (sortMode === 'most_recent') {
+    list.sort((a, b) => new Date(b.joined_at || 0) - new Date(a.joined_at || 0));
+  } else if (sortMode === 'highest_balance') {
+    list.sort((a, b) => Number(b.current_total_balance || 0) - Number(a.current_total_balance || 0));
+  } else if (sortMode === 'most_strikes') {
+    list.sort((a, b) => (Number(b.strikes_count) || 0) - (Number(a.strikes_count) || 0));
+  } else if (sortMode === 'alphabetical') {
+    list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  } else {
+    // Default: 'highest_loan' (active_loan_amount DESC, total_borrowed DESC)
+    list.sort((a, b) => {
+      const aLoan = Number(a.active_debt || a.active_request?.amount || a.historical_balance || 0);
+      const bLoan = Number(b.active_debt || b.active_request?.amount || b.historical_balance || 0);
+      if (bLoan !== aLoan) return bLoan - aLoan;
+      return Number(b.current_total_balance || 0) - Number(a.current_total_balance || 0);
+    });
+  }
+
+  renderUnifiedRosterTable(list);
 };
 
 window.openClient360Modal = function(clientId) {
@@ -5171,6 +5166,39 @@ window.openClient360Modal = function(clientId) {
 
   const kycPill = document.getElementById('c360KycStatusPill');
   if (kycPill) kycPill.textContent = c.kyc_status;
+
+  // Wire up quick actions inside 360 modal
+  const voucherBtn = document.getElementById('c360VoucherBtn');
+  if (voucherBtn) voucherBtn.onclick = () => downloadClientClearanceVoucher(c.id);
+
+  const limitsBtn = document.getElementById('c360LimitsBtn');
+  if (limitsBtn) limitsBtn.onclick = () => {
+    closeClient360Modal();
+    if (typeof openLimitsModalForClient === 'function') openLimitsModalForClient(c.id, c.name);
+  };
+
+  const cashBtn = document.getElementById('c360CashBtn');
+  if (cashBtn) cashBtn.onclick = () => {
+    closeClient360Modal();
+    if (typeof openAdjustCashForClient === 'function') openAdjustCashForClient(c.id, c.name, c.current_total_balance || 0);
+  };
+
+  const callBtn = document.getElementById('c360CallBtn');
+  if (callBtn) {
+    if (c.phone_number) {
+      callBtn.href = `tel:${c.phone_number}`;
+      callBtn.classList.remove('opacity-50', 'pointer-events-none');
+    } else {
+      callBtn.href = '#';
+      callBtn.classList.add('opacity-50', 'pointer-events-none');
+    }
+  }
+
+  const deleteBtn = document.getElementById('c360DeleteBtn');
+  if (deleteBtn) deleteBtn.onclick = () => {
+    closeClient360Modal();
+    if (typeof openDeleteClientModal === 'function') openDeleteClientModal(c.id, c.name);
+  };
 
   modal.classList.remove('hidden');
 };

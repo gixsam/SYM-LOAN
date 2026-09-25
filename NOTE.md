@@ -14,7 +14,40 @@
 > **Telegram Bot:** `@money_loan_bot` (Token: `[PROTECTED IN .ENV — Never commit plain tokens]`)  
 > **Technology Stack:** Node.js, Express, Supabase (PostgreSQL), Multer, jsPDF, node-telegram-bot-api, node-cron, CORS, Helmet, dotenv, HTML5, Tailwind CSS, FontAwesome 6, Cloudflare Tunnel  
 > **Live Local Server:** `http://localhost:5000` (Client: `/`, Admin: `/admin`)  
-> **Last Synchronized:** 2026-09-25 06:45 Local Time  
+> **Last Synchronized:** 2026-09-25 10:30 Local Time  
+
+### [Update-065] — Implementation Part 1/2: Admin Panel Restructuring, Google Stitch Icons, Security Sanitization & 7-Column Roster Consolidation (2026-09-25)
+**Type:** Security Sanitization, Responsive Mobile Header Collision Fix, Google Stitch Icon Prefix Support, Unified 7-Column Client Directory & Action Button Consolidation  
+**Status:** ✅ COMPLETED, TESTED (51/51 OVERHAUL TESTS PASSED, 271/271 TOTAL REGRESSION TESTS PASSED — 100%), PACKAGED HOSTINGER DEPLOY ZIP & DUAL-SYNCED ACROSS WORKPLACES  
+
+#### User Request & Execution Directives (Part 1):
+1. **Module 1 (Top Navbar Restructure & Mobile Collision Fix - Photo 1):**
+   - Fixed header collision where dynamic `authStatusBadge` updates blew away `hidden md:flex` classes in `public/js/admin.js`, crushing `#adminLiveClockTicker` between the logo and right action buttons on mobile screens (< 390px).
+   - Changed `#openAdminLoginBtn` from invalid `xs:flex` to `hidden sm:flex` (delegated to drawer on small mobile viewports).
+   - Hardened `public/css/style.css` with `max-width: 100vw; overflow-x: hidden;`.
+2. **Module 2 (Google Stitch Custom Icons Prefix Handling):**
+   - Upgraded `public/js/stitchIcons.js` (`get()` and `has()`) to automatically normalize icon keys by stripping optional `^stitch-` prefixes (e.g. `stitch-edit` -> `edit`).
+   - Verified 100% vector SVG dual-tone fidelity for `stitch-edit`, `stitch-voucher`, `stitch-strike-safe/warning/critical/blocked`, `stitch-bkash`, `stitch-nagad`, `stitch-cash`, `stitch-call`, `stitch-calendar`.
+3. **Module 3 (Security Leak Sanitization - Photo 4):**
+   - Sanitized `#adminLoginModal` in `public/admin.html`: purged the hardcoded default password note box (`Default password is admin...`), removed default hints from placeholder (`Enter master password`), and updated header to `Admin Access` and submit button to `Log In`.
+4. **Module 4 ('ALL USER'S INFO' Table Restructure & Action Consolidation - Photos 2 & 3):**
+   - Renamed table section heading to `ALL USER'S INFO`.
+   - Replaced robotic 8-column header (`COL 1: ...`, `COL 2: ...`) with 7 clean standard columns:
+     `USER` | `BALANCE` | `REQUEST` | `METHOD` | `DEADLINE` | `STATUS` | `ACTION`.
+   - Consolidated Col 1 (`USER`):
+     - Line 1: `[Full Legal Name] (0/3)` with dual-tone Stitch strike badge (🟢 0/3 Safe, 🟡 1/3 Warning, 🟠 2/3 Critical, 🔴 3/3 Blocked).
+     - Line 2: Mobile (`+8801...`).
+     - Line 3: Email address (or `[No Email]`).
+     - Line 4: Joined Date (`YYYY-MM-DD`).
+     - Removed obsolete `+Telegram` and `Keep Note` badge pills.
+   - Consolidated Col 7 (`ACTION`): Merged 6 cluttered micro-buttons into ONE prominent Google Stitch `[ ✏️ EDIT ]` button opening the 360° User Management Hub (`#client360Modal`).
+   - Added interactive quick-actions toolbar inside `#client360Modal` (Voucher PDF, Limits, Cash Adjustment, Call, Delete Client).
+   - Implemented default sorting by Highest Loan Taken (`active_loan_amount DESC, total_borrowed DESC`) and added sort filter dropdown (`Highest Loan Taken`, `Most Recent Registered`, `Highest Current Balance`, `Most Strikes (3/3 First)`, `Active Loan Requests Only`, `Alphabetical (A-Z)`).
+5. **Module 5 (Admin APK & Pull-to-Refresh):**
+   - Verified `scripts/build_admin_apk.js` and `public/downloads/SYM-LOAN-ADMIN.apk` (v2.6.0, 512.47 KB).
+   - Added environment safety guard in `initPullToRefresh` preventing `TypeError` in headless test runners.
+
+---
 
 ### [Update-064] — Platform Master Overhaul: Mobile Header Layout, Google Stitch Vector System, Dedicated Admin APK, Unified Client Directory & Lifecycle Governance (2026-09-25)
 **Type:** Comprehensive Multi-Module Master Overhaul, Native Android Admin Toolchain, Google Stitch Dual-Tone Vector System, Client Stepper Lifecycle, In-Place Modification, and Cooldown Governance  

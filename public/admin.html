@@ -100,7 +100,7 @@
         </button>
 
         <!-- 3-Option Admin Login Button -->
-        <button type="button" id="openAdminLoginBtn" onclick="openLoginModal()" class="hidden xs:flex px-2.5 sm:px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-black text-xs items-center transition shadow-lg shadow-amber-500/20 cursor-pointer">
+        <button type="button" id="openAdminLoginBtn" onclick="openLoginModal()" class="hidden sm:flex px-2.5 sm:px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-black text-xs items-center transition shadow-lg shadow-amber-500/20 cursor-pointer">
           <i class="fas fa-key sm:mr-1.5"></i>
           <span class="hidden sm:inline">Admin Login</span>
         </button>
@@ -453,15 +453,24 @@
           </div>
           <div>
             <h2 class="text-base font-extrabold text-white flex items-center gap-2">
-              <span>Unified Client Directory & Lifecycle Governance</span>
+              <span>ALL USER'S INFO</span>
               <span id="unifiedRosterCountBadge" class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">0 Clients</span>
             </h2>
             <p class="text-[11px] text-slate-400">Integrated Roster: Registered Telegram Clients, Verified KYC Borrowers & Digitized Keep Ledgers</p>
           </div>
         </div>
-        <div class="flex items-center space-x-2">
+        <div class="flex items-center space-x-2 flex-wrap gap-y-2">
+          <!-- Sort / Filter Dropdown (Module 4) -->
+          <select id="unifiedRosterSortFilter" onchange="filterUnifiedRoster()" class="bg-black/50 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-amber-300 focus:outline-none focus:border-amber-400 font-mono cursor-pointer">
+            <option value="highest_loan">Highest Loan Taken (Default)</option>
+            <option value="most_recent">Most Recent Registered</option>
+            <option value="highest_balance">Highest Current Balance</option>
+            <option value="most_strikes">Most Strikes (3/3 First)</option>
+            <option value="active_requests">Active Loan Requests Only</option>
+            <option value="alphabetical">Alphabetical (A-Z)</option>
+          </select>
           <div class="relative">
-            <input type="text" id="unifiedRosterSearchInput" oninput="filterUnifiedRoster()" placeholder="Search client name, phone or ref..." class="bg-black/50 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 w-44 sm:w-60 focus:outline-none focus:border-amber-400 font-mono">
+            <input type="text" id="unifiedRosterSearchInput" oninput="filterUnifiedRoster()" placeholder="Search client name, phone or ref..." class="bg-black/50 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 w-40 sm:w-56 focus:outline-none focus:border-amber-400 font-mono">
             <i class="fas fa-search absolute right-2.5 top-2.5 text-slate-500 text-xs pointer-events-none"></i>
           </div>
           <button type="button" id="refreshUnifiedRosterBtn" onclick="loadUnifiedClientRoster()" class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition flex items-center cursor-pointer">
@@ -474,19 +483,18 @@
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="border-b border-white/10 text-[11px] font-mono text-slate-400 uppercase bg-slate-900/60 select-none">
-              <th class="py-3 px-3.5">Col 1: Identity & Date</th>
-              <th class="py-3 px-3.5">Col 2: Total Balance</th>
-              <th class="py-3 px-3.5">Col 3: Active Request</th>
-              <th class="py-3 px-3.5">Col 4: Method & TrxID</th>
-              <th class="py-3 px-3.5">Col 5: Deadline & Urgency</th>
-              <th class="py-3 px-3.5">Col 6: Status & Category</th>
-              <th class="py-3 px-3.5 text-center">Col 7: Strike Gauge</th>
-              <th class="py-3 px-3.5 text-center">Col 8: Executive Actions</th>
+              <th class="py-3 px-3.5">USER</th>
+              <th class="py-3 px-3.5">BALANCE</th>
+              <th class="py-3 px-3.5">REQUEST</th>
+              <th class="py-3 px-3.5">METHOD</th>
+              <th class="py-3 px-3.5">DEADLINE</th>
+              <th class="py-3 px-3.5">STATUS</th>
+              <th class="py-3 px-3.5 text-center">ACTION</th>
             </tr>
           </thead>
           <tbody id="unifiedClientRosterTbody" class="divide-y divide-white/5 text-xs">
             <tr>
-              <td colspan="8" class="py-12 text-center text-slate-500">
+              <td colspan="7" class="py-12 text-center text-slate-500">
                 <i class="fas fa-spinner fa-spin text-amber-400 text-base mb-2 block"></i>
                 Loading unified executive client directory...
               </td>
@@ -501,7 +509,7 @@
               <td class="py-3 px-3.5 font-bold text-cyan-300" id="footActiveLoans">0 Active Requests</td>
               <td class="py-3 px-3.5 font-bold text-emerald-400" id="footDisbursedCapital">৳ 0 Disbursed</td>
               <td class="py-3 px-3.5 font-bold text-rose-400" id="footDelinquentExposure">৳ 0 Delinquent</td>
-              <td colspan="3" class="py-3 px-3.5 text-right text-[11px] text-slate-400">
+              <td colspan="2" class="py-3 px-3.5 text-right text-[11px] text-slate-400">
                 Active Governance & Zero-Loss Reconciliation
               </td>
             </tr>
@@ -2017,6 +2025,28 @@
         </button>
       </div>
 
+      <!-- Quick Executive Actions Toolbar (Integrated from merged table buttons) -->
+      <div id="c360QuickActions" class="p-2.5 bg-black/40 rounded-xl border border-white/10 flex items-center justify-between gap-1.5 flex-wrap text-xs">
+        <span class="text-[10px] uppercase font-mono text-slate-400 font-bold hidden sm:inline">Actions:</span>
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <button type="button" id="c360VoucherBtn" title="Download Official Clearance Voucher (PDF)" class="stitch-btn px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-bold flex items-center gap-1 cursor-pointer">
+            <span class="stitch-icon-wrapper" data-stitch="voucher" data-size="12"></span> Voucher
+          </button>
+          <button type="button" id="c360LimitsBtn" title="Configure Custom Limit Override" class="stitch-btn px-2.5 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[11px] font-bold flex items-center gap-1 cursor-pointer">
+            <span class="stitch-icon-wrapper" data-stitch="limits" data-size="12"></span> Limits
+          </button>
+          <button type="button" id="c360CashBtn" title="Adjust Client Cash (+ / -)" class="stitch-btn px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold flex items-center gap-1 cursor-pointer">
+            <span class="stitch-icon-wrapper" data-stitch="cash-adjust" data-size="12"></span> Cash (+/-)
+          </button>
+          <a id="c360CallBtn" href="#" title="Call Client Phone" class="stitch-btn px-2.5 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[11px] font-bold flex items-center gap-1 cursor-pointer">
+            <span class="stitch-icon-wrapper" data-stitch="call" data-size="12"></span> Call
+          </a>
+          <button type="button" id="c360DeleteBtn" title="Permanently Delete Client" class="stitch-btn px-2.5 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[11px] font-bold flex items-center gap-1 cursor-pointer">
+            <span class="stitch-icon-wrapper" data-stitch="delete" data-size="12"></span> Delete
+          </button>
+        </div>
+      </div>
+
       <form id="client360Form" onsubmit="saveClient360(event)" class="space-y-4">
         <input type="hidden" id="c360ClientId">
 
@@ -2162,7 +2192,7 @@
             <i class="fas fa-shield-alt"></i>
           </div>
           <div>
-            <h3 class="text-sm sm:text-base font-extrabold text-white">Admin Authentication</h3>
+            <h3 class="text-sm sm:text-base font-extrabold text-white">Admin Access</h3>
             <p class="text-[11px] text-slate-400">Choose one of 3 secure login methods</p>
           </div>
         </div>
@@ -2189,22 +2219,18 @@
 
       <!-- TAB 1: Password Login -->
       <div id="tabContentPassword" class="space-y-3.5">
-        <div class="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-300 space-y-1">
-          <div class="font-bold flex items-center"><i class="fas fa-info-circle mr-1.5"></i> Direct Master Password</div>
-          <div class="text-[11px] text-slate-300">Default password is <code class="text-amber-400 font-mono font-bold">admin</code>. You can change this anytime from the Settings section.</div>
-        </div>
         <form id="loginPasswordForm" class="space-y-3">
           <div>
             <label class="text-xs font-bold text-slate-300 block mb-1">Master Password:</label>
             <div class="relative">
-              <input type="password" id="modalAdminPasswordInput" placeholder="Enter admin password (e.g. admin)" required class="w-full bg-black/60 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white font-mono focus:outline-none focus:border-amber-400 pr-10">
+              <input type="password" id="modalAdminPasswordInput" placeholder="Enter master password" required class="w-full bg-black/60 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white font-mono focus:outline-none focus:border-amber-400 pr-10">
               <button type="button" id="togglePasswordVisibilityBtn" class="absolute right-3 top-2.5 text-slate-400 hover:text-white text-xs cursor-pointer">
                 <i class="fas fa-eye"></i>
               </button>
             </div>
           </div>
           <button type="submit" id="submitLoginPasswordBtn" class="btn-gold w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer shadow-lg shadow-amber-500/20">
-            <i class="fas fa-sign-in-alt mr-2"></i> Log In With Password
+            <i class="fas fa-sign-in-alt mr-2"></i> Log In
           </button>
         </form>
       </div>

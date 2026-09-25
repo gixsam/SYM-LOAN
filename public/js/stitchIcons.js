@@ -218,7 +218,8 @@
   return {
     get: function (name, options = {}) {
       const size = options.size || 20;
-      const fn = ICONS[name] || ICONS['bolt'];
+      const key = String(name || '').toLowerCase().trim().replace(/^stitch-/, '');
+      const fn = ICONS[key] || ICONS['bolt'];
       const rawSvg = fn(size).trim();
       if (options.className) {
         return rawSvg.replace('class="stitch-icon', `class="stitch-icon ${options.className}`);
@@ -234,7 +235,8 @@
     },
 
     has: function (name) {
-      return Boolean(ICONS[name]);
+      const key = String(name || '').toLowerCase().trim().replace(/^stitch-/, '');
+      return Boolean(ICONS[key]);
     }
   };
 });
