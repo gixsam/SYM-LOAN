@@ -1,6 +1,82 @@
 {
   "logs": [
     {
+      "id": "fraud_1790297141277_uqhj7",
+      "client_id": null,
+      "client_name": "Unknown",
+      "client_phone": "",
+      "action_type": "UNIT_TEST_PING",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+      "fingerprint_hash": "56eccc38290f791ede2a9f8d",
+      "components": {},
+      "fraud_score": 0,
+      "risk_tier": "LOW",
+      "status": "CLEARED",
+      "flags": [],
+      "reasons": [],
+      "colliding_accounts": [],
+      "created_at": "2026-09-25T00:45:41.277Z",
+      "resolved_at": "2026-09-25T00:45:41.277Z",
+      "admin_note": null
+    },
+    {
+      "id": "fraud_1790297138605_xgo30",
+      "client_id": null,
+      "client_name": "Unknown",
+      "client_phone": "",
+      "action_type": "LOAN_REQUEST",
+      "ip_address": "203.0.113.55",
+      "user_agent": "Mozilla/5.0 (iPhone)",
+      "fingerprint_hash": "3fe3511bcf83a4cd67be8527",
+      "components": {},
+      "fraud_score": 90,
+      "risk_tier": "HIGH",
+      "status": "BLOCKED",
+      "flags": [
+        {
+          "code": "CRITICAL_IP_BLACKLISTED",
+          "severity": "HIGH",
+          "message": "Client IP 203.0.113.55 is listed on administrative security blacklist."
+        }
+      ],
+      "reasons": [
+        "Client IP 203.0.113.55 is listed on administrative security blacklist."
+      ],
+      "colliding_accounts": [],
+      "created_at": "2026-09-25T00:45:38.605Z",
+      "resolved_at": null,
+      "admin_note": null
+    },
+    {
+      "id": "fraud_1790297138576_7i8gg",
+      "client_id": null,
+      "client_name": "Unknown",
+      "client_phone": "",
+      "action_type": "BOT_TEST",
+      "ip_address": "10.0.0.1",
+      "user_agent": "Mozilla/5.0 HeadlessChrome/120.0",
+      "fingerprint_hash": "393db84d492a4163d772bb15",
+      "components": {},
+      "fraud_score": 50,
+      "risk_tier": "MODERATE",
+      "status": "UNDER_REVIEW",
+      "flags": [
+        {
+          "code": "AUTOMATED_BOT_SIGNATURE",
+          "severity": "HIGH",
+          "message": "Headless Chrome or automated bot framework detected in user agent."
+        }
+      ],
+      "reasons": [
+        "Headless Chrome or automated bot framework detected in user agent."
+      ],
+      "colliding_accounts": [],
+      "created_at": "2026-09-25T00:45:38.576Z",
+      "resolved_at": null,
+      "admin_note": null
+    },
+    {
       "id": "fraud_1789758921130_umwuj",
       "client_id": null,
       "client_name": "Unknown",

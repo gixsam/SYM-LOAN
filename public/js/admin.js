@@ -395,6 +395,9 @@ async function loadAllData() {
       fetchSuiteEvents(),
       fetchSuiteAlarms(),
     ];
+    if (typeof window.loadUnifiedClientRoster === 'function') {
+      tasks.push(window.loadUnifiedClientRoster());
+    }
     await Promise.allSettled(tasks);
     const badge = DOM.authStatusBadge || document.getElementById('authStatusBadge');
     if (badge) {
@@ -409,6 +412,11 @@ async function loadAllData() {
     }
   }
 }
+
+window.loadAllData = loadAllData;
+window.refreshAdminDashboard = async function() {
+  await loadAllData();
+};
 
 // ─── Settings API ─────────────────────────────────────────────────────────────
 async function fetchSettings() {
@@ -647,24 +655,55 @@ function updateMethodSelectionStyle(selectedMethod) {
   }
 }
 
-window.declineLoan = async function(loanId) {
-  const reason = prompt('Reason for declining loan:', 'Does not meet loan criteria at this time');
-  if (reason === null) return;
+window.declineLoan = function(loanId) {
+  const modal = document.getElementById('declineModal');
+  if (modal) {
+    document.getElementById('declineLoanId').value = loanId;
+    document.getElementById('declineModalRef').textContent = `Ref: #${loanId.slice(0, 8)}`;
+    document.getElementById('declineReasonInput').value = 'Does not meet loan underwriting criteria at this time';
+    document.getElementById('declineCooldownSelect').value = '24';
+    modal.classList.remove('hidden');
+  } else {
+    const reason = prompt('Reason for declining loan:', 'Does not meet loan criteria at this time');
+    if (reason === null) return;
+    executeDecline(loanId, reason, 0);
+  }
+};
 
+window.closeDeclineModal = function() {
+  const modal = document.getElementById('declineModal');
+  if (modal) modal.classList.add('hidden');
+};
+
+window.submitDeclineLoan = async function(event) {
+  if (event) event.preventDefault();
+  const loanId = document.getElementById('declineLoanId').value;
+  const reason = document.getElementById('declineReasonInput').value;
+  const cooldownHours = document.getElementById('declineCooldownSelect').value;
+  await executeDecline(loanId, reason, cooldownHours);
+  window.closeDeclineModal();
+};
+
+async function executeDecline(loanId, reason, cooldownHours = 0) {
   try {
     const res = await fetch(`/api/admin/loans/${loanId}/decision`, {
       method: 'POST',
       headers: { ...getHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ decision: 'DECLINED', admin_note: reason }),
+      body: JSON.stringify({
+        decision: 'DECLINED',
+        admin_note: reason,
+        cooldown_hours: cooldownHours
+      }),
     });
     const json = await res.json();
     if (!res.ok || !json.success) throw new Error(json.message);
     alert('Loan application marked as DECLINED.');
     await fetchLoans();
+    if (typeof window.loadUnifiedClientRoster === 'function') await window.loadUnifiedClientRoster();
   } catch (err) {
     alert(`Error: ${err.message}`);
   }
-};
+}
 
 window.viewReceiptImage = function(url) {
   DOM.receiptImage.src = url;
@@ -2042,6 +2081,7 @@ function setupEvents() {
       formData.append('trx_id', trx_id);
       formData.append('fee_handling', fee_handling);
       formData.append('admin_note', admin_note);
+      formData.append('cooldown_hours', document.getElementById('modalDisburseCooldown')?.value || '0');
       if (receiptFile) {
         formData.append('receipt_image', receiptFile);
       }
@@ -2058,6 +2098,7 @@ function setupEvents() {
       alert(`✅ Loan disbursed successfully via ${payout_method}!`);
       (DOM.disburseModal || document.getElementById('disburseModal'))?.classList.add('hidden');
       await fetchLoans();
+      if (typeof window.loadUnifiedClientRoster === 'function') await window.loadUnifiedClientRoster();
     } catch (err) {
       alert(`Disbursement Error: ${err.message}`);
     } finally {
@@ -3019,8 +3060,9 @@ function initLiveClockTicker() {
     const bigLiveClock = DOM.bigLiveClockDisplay || document.getElementById('bigLiveClockDisplay');
     const bigLiveDate = DOM.bigLiveDateDisplay || document.getElementById('bigLiveDateDisplay');
 
-    if (liveDateText) liveDateText.textContent = dateStr;
-    if (liveTimeText) liveTimeText.textContent = timeStr;
+    const isMobileSmall = window.innerWidth < 390;
+    if (liveDateText) liveDateText.textContent = isMobileSmall ? `${dd}/${mm}` : dateStr;
+    if (liveTimeText) liveTimeText.textContent = isMobileSmall ? `${hours}:${mins}` : timeStr;
     if (bigLiveClock) bigLiveClock.textContent = timeStr;
     if (bigLiveDate) {
       bigLiveDate.textContent = now.toLocaleDateString(undefined, {
@@ -4796,6 +4838,482 @@ function initDeskSwitcher() {
   switchDesk(savedDesk);
 }
 
+// ─── Module 4: Mobile Web Pull-To-Refresh ──────────────────────────────────────
+function initPullToRefresh() {
+  const spinner = document.getElementById('pullToRefreshSpinner');
+  if (!spinner) return;
+
+  let startY = 0;
+  let currentY = 0;
+  let isPulling = false;
+
+  window.addEventListener('touchstart', (e) => {
+    if (window.scrollY === 0) {
+      startY = e.touches[0].pageY;
+      isPulling = true;
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchmove', (e) => {
+    if (!isPulling) return;
+    currentY = e.touches[0].pageY;
+    const diff = currentY - startY;
+    if (diff > 20 && window.scrollY === 0) {
+      const pullDistance = Math.min(diff * 0.4, 70);
+      spinner.classList.remove('hidden');
+      spinner.style.transform = `translateY(${pullDistance}px)`;
+      if (window.StitchIcons && !spinner.innerHTML) {
+        spinner.innerHTML = window.StitchIcons.get('refresh', { size: 24 });
+      }
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchend', async () => {
+    if (!isPulling) return;
+    isPulling = false;
+    const diff = currentY - startY;
+    if (diff > 60 && window.scrollY === 0) {
+      spinner.classList.add('animate-spin');
+      try {
+        await window.refreshAdminDashboard();
+      } catch (err) {
+        console.error('[PTR] Refresh error:', err);
+      }
+      setTimeout(() => {
+        spinner.classList.remove('animate-spin');
+        spinner.style.transform = 'translateY(0)';
+        spinner.classList.add('hidden');
+      }, 500);
+    } else {
+      spinner.style.transform = 'translateY(0)';
+      spinner.classList.add('hidden');
+    }
+  }, { passive: true });
+}
+
+// ─── Module 5 & 10: Unified Client Directory & Lifecycle Governance ───────────
+let UNIFIED_ROSTER_CACHE = [];
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+window.loadUnifiedClientRoster = async function() {
+  const tbody = document.getElementById('unifiedClientRosterTbody');
+  const countBadge = document.getElementById('unifiedRosterCountBadge');
+  if (!tbody) return;
+
+  try {
+    const res = await fetch('/api/admin/clients/unified-roster', { headers: getHeaders() });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message || 'Failed to load unified roster');
+
+    UNIFIED_ROSTER_CACHE = json.roster || [];
+    if (countBadge) countBadge.textContent = `${UNIFIED_ROSTER_CACHE.length} Clients`;
+
+    renderUnifiedRosterTable(UNIFIED_ROSTER_CACHE);
+
+    // Update Summary Footer
+    const s = json.summary || {};
+    const footBal = document.getElementById('footTotalBalance');
+    const footActive = document.getElementById('footActiveLoans');
+    const footDisb = document.getElementById('footDisbursedCapital');
+    const footDelinq = document.getElementById('footDelinquentExposure');
+
+    if (footBal) footBal.textContent = `৳ ${(s.total_combined_balance || 0).toLocaleString()}`;
+    if (footActive) footActive.textContent = `${s.total_active_loans || 0} Active Requests`;
+    if (footDisb) footDisb.textContent = `৳ ${(s.total_disbursed_capital || 0).toLocaleString()} Disbursed`;
+    if (footDelinq) footDelinq.textContent = `৳ ${(s.total_delinquent_exposure || 0).toLocaleString()} Delinquent`;
+
+  } catch (err) {
+    console.error('[Unified Roster] Error:', err);
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-rose-400">Failed to load client roster: ${err.message}</td></tr>`;
+    }
+  }
+};
+
+function renderUnifiedRosterTable(list) {
+  const tbody = document.getElementById('unifiedClientRosterTbody');
+  if (!tbody) return;
+
+  if (!list || list.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" class="py-10 text-center text-slate-500">No clients matching query.</td></tr>`;
+    return;
+  }
+
+  const stitch = window.StitchIcons || {
+    get: (name) => `<span class="stitch-icon">${name}</span>`
+  };
+
+  tbody.innerHTML = list.map(c => {
+    // Col 1: Identity & Date
+    const isHist = c.is_historical;
+    const phoneDisplay = c.phone_number ? `<a href="tel:${c.phone_number}" class="text-emerald-400 font-mono hover:underline block">${c.phone_number}</a>` : `<span class="text-slate-500 italic text-[11px]">[No Phone]</span>`;
+    const sourceBadge = isHist 
+      ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono bg-amber-500/10 text-amber-300 border border-amber-500/20">${stitch.get('calendar', { size: 10 })} Keep Note</span>`
+      : `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono bg-sky-500/10 text-sky-300 border border-sky-500/20">${stitch.get('bolt', { size: 10 })} Telegram</span>`;
+    const recordDate = c.joined_at ? new Date(c.joined_at).toISOString().split('T')[0] : '—';
+
+    // Col 2: Total Balance
+    const totalBal = Number(c.current_total_balance || 0).toLocaleString();
+    const balBreakdown = isHist 
+      ? `<span class="text-[10px] text-slate-400 block font-mono">Note: ৳${(c.historical_balance || 0).toLocaleString()}</span>`
+      : `<span class="text-[10px] text-slate-400 block font-mono">Loan: ৳${(c.active_debt || 0).toLocaleString()}${c.historical_balance ? ` + Note ৳${c.historical_balance}` : ''}</span>`;
+
+    // Col 3: Active Money Request
+    let activeReqHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-800 text-slate-400">No Active Request</span>`;
+    if (c.active_request) {
+      const reqAmount = Number(c.active_request.amount || 0).toLocaleString();
+      const statusColor = c.active_request.status === 'PENDING' ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
+      activeReqHtml = `
+        <div class="space-y-0.5">
+          <span class="inline-flex items-center px-2 py-0.5 rounded font-mono font-bold text-xs ${statusColor} border">
+            ৳ ${reqAmount}
+          </span>
+          <span class="text-[10px] text-slate-400 block uppercase font-mono tracking-tight">${c.active_request.status}</span>
+        </div>`;
+    }
+
+    // Col 4: Method & TrxID
+    const methodBadge = c.disbursement_method === 'BKASH'
+      ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-pink-500/15 text-pink-300 border border-pink-500/30">${stitch.get('bkash', { size: 12 })} bKash</span>`
+      : (c.disbursement_method === 'NAGAD'
+        ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-orange-300 border border-orange-500/30">${stitch.get('nagad', { size: 12 })} Nagad</span>`
+        : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">${stitch.get('cash', { size: 12 })} Cash</span>`);
+    const trxIdDisplay = c.trx_id && c.trx_id !== 'N/A'
+      ? `<span class="text-[10px] font-mono text-slate-400 block truncate max-w-[120px]" title="${escapeHtml(c.trx_id)}">${escapeHtml(c.trx_id)}</span>`
+      : `<span class="text-[10px] text-slate-500 block">—</span>`;
+
+    // Col 5: Deadline & Urgency
+    let deadlineHtml = `<span class="text-slate-500 text-[11px]">—</span>`;
+    if (c.deadline_date) {
+      const isOverdue = new Date(c.deadline_date) < new Date();
+      const diffDays = Math.ceil((new Date(c.deadline_date) - new Date()) / (1000 * 3600 * 24));
+      const countdownText = isOverdue ? `<span class="text-rose-400 font-bold">OVERDUE</span>` : `<span class="text-emerald-400 font-mono">${diffDays}d left</span>`;
+      const calTitle = encodeURIComponent(`SYM LOAN Repayment: ${c.name}`);
+      const calDetails = encodeURIComponent(`Due balance: ৳${totalBal} BDT. Strict 1:00 PM deadline clause.`);
+      const calDateFormatted = c.deadline_date.replace(/-/g, '');
+      const googleCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${calTitle}&details=${calDetails}&dates=${calDateFormatted}T070000Z/${calDateFormatted}T070000Z`;
+
+      deadlineHtml = `
+        <div class="space-y-1">
+          <div class="font-mono text-xs font-bold ${isOverdue ? 'text-rose-400' : 'text-slate-200'}">${c.deadline_date}</div>
+          <div class="text-[10px] flex items-center gap-2">
+            ${countdownText}
+            <a href="${googleCalUrl}" target="_blank" title="Add to Google Calendar" class="text-indigo-400 hover:text-indigo-300">
+              ${stitch.get('calendar', { size: 12 })}
+            </a>
+          </div>
+        </div>`;
+    }
+
+    // Col 6: Status & Category
+    const kycBadgeColor = c.kyc_status === 'VERIFIED' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : (c.kyc_status === 'HISTORICAL' ? 'bg-amber-500/10 text-amber-300 border-amber-500/30' : 'bg-slate-800 text-slate-400 border-slate-700');
+    const categoryColor = c.category_tag === 'VIP' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-black' : (c.category_tag === 'DEFAULT RISK' || c.category_tag === 'FRAUD CLIENT' ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 font-bold' : 'bg-slate-800 text-slate-300 border-slate-700');
+
+    // Col 7: Strike Gauge (0-3)
+    let strikeIcon = stitch.get('strike-safe', { size: 18 });
+    let strikeText = '0/3 Safe';
+    if (c.strikes_count === 1) {
+      strikeIcon = stitch.get('strike-warning', { size: 18 });
+      strikeText = '1/3 Warning';
+    } else if (c.strikes_count === 2) {
+      strikeIcon = stitch.get('strike-critical', { size: 18 });
+      strikeText = '2/3 Critical';
+    } else if (c.strikes_count >= 3) {
+      strikeIcon = stitch.get('strike-blocked', { size: 18 });
+      strikeText = '3/3 Blocked';
+    }
+
+    // Col 8: Executive Action Bar using Google Stitch Custom Icons
+    return `
+      <tr class="hover:bg-slate-900/50 transition border-b border-white/5" data-client-name="${escapeHtml(c.name)}" data-client-phone="${escapeHtml(c.phone_number || '')}" data-client-id="${c.id}">
+        <!-- Col 1: Identity & Date -->
+        <td class="py-3 px-3.5">
+          <div class="font-extrabold text-white text-xs hover:text-amber-400 cursor-pointer" onclick="openClient360Modal('${c.id}')">
+            ${escapeHtml(c.name)}
+          </div>
+          ${phoneDisplay}
+          <div class="flex items-center gap-1.5 mt-1">
+            ${sourceBadge}
+            <span class="text-[10px] text-slate-500 font-mono">${recordDate}</span>
+          </div>
+        </td>
+
+        <!-- Col 2: Total Balance -->
+        <td class="py-3 px-3.5 font-mono">
+          <div class="text-sm font-black text-amber-400">৳ ${totalBal}</div>
+          ${balBreakdown}
+        </td>
+
+        <!-- Col 3: Active Request -->
+        <td class="py-3 px-3.5">
+          ${activeReqHtml}
+        </td>
+
+        <!-- Col 4: Method & TrxID -->
+        <td class="py-3 px-3.5 space-y-1">
+          ${methodBadge}
+          ${trxIdDisplay}
+        </td>
+
+        <!-- Col 5: Deadline & Urgency -->
+        <td class="py-3 px-3.5">
+          ${deadlineHtml}
+        </td>
+
+        <!-- Col 6: Status & Category -->
+        <td class="py-3 px-3.5 space-y-1">
+          <div>
+            <span class="inline-block px-1.5 py-0.5 rounded text-[9px] font-mono border ${kycBadgeColor}">
+              ${c.kyc_status}
+            </span>
+          </div>
+          <div>
+            <span class="inline-block px-1.5 py-0.5 rounded text-[9px] font-mono border ${categoryColor}">
+              ${c.category_tag}
+            </span>
+          </div>
+          ${c.admin_note ? `<span class="text-[10px] text-slate-400 block truncate max-w-[130px]" title="${escapeHtml(c.admin_note)}">${escapeHtml(c.admin_note)}</span>` : ''}
+        </td>
+
+        <!-- Col 7: Strike Gauge -->
+        <td class="py-3 px-3.5 text-center">
+          <div class="flex flex-col items-center justify-center">
+            ${strikeIcon}
+            <span class="text-[9px] font-mono mt-0.5 text-slate-400">${strikeText}</span>
+          </div>
+        </td>
+
+        <!-- Col 8: Executive Actions (Stitch Custom Icons) -->
+        <td class="py-3 px-3.5 text-center">
+          <div class="flex items-center justify-center gap-1 flex-wrap max-w-[160px] mx-auto">
+            <!-- Voucher / Clearance PDF -->
+            <button type="button" onclick="downloadClientClearanceVoucher('${c.id}')" title="Download Official Clearance Voucher (PDF)" class="stitch-btn p-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 transition cursor-pointer">
+              ${stitch.get('voucher', { size: 14 })}
+            </button>
+
+            <!-- Limits Override -->
+            <button type="button" onclick="openLimitsModalForClient('${c.id}', '${escapeHtml(c.name)}')" title="Configure Custom Limit Override" class="stitch-btn p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/25 border border-blue-500/30 text-blue-300 transition cursor-pointer">
+              ${stitch.get('limits', { size: 14 })}
+            </button>
+
+            <!-- Adjust Cash (+/-) -->
+            <button type="button" onclick="openAdjustCashForClient('${c.id}', '${escapeHtml(c.name)}', ${c.current_total_balance || 0})" title="Adjust Client Cash (+ / -)" class="stitch-btn p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 transition cursor-pointer">
+              ${stitch.get('cash-adjust', { size: 14 })}
+            </button>
+
+            <!-- Call / Phone -->
+            ${c.phone_number ? `
+            <a href="tel:${c.phone_number}" title="Call Client Phone" class="stitch-btn p-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 transition cursor-pointer inline-flex items-center justify-center">
+              ${stitch.get('call', { size: 14 })}
+            </a>` : ''}
+
+            <!-- 360 Profile Edit -->
+            <button type="button" onclick="openClient360Modal('${c.id}')" title="Open 360° Profile Hub" class="stitch-btn p-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 transition cursor-pointer">
+              ${stitch.get('edit', { size: 14 })}
+            </button>
+
+            <!-- Delete User -->
+            <button type="button" onclick="openDeleteClientModal('${c.id}', '${escapeHtml(c.name)}')" title="Permanently Delete Client" class="stitch-btn p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/30 text-rose-400 transition cursor-pointer">
+              ${stitch.get('delete', { size: 14 })}
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+window.filterUnifiedRoster = function() {
+  const query = (document.getElementById('unifiedRosterSearchInput')?.value || '').trim().toLowerCase();
+  if (!query) {
+    renderUnifiedRosterTable(UNIFIED_ROSTER_CACHE);
+    return;
+  }
+  const filtered = UNIFIED_ROSTER_CACHE.filter(c => {
+    return (c.name || '').toLowerCase().includes(query) ||
+           (c.phone_number || '').includes(query) ||
+           (c.id || '').toLowerCase().includes(query) ||
+           (c.category_tag || '').toLowerCase().includes(query) ||
+           (c.trx_id || '').toLowerCase().includes(query);
+  });
+  renderUnifiedRosterTable(filtered);
+};
+
+window.openClient360Modal = function(clientId) {
+  const c = UNIFIED_ROSTER_CACHE.find(item => item.id === clientId);
+  if (!c) return;
+
+  const modal = document.getElementById('client360Modal');
+  if (!modal) return;
+
+  document.getElementById('c360ClientId').value = c.id;
+  document.getElementById('c360ModalTitle').textContent = `${c.name} — 360° Profile`;
+  document.getElementById('c360Subtitle').textContent = `ID: ${c.id} • Source: ${c.source}`;
+  document.getElementById('c360Badge').textContent = c.kyc_status;
+
+  document.getElementById('c360Name').value = c.name || '';
+  document.getElementById('c360Phone').value = c.phone_number || '';
+  document.getElementById('c360Email').value = c.email || '';
+  document.getElementById('c360ChatId').value = c.telegram_chat_id || '';
+  document.getElementById('c360Status').value = c.status || 'ACTIVE';
+  document.getElementById('c360Category').value = c.category_tag || 'STANDARD';
+  document.getElementById('c360Strikes').value = String(c.strikes_count || 0);
+  document.getElementById('c360AdminNote').value = c.admin_note || '';
+
+  const kycPill = document.getElementById('c360KycStatusPill');
+  if (kycPill) kycPill.textContent = c.kyc_status;
+
+  modal.classList.remove('hidden');
+};
+
+window.closeClient360Modal = function() {
+  const modal = document.getElementById('client360Modal');
+  if (modal) modal.classList.add('hidden');
+};
+
+window.saveClient360 = async function(event) {
+  if (event) event.preventDefault();
+  const clientId = document.getElementById('c360ClientId').value;
+  const payload = {
+    name: document.getElementById('c360Name').value.trim(),
+    phone_number: document.getElementById('c360Phone').value.trim(),
+    email: document.getElementById('c360Email').value.trim(),
+    status: document.getElementById('c360Status').value,
+    category_tag: document.getElementById('c360Category').value,
+    strikes_count: document.getElementById('c360Strikes').value,
+    admin_note: document.getElementById('c360AdminNote').value.trim(),
+  };
+
+  try {
+    const res = await fetch(`/api/admin/clients/${clientId}/update-360`, {
+      method: 'POST',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    alert('✅ Client 360° Profile updated successfully.');
+    window.closeClient360Modal();
+    await window.loadUnifiedClientRoster();
+    if (typeof fetchMasterSpreadsheet === 'function') await fetchMasterSpreadsheet();
+    if (typeof fetchClients === 'function') await fetchClients();
+  } catch (err) {
+    alert(`Error updating profile: ${err.message}`);
+  }
+};
+
+window.openDeleteClientModal = function(clientId, clientName) {
+  const modal = document.getElementById('deleteClientModal');
+  if (!modal) return;
+
+  document.getElementById('deleteTargetClientId').value = clientId;
+  document.getElementById('deleteTargetExpectedName').value = clientName;
+  document.getElementById('deleteExpectedNameDisplay').textContent = `"${clientName}"`;
+  document.getElementById('deleteNameConfirmInput').value = '';
+  document.getElementById('confirmDeleteClientBtn').disabled = true;
+  document.getElementById('confirmDeleteClientBtn').className = 'px-5 py-2 rounded-lg bg-rose-700/50 text-rose-300/50 cursor-not-allowed font-black text-xs uppercase tracking-wider transition flex items-center';
+
+  modal.classList.remove('hidden');
+};
+
+window.closeDeleteClientModal = function() {
+  const modal = document.getElementById('deleteClientModal');
+  if (modal) modal.classList.add('hidden');
+};
+
+window.validateDeleteNameMatch = function() {
+  const expected = (document.getElementById('deleteTargetExpectedName').value || '').trim().toLowerCase();
+  const typed = (document.getElementById('deleteNameConfirmInput').value || '').trim().toLowerCase();
+  const btn = document.getElementById('confirmDeleteClientBtn');
+  if (typed === expected && expected.length > 0) {
+    btn.disabled = false;
+    btn.className = 'px-5 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white cursor-pointer font-black text-xs uppercase tracking-wider transition flex items-center shadow-lg';
+  } else {
+    btn.disabled = true;
+    btn.className = 'px-5 py-2 rounded-lg bg-rose-700/50 text-rose-300/50 cursor-not-allowed font-black text-xs uppercase tracking-wider transition flex items-center';
+  }
+};
+
+window.confirmDeleteClient = async function(event) {
+  if (event) event.preventDefault();
+  const clientId = document.getElementById('deleteTargetClientId').value;
+
+  try {
+    const res = await fetch(`/api/admin/clients/${clientId}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    alert('🗑️ Client record has been permanently removed.');
+    window.closeDeleteClientModal();
+    await window.loadUnifiedClientRoster();
+    if (typeof fetchMasterSpreadsheet === 'function') await fetchMasterSpreadsheet();
+    if (typeof fetchClients === 'function') await fetchClients();
+  } catch (err) {
+    alert(`Error deleting client: ${err.message}`);
+  }
+};
+
+window.downloadClientClearanceVoucher = function(clientId) {
+  const c = UNIFIED_ROSTER_CACHE.find(item => item.id === clientId);
+  if (!c) return;
+  const mockLoan = {
+    id: c.active_request ? c.active_request.id : `CLR-${clientId.slice(0, 8)}`,
+    amount: c.current_total_balance || 0,
+    status: c.current_total_balance === 0 ? 'SETTLED' : 'DISBURSED',
+    deadline_date: c.deadline_date || new Date().toISOString().split('T')[0],
+    created_at: c.joined_at || new Date().toISOString(),
+    admin_note: c.admin_note || 'Zero-Liability Financial Settlement'
+  };
+  const mockClient = {
+    id: c.id,
+    name: c.name,
+    phone_number: c.phone_number || '—',
+    email: c.email || '—'
+  };
+  if (typeof window.generateLoanVoucherPdf === 'function') {
+    window.generateLoanVoucherPdf(mockLoan, mockClient);
+  } else {
+    alert(`Generated Clearance Certificate for ${c.name}. Balance: ৳${c.current_total_balance}`);
+  }
+};
+
+window.openLimitsModalForClient = function(clientId, clientName) {
+  if (typeof openClientOverrideModal === 'function') {
+    openClientOverrideModal(clientId, clientName);
+  } else {
+    const modal = DOM.settingsModal || document.getElementById('settingsModal');
+    if (modal) modal.classList.remove('hidden');
+  }
+};
+
+window.openAdjustCashForClient = function(clientId, clientName, currentBalance) {
+  const modal = DOM.adjustCashModal || document.getElementById('adjustCashModal');
+  if (!modal) return;
+  const realId = clientId.startsWith('hist_') ? clientId.replace('hist_', '') : clientId;
+  const ledgerIdInput = document.getElementById('adjustLedgerId');
+  const sub = document.getElementById('adjustClientSubtitle');
+  const curBal = document.getElementById('adjustCurrentBalance');
+
+  if (ledgerIdInput) ledgerIdInput.value = realId;
+  if (sub) sub.textContent = `Client: ${clientName} (ID: ${realId})`;
+  if (curBal) curBal.textContent = `৳ ${Number(currentBalance || 0).toLocaleString()}`;
+
+  modal.classList.remove('hidden');
+};
+
 let _adminModulesInitialized = false;
 function initAllAdminModules() {
   if (_adminModulesInitialized) return;
@@ -4819,6 +5337,16 @@ function initAllAdminModules() {
     initDeskSwitcher();
   } catch (err) {
     console.error('[Admin] Error in initDeskSwitcher:', err);
+  }
+  try {
+    initPullToRefresh();
+  } catch (err) {
+    console.error('[Admin] Error in initPullToRefresh:', err);
+  }
+  try {
+    window.loadUnifiedClientRoster();
+  } catch (err) {
+    console.error('[Admin] Error in loadUnifiedClientRoster:', err);
   }
 }
 

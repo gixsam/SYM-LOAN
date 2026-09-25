@@ -2,6 +2,66 @@
   "overrides": {},
   "audit_log": [
     {
+      "client_id": "test_cli_1790297145177",
+      "action": "REMOVE_OVERRIDE",
+      "timestamp": "2026-09-25T00:45:45.380Z"
+    },
+    {
+      "client_id": "test_cli_1790297145177",
+      "action": "SET_OVERRIDE",
+      "details": {
+        "client_id": "test_cli_1790297145177",
+        "score_offset": 25,
+        "fixed_grade": "A",
+        "fixed_tier": null,
+        "force_status": null,
+        "admin_note": "Audit trail integration automated verification test",
+        "admin_user": "Admin",
+        "updated_at": "2026-09-25T00:45:45.180Z"
+      },
+      "timestamp": "2026-09-25T00:45:45.180Z"
+    },
+    {
+      "client_id": "e84ecb25-5fa1-42fb-ab04-8e3c5112a69b",
+      "action": "REMOVE_OVERRIDE",
+      "timestamp": "2026-09-25T00:45:40.942Z"
+    },
+    {
+      "client_id": "e84ecb25-5fa1-42fb-ab04-8e3c5112a69b",
+      "action": "SET_OVERRIDE",
+      "details": {
+        "client_id": "e84ecb25-5fa1-42fb-ab04-8e3c5112a69b",
+        "score_offset": 25,
+        "fixed_grade": null,
+        "fixed_tier": null,
+        "force_status": null,
+        "admin_note": "Automated test API override",
+        "admin_user": "Admin",
+        "updated_at": "2026-09-25T00:45:40.562Z"
+      },
+      "timestamp": "2026-09-25T00:45:40.562Z"
+    },
+    {
+      "client_id": "test_cl_phase11_override",
+      "action": "REMOVE_OVERRIDE",
+      "timestamp": "2026-09-25T00:45:38.573Z"
+    },
+    {
+      "client_id": "test_cl_phase11_override",
+      "action": "SET_OVERRIDE",
+      "details": {
+        "client_id": "test_cl_phase11_override",
+        "score_offset": 75,
+        "fixed_grade": null,
+        "fixed_tier": "PLATINUM",
+        "force_status": null,
+        "admin_note": "Automated test override verification",
+        "admin_user": "TestRunner",
+        "updated_at": "2026-09-25T00:45:38.558Z"
+      },
+      "timestamp": "2026-09-25T00:45:38.559Z"
+    },
+    {
       "client_id": "e84ecb25-5fa1-42fb-ab04-8e3c5112a69b",
       "action": "REMOVE_OVERRIDE",
       "timestamp": "2026-09-18T19:15:20.794Z"

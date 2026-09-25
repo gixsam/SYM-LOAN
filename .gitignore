@@ -12,3 +12,4 @@ public/uploads/receipts/*
 !public/uploads/receipts/.gitkeep
 
 android/build/
+android-admin/build/

@@ -395,9 +395,40 @@ router.post('/loans', async (req, res) => {
     });
   }
 
-  // 2. KYC Verification Gatekeeper Check (Bypassed if authorized Admin is testing)
+  // 2. Admin Check & Bypass Key
   const reqAdminKey = req.headers['x-admin-key'] || req.query.admin_key || req.body?.admin_key;
   const isAdmin = (reqAdminKey === (process.env.ADMIN_SECRET_KEY || 'SEP_ADMIN_2026'));
+
+  // 2a. Admin Re-Application Cooldown Enforcement
+  const activeCooldown = loanSettings.getClientCooldown(client_id) || client.reapply_unlock_at;
+  if (!isAdmin && activeCooldown && new Date() < new Date(activeCooldown)) {
+    return res.status(429).json({
+      success: false,
+      error: 'REAPPLICATION_COOLDOWN_ACTIVE',
+      unlock_at: activeCooldown,
+      message: `Re-application is on cooldown until ${new Date(activeCooldown).toLocaleString()}. You cannot submit another money request yet.`,
+    });
+  }
+
+  // 2b. Strict One Active Loan Policy Enforcement
+  if (!isAdmin) {
+    const { data: existingActive, error: activeErr } = await supabaseAdmin
+      .from('money_requests')
+      .select('id, amount, status, deadline_date, created_at')
+      .eq('client_id', client_id)
+      .in('status', ['PENDING', 'APPROVED', 'DISBURSED']);
+
+    if (!activeErr && existingActive && existingActive.length > 0) {
+      return res.status(409).json({
+        success: false,
+        error: 'ACTIVE_LOAN_EXISTS',
+        message: 'You already have an active loan request in progress. You cannot apply for a new loan until your existing request is settled or adjudicated.',
+        active_loan: existingActive[0],
+      });
+    }
+  }
+
+  // 2c. KYC Verification Gatekeeper Check (Bypassed if authorized Admin is testing)
 
   if (!isAdmin && !kycManager.isClientKycVerified(client_id)) {
     return res.status(403).json({
@@ -526,6 +557,97 @@ router.patch('/loans/:id/status', async (req, res) => {
   if (error) return res.status(500).json({ success: false, message: error.message });
   res.json({ success: true, data });
 });
+
+// PATCH /api/loans/:id/modify — In-Place Modification for PENDING applications (Module 8)
+router.patch('/loans/:id/modify', async (req, res) => {
+  const loanId = req.params.id;
+  const { amount, deadline_date } = req.body;
+
+  if (!amount && !deadline_date) {
+    return res.status(400).json({ success: false, message: 'Provide amount or deadline_date to modify.' });
+  }
+
+  // 1. Fetch current loan
+  const { data: loan, error: fetchErr } = await supabaseAdmin
+    .from('money_requests')
+    .select('*, client_profiles(*)')
+    .eq('id', loanId)
+    .single();
+
+  if (fetchErr || !loan) {
+    return res.status(404).json({ success: false, message: 'Loan application not found.' });
+  }
+
+  // 2. Strict status check: strictly PENDING allowed
+  if (loan.status !== 'PENDING') {
+    return res.status(403).json({
+      success: false,
+      code: 'LOAN_NOT_PENDING',
+      message: `Cannot modify loan with status "${loan.status}". Only PENDING loan requests can be modified.`,
+    });
+  }
+
+  const updates = {};
+
+  if (amount) {
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid loan amount.' });
+    }
+    // Validate against loanSettings
+    const validation = loanSettings.validateLoanRequest(loan.client_id, numAmount, deadline_date || loan.deadline_date);
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        code: 'LIMIT_VIOLATION',
+        message: validation.error,
+      });
+    }
+    updates.amount = numAmount;
+  }
+
+  if (deadline_date) {
+    const validation = loanSettings.validateLoanRequest(loan.client_id, updates.amount || loan.amount, deadline_date);
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        code: 'LIMIT_VIOLATION',
+        message: validation.error,
+      });
+    }
+    updates.deadline_date = deadline_date;
+  }
+
+  // Append modification remark to admin_note
+  const modNote = `[Client Modified: ${new Date().toISOString().split('T')[0]}]`;
+  updates.admin_note = loan.admin_note ? `${loan.admin_note} ${modNote}` : modNote;
+
+  const { data: updatedLoan, error: updateErr } = await supabaseAdmin
+    .from('money_requests')
+    .update(updates)
+    .eq('id', loanId)
+    .select('*, client_profiles(*)')
+    .single();
+
+  if (updateErr) {
+    return res.status(500).json({ success: false, message: updateErr.message });
+  }
+
+  res.json({
+    success: true,
+    message: 'Loan request modified successfully.',
+    data: updatedLoan,
+  });
+});
+
+// DELETE /api/loans/:id — Guard against borrower loan cancellation (Module 8)
+router.delete('/loans/:id', (req, res) => {
+  res.status(403).json({
+    success: false,
+    message: 'Submitted loan requests cannot be deleted or cancelled. Please contact administration for adjudication.',
+  });
+});
+
 
 // ─── System Budgets ───────────────────────────────────────────────────────────
 router.get('/budgets', async (req, res) => {
@@ -1023,6 +1145,7 @@ router.get('/clients/:id/standing', async (req, res) => {
         overdue_loans: overdueLoans,
         due_today_loans: dueTodayLoans,
         active_loans_count: loans ? loans.length : 0,
+        active_cooldown: loanSettings.getClientCooldown(client.id) || client.reapply_unlock_at || null,
         recent_reminders: recentReminders,
       }
     });

@@ -14,7 +14,83 @@
 > **Telegram Bot:** `@money_loan_bot` (Token: `[PROTECTED IN .ENV — Never commit plain tokens]`)  
 > **Technology Stack:** Node.js, Express, Supabase (PostgreSQL), Multer, jsPDF, node-telegram-bot-api, node-cron, CORS, Helmet, dotenv, HTML5, Tailwind CSS, FontAwesome 6, Cloudflare Tunnel  
 > **Live Local Server:** `http://localhost:5000` (Client: `/`, Admin: `/admin`)  
-> **Last Synchronized:** 2026-09-19 01:25 Local Time  
+> **Last Synchronized:** 2026-09-25 06:45 Local Time  
+
+### [Update-064] — Platform Master Overhaul: Mobile Header Layout, Google Stitch Vector System, Dedicated Admin APK, Unified Client Directory & Lifecycle Governance (2026-09-25)
+**Type:** Comprehensive Multi-Module Master Overhaul, Native Android Admin Toolchain, Google Stitch Dual-Tone Vector System, Client Stepper Lifecycle, In-Place Modification, and Cooldown Governance  
+**Status:** ✅ COMPLETED, TESTED (51/51 OVERHAUL TESTS PASSED, 271/271 TOTAL REGRESSION TESTS PASSED — 100%), COMPILED NATIVE ADMIN APK (`public/downloads/SYM-LOAN-ADMIN.apk` v2.6.0), PACKAGED HOSTINGER DEPLOY ZIP & DUAL-SYNCED ACROSS WORKPLACES  
+
+#### User Request & Architectural Directives:
+Master Overhaul Directive covering 10 distinct modules:
+1. **Module 1 (Header Layout Repair & Clock Collision Bugfix):** Convert mobile header into rigid 3-column flexbox (Left anchor, Center auto-truncating clock ticker, Right anchor) preventing collisions on screens < 390px.
+2. **Module 2 (Google Stitch Custom Vector Icons):** Centralized HD vector SVG generator replacing raw OS emojis with dual-tone Stitch aesthetic icons across all tables, action buttons, and status badges.
+3. **Module 3 (Obsidian Canvas & Slate Glassmorphism):** Unified styling tokens (`#06090F` canvas, translucent slate glassmorphism `rgba(15, 23, 42, 0.85)`, and gold/mint/crimson glows).
+4. **Module 4 (Dedicated Admin Android APK):** Native Java WebView APK (`com.symempire.symloanadmin`, v2.6.0) with hardware acceleration, camera file chooser, and pull-to-refresh invoking `window.refreshAdminDashboard()`.
+5. **Module 5 (Unified Master Client Roster Desk):** Merged client directory combining active registered borrowers with historical Google Keep records, 8-column tabular view, sticky aggregate footer, and 360° Profile Hub.
+6. **Module 6 (Transactional Disbursement Email):** Automated email with S.E.P. Gold Monogram, repayment instructions, vector PDF voucher link, and strict 1:00 PM deadline clause.
+7. **Module 7 (Money Request Lifecycle Progress Stepper):** 5-stage visual progress stepper on client portal (Submitted, Review, Disbursed, Active, Settled).
+8. **Module 8 (Single Active Loan Guard & In-Place Modification):** Strictly enforce 1 active loan per borrower (HTTP 409 Conflict), allow in-place term adjustments while PENDING via `PATCH /api/loans/:id/modify`, and lock terms once approved.
+9. **Module 9 (Re-Application Cooldown Governance & Live Countdown):** Admin-configurable post-settlement or post-decline cooldown (12h, 24h, 48h, 72h, 7d), enforcing HTTP 429 lock on new requests with live ticking countdown banner.
+10. **Module 10 (Client Deletion Guard & Strike Governance):** 2-step verification delete client with exact name matching, blocking deletion if active loans exist, and seamless 3-strike escalation integration.
+
+#### Implementation & Architecture Breakdown:
+1. **Header Layout Repair (`public/admin.html`):**
+   - Refactored `<header id="adminMainHeader">` into a rigid 3-column flex layout with non-colliding anchors:
+     - Left: 40x40px `#hamburgerBtn` + `#adminNavLogo` + Platform Identity.
+     - Center: Responsive `#adminLiveClockTicker` with media query truncation to `DD/MM • HH:mm` on viewports `< 390px`.
+     - Right: 36x36px `#openSettingsModalBtn` + `#adminNotificationBellBtn` + responsive `#openAdminLoginBtn` (hidden on `< 480px`).
+
+2. **Google Stitch Custom Vector Icons (`public/js/stitchIcons.js`):**
+   - Created centralized icon generator `window.StitchIcons.get(name, options)` supporting 24 dual-tone vector icons (`voucher`, `limits`, `cash-adjust`, `call`, `calendar`, `edit`, `delete`, `strike-safe`, `strike-warning`, `strike-critical`, `strike-blocked`, `bkash`, `nagad`, `cash`, `clock`, `bell`, `stepper-check`, `user`, `shield`, `bolt`, `download`, `refresh`, `lock`, `vip`).
+   - Integrated into both `public/admin.html` and `public/index.html` with automatic DOM scanning via `window.StitchIcons.render()`.
+
+3. **Obsidian Canvas & Glassmorphism Styling (`public/css/style.css`):**
+   - Applied `#06090F` base canvas, layered slate cards, `.stitch-icon`, `.stitch-icon-wrapper`, `.stitch-btn`, and native `#pullToRefreshSpinner` animation.
+
+4. **Dedicated Admin Android APK Pipeline (`android-admin/` & `scripts/build_admin_apk.js`):**
+   - Configured `android-admin/AndroidManifest.xml` (package `com.symempire.symloanadmin`, versionCode 260, versionName 2.6.0, hardware acceleration enabled).
+   - Authored `android-admin/src/com/symempire/symloanadmin/MainActivity.java` embedding hardware-accelerated WebView pointing to `https://symloan.best-travel.ltd/admin`, injecting User-Agent `SYM-Admin-Native-Android-App/2.6.0 (Android; S.E.P.) Mobile`.
+   - Built native hardware touch pull-to-refresh listener invoking `window.refreshAdminDashboard()` with centered gold loading spinner.
+   - Built CLI compilation pipeline (`scripts/build_admin_apk.js`) generating `public/downloads/SYM-LOAN-ADMIN.apk` (512.47 KB) verified with apksigner (v2 + v3 schemes).
+   - Added `"build:admin-apk"` command in `package.json`.
+
+5. **Unified Client Directory & 360° Profile Hub (`public/admin.html`, `public/js/admin.js`, `src/routes/adminApi.js`):**
+   - Mounted `GET /api/admin/clients/unified-roster` merging `client_profiles`, `kyc_profiles`, and unlinked `historical_ledgers` using `hist_` synthetic identifiers.
+   - Inserted `#unifiedClientDirectorySection` directly below KPIs and above Loan Inbox with 8-column layout and aggregate footer summary.
+   - Added `#client360Modal` (360° Profile Hub) and `POST /api/admin/clients/:id/update-360` with historical client graduation on phone assignment.
+
+6. **Transactional Disbursement Email Engine (`src/lib/emailService.js`, `src/routes/adminApi.js`):**
+   - Implemented `sendDisbursementNotificationEmail` with S.E.P. Gold Monogram branding, disbursement details (bKash/Nagad/Cash, TrxID), strict 1:00 PM deadline clause, and PDF voucher link.
+   - Auto-dispatched upon loan acceptance in `POST /loans/:id/decision` and logged to cryptographic audit trail.
+
+7. **Client Money Request Progress Stepper (`public/index.html`, `public/js/app.js`):**
+   - Added `#loanProgressStepper` featuring 5 lifecycle stages: Stage 1 (Submitted), Stage 2 (Underwriting Review), Stage 3 (Disbursed), Stage 4 (Active / Repayment), Stage 5 (Settled & Cleared).
+   - Dynamically injected `[ Edit Request ]` button opening `#modifyLoanModal` when status is `PENDING`.
+   - Wired clearance certificate download on `REPAID` loans and PDF voucher button on `ACCEPTED` loans.
+
+8. **Single Active Loan Guard & In-Place Modification (`src/routes/api.js`, `public/index.html`, `public/js/app.js`):**
+   - Added single active loan check rejecting concurrent submissions with `HTTP 409 Conflict`.
+   - Mounted `PATCH /api/loans/:id/modify` allowing borrower to adjust amount and deadline date strictly while `PENDING` (returns `HTTP 403` once approved).
+   - Blocked direct loan deletion via `DELETE /api/loans/:id` (`HTTP 403 Forbidden`).
+   - Implemented `#modifyLoanModal` with date and amount limits validation.
+
+9. **Re-Application Cooldown Governance (`src/lib/loanSettings.js`, `src/routes/api.js`, `public/index.html`, `public/js/app.js`):**
+   - Extended `loanSettings` with `setClientCooldown`, `getClientCooldown`, and `removeClientCooldown`.
+   - Injected cooldown selector (12h, 24h, 48h, 72h, 7d) in Admin disbursement and decline modals.
+   - Enforced `HTTP 429 Too Many Requests` in `POST /api/loans` if borrower applies during an active cooldown.
+   - Added `#cooldownAlertBanner` with real-time ticking `00h 00m 00s` countdown timer automatically locking loan application inputs until expiry.
+
+10. **Client Deletion Guard & Strike Governance (`src/routes/adminApi.js`, `public/admin.html`, `public/js/admin.js`):**
+    - Mounted `DELETE /api/admin/clients/:id` with strict check blocking deletion if active loans exist (`HTTP 400`).
+    - Added `#deleteClientModal` requiring 2-step verification typing the borrower's exact legal name before unlock.
+    - Integrated with 3-strike governance and cryptographic audit trail logging.
+
+11. **Verification & Packaging:**
+    - Authored `scripts/test_admin_overhaul.js` (51/51 tests passing).
+    - Executed all existing test suites (`test_phase8` through `test_phase12` and `test_admin_ui_interactions`) — **271/271 tests passing with 100% success**.
+    - Repackaged `dist/hostinger_deploy.zip` (1.58 MB).
+
+---
 
 ### [Update-063] — Executive Modular Desks Architecture, Section Repositioning & Hamburger Navigator (2026-09-19)
 **Type:** Information Architecture Overhaul, Workspace Modularization, Sticky Desk Switcher & Categorized Command Navigator  

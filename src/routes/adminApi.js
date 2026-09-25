@@ -29,6 +29,7 @@ const creditScoreEngine = require('../lib/creditScoreEngine');
 const fraudDetectionEngine = require('../lib/fraudDetectionEngine');
 const staffAuthEngine = require('../lib/staffAuthEngine');
 const auditTrailEngine = require('../lib/auditTrailEngine');
+const emailService = require('../lib/emailService');
 
 const router = express.Router();
 
@@ -478,6 +479,377 @@ router.post('/clients/:id/status', requireAdmin, async (req, res) => {
   res.json({ success: true, message: 'Client profile updated.', client: data });
 });
 
+// GET /api/admin/clients/unified-roster — Unified Master Client Roster (Module 5 & 10)
+router.get('/clients/unified-roster', requireAdmin, async (req, res) => {
+  try {
+    // 1. Fetch registered clients with loans and historical ledgers
+    const { data: clients, error: clientErr } = await supabaseAdmin
+      .from('client_profiles')
+      .select(`
+        *,
+        historical_ledgers (*),
+        money_requests (*)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (clientErr) throw clientErr;
+
+    // 2. Fetch all historical ledgers to identify unlinked accounts
+    const { data: allLedgers, error: ledgerErr } = await supabaseAdmin
+      .from('historical_ledgers')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    const linkedLedgerIds = new Set();
+    const linkedClientIds = new Set();
+
+    const unifiedList = [];
+
+    // Process registered clients
+    for (const c of (clients || [])) {
+      linkedClientIds.add(c.id);
+      const requests = c.money_requests || [];
+      const acceptedLoans = requests.filter(r => r.status === 'ACCEPTED');
+      const totalBorrowed = acceptedLoans.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
+
+      // Historical balance
+      let histBal = 0;
+      let histTag = 'STANDARD';
+      if (c.historical_ledgers) {
+        if (Array.isArray(c.historical_ledgers)) {
+          c.historical_ledgers.forEach(hl => {
+            linkedLedgerIds.add(hl.id);
+            histBal += parseFloat(hl.historical_balance) || 0;
+            if (hl.historical_tag) histTag = hl.historical_tag;
+          });
+        } else {
+          linkedLedgerIds.add(c.historical_ledgers.id);
+          histBal = parseFloat(c.historical_ledgers.historical_balance) || 0;
+          if (c.historical_ledgers.historical_tag) histTag = c.historical_ledgers.historical_tag;
+        }
+      }
+
+      // Latest / active loan request
+      const activeLoan = requests.find(r => ['PENDING', 'ACCEPTED', 'APPROVED', 'DISBURSED'].includes(r.status)) || null;
+      let disbursementMethod = 'CASH';
+      let trxId = '';
+      let deadlineDate = activeLoan?.deadline_date || '';
+
+      if (activeLoan && activeLoan.admin_note) {
+        try {
+          const parsed = JSON.parse(activeLoan.admin_note);
+          if (parsed.payout_method) disbursementMethod = parsed.payout_method;
+          if (parsed.trx_id) trxId = parsed.trx_id;
+        } catch (e) {}
+      }
+
+      const kycProfile = kycManager.getKycProfile(c.id);
+      const kycStatus = kycProfile?.status || (c.status === 'ACTIVE' ? 'VERIFIED' : 'UNVERIFIED');
+
+      // VIP or Category Tag
+      let category = histTag || 'STANDARD';
+      if (c.strikes_count >= 3 || c.status === 'BLOCKED') {
+        category = 'DEFAULT RISK';
+      } else if (totalBorrowed > 15000 || (c.strikes_count === 0 && acceptedLoans.length >= 3)) {
+        category = 'VIP';
+      }
+
+      unifiedList.push({
+        id: c.id,
+        is_historical: false,
+        name: (kycProfile && kycProfile.legal_name) || c.name || 'Registered Client',
+        phone_number: c.phone_number || '',
+        email: (kycProfile && kycProfile.email) || c.email || '',
+        joined_at: c.created_at,
+        source: 'TELEGRAM_APP',
+        historical_balance: histBal,
+        active_debt: totalBorrowed,
+        current_total_balance: histBal + totalBorrowed,
+        active_request: activeLoan ? {
+          id: activeLoan.id,
+          amount: parseFloat(activeLoan.amount) || 0,
+          status: activeLoan.status,
+          deadline_date: activeLoan.deadline_date,
+          created_at: activeLoan.created_at,
+        } : null,
+        disbursement_method: disbursementMethod,
+        trx_id: trxId || (disbursementMethod === 'CASH' ? 'CASH_HANDOVER' : 'PENDING'),
+        deadline_date: deadlineDate,
+        kyc_status: kycStatus,
+        status: c.status,
+        category_tag: category,
+        strikes_count: c.strikes_count || 0,
+        admin_note: c.admin_note || '',
+        telegram_chat_id: c.telegram_chat_id || '',
+      });
+    }
+
+    // Process unlinked historical ledgers
+    for (const hl of (allLedgers || [])) {
+      if (hl.client_id && linkedClientIds.has(hl.client_id)) continue;
+      if (linkedLedgerIds.has(hl.id)) continue;
+
+      const histBal = parseFloat(hl.historical_balance) || 0;
+      unifiedList.push({
+        id: `hist_${hl.id}`,
+        is_historical: true,
+        name: hl.old_name || 'Historical Client',
+        phone_number: '',
+        email: '',
+        joined_at: hl.created_at,
+        source: 'GOOGLE_KEEP',
+        historical_balance: histBal,
+        active_debt: 0,
+        current_total_balance: histBal,
+        active_request: null,
+        disbursement_method: 'CASH',
+        trx_id: 'N/A',
+        deadline_date: '',
+        kyc_status: 'HISTORICAL',
+        status: 'HISTORICAL',
+        category_tag: hl.historical_tag || 'STANDARD',
+        strikes_count: /fraud/i.test(hl.historical_tag || '') ? 3 : 0,
+        admin_note: hl.historical_tag || '',
+        telegram_chat_id: '',
+      });
+    }
+
+    // Calculate Summary Footer Metrics
+    let totalCombinedBalance = 0;
+    let totalActiveLoans = 0;
+    let totalDisbursedCapital = 0;
+    let totalDelinquentExposure = 0;
+    const now = new Date();
+
+    unifiedList.forEach(item => {
+      totalCombinedBalance += item.current_total_balance;
+      if (item.active_request) {
+        totalActiveLoans++;
+        if (item.active_request.status === 'ACCEPTED' || item.active_request.status === 'DISBURSED') {
+          totalDisbursedCapital += item.active_request.amount;
+        }
+      }
+      if (item.deadline_date && new Date(item.deadline_date) < now && item.current_total_balance > 0) {
+        totalDelinquentExposure += item.current_total_balance;
+      }
+    });
+
+    res.json({
+      success: true,
+      count: unifiedList.length,
+      roster: unifiedList,
+      clients: unifiedList,
+      summary: {
+        total_combined_balance: totalCombinedBalance,
+        total_active_loans: totalActiveLoans,
+        total_disbursed_capital: totalDisbursedCapital,
+        total_delinquent_exposure: totalDelinquentExposure,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/admin/clients/:id — Safe Deletion Guard (Module 10)
+router.delete('/clients/:id', requireAdmin, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    if (id.startsWith('hist_')) {
+      const realId = id.replace('hist_', '');
+      const { data: existingHist } = await supabaseAdmin
+        .from('historical_ledgers')
+        .select('id')
+        .eq('id', realId)
+        .maybeSingle();
+
+      if (!existingHist) {
+        return res.status(404).json({ success: false, message: 'Historical record not found.' });
+      }
+
+      const { error } = await supabaseAdmin
+        .from('historical_ledgers')
+        .delete()
+        .eq('id', realId);
+
+      if (error) throw error;
+
+      auditTrailEngine.recordExpressAction(req, 'CLIENT_DELETED', 'HISTORICAL_CLIENT', id, {
+        historical_id: realId,
+      });
+
+      return res.json({ success: true, message: 'Historical client record deleted successfully.' });
+    }
+
+    // Standard client deletion
+    // 0. Verify client exists
+    const { data: existingClient } = await supabaseAdmin
+      .from('client_profiles')
+      .select('id')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (!existingClient) {
+      return res.status(404).json({ success: false, message: 'Client profile not found.' });
+    }
+
+    // 1. Guard against active/unsettled loans
+    const { data: activeLoans, error: loanErr } = await supabaseAdmin
+      .from('money_requests')
+      .select('id, amount, status')
+      .eq('client_id', id)
+      .in('status', ['PENDING', 'ACCEPTED', 'APPROVED', 'DISBURSED']);
+
+    if (!loanErr && activeLoans && activeLoans.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete client with active loans (${activeLoans.length} active). Settle or close loans first.`,
+      });
+    }
+
+    // 2. Unlink or remove historical ledgers
+    await supabaseAdmin
+      .from('historical_ledgers')
+      .update({ client_id: null })
+      .eq('client_id', id);
+
+    // 3. Delete money requests for this client
+    await supabaseAdmin
+      .from('money_requests')
+      .delete()
+      .eq('client_id', id);
+
+    // 4. Delete client profile
+    const { error: delErr } = await supabaseAdmin
+      .from('client_profiles')
+      .delete()
+      .eq('id', id);
+
+    if (delErr) throw delErr;
+
+    auditTrailEngine.recordExpressAction(req, 'CLIENT_DELETED', 'CLIENT_PROFILE', id, {});
+
+    res.json({ success: true, message: 'Client profile deleted successfully.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/admin/clients/:id/update-360 — 360° Profile Hub Updates & Graduation (Module 5 & 10)
+router.post('/clients/:id/update-360', requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { name, phone_number, email, category_tag, admin_note, strikes_count, status } = req.body;
+
+  try {
+    if (id.startsWith('hist_')) {
+      const realId = id.replace('hist_', '');
+      let graduatedClient = null;
+
+      // If assigning a verified phone number, graduate this historical client!
+      if (phone_number && phone_number.trim().length >= 10) {
+        const cleanPhone = phone_number.trim();
+        // Check if client profile already exists
+        const { data: existing } = await supabaseAdmin
+          .from('client_profiles')
+          .select('id')
+          .eq('phone_number', cleanPhone)
+          .maybeSingle();
+
+        let targetClientId = existing?.id;
+        if (!targetClientId) {
+          const { data: newProfile, error: createErr } = await supabaseAdmin
+            .from('client_profiles')
+            .insert({
+              name: name || 'Graduated Client',
+              phone_number: cleanPhone,
+              email: email || null,
+              status: 'ACTIVE',
+              admin_note: `Graduated from Historical Keep Note #${realId}`,
+            })
+            .select()
+            .single();
+
+          if (createErr) throw createErr;
+          targetClientId = newProfile.id;
+          graduatedClient = newProfile;
+        }
+
+        // Link historical ledger to this client_id
+        await supabaseAdmin
+          .from('historical_ledgers')
+          .update({ client_id: targetClientId, old_name: name || undefined, historical_tag: category_tag || undefined })
+          .eq('id', realId);
+
+        auditTrailEngine.recordExpressAction(req, 'CLIENT_GRADUATED', 'CLIENT_PROFILE', targetClientId, {
+          historical_id: realId,
+          phone_number: cleanPhone,
+        });
+
+        return res.json({
+          success: true,
+          message: 'Historical client graduated into a registered client profile.',
+          graduated: true,
+          client: graduatedClient || { id: targetClientId },
+        });
+      }
+
+      // Just updating historical ledger metadata
+      const updates = {};
+      if (name) updates.old_name = name;
+      if (category_tag || admin_note) updates.historical_tag = category_tag || admin_note;
+
+      const { data: updatedLedger, error: upErr } = await supabaseAdmin
+        .from('historical_ledgers')
+        .update(updates)
+        .eq('id', realId)
+        .select()
+        .single();
+
+      if (upErr) throw upErr;
+
+      auditTrailEngine.recordExpressAction(req, 'HISTORICAL_CLIENT_UPDATED', 'HISTORICAL_LEDGER', realId, updates);
+
+      return res.json({ success: true, message: 'Historical record updated.', ledger: updatedLedger });
+    }
+
+    // Standard client profile update
+    const updates = {};
+    if (name) updates.name = name;
+    if (phone_number) updates.phone_number = phone_number;
+    if (email !== undefined) updates.email = email;
+    if (status) updates.status = status;
+    if (strikes_count !== undefined) updates.strikes_count = parseInt(strikes_count, 10);
+    if (admin_note !== undefined) updates.admin_note = admin_note;
+
+    const { data: updatedClient, error: clientErr } = await supabaseAdmin
+      .from('client_profiles')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (clientErr) throw clientErr;
+
+    // Also update kycManager profile if legal_name or email supplied
+    if (name || email) {
+      const kyc = kycManager.getKycProfile(id);
+      if (kyc) {
+        if (name) kyc.legal_name = name;
+        if (email) kyc.email = email;
+        kycManager.saveKycProfiles();
+      }
+    }
+
+    auditTrailEngine.recordExpressAction(req, 'CLIENT_PROFILE_UPDATED', 'CLIENT_PROFILE', id, updates);
+
+    res.json({ success: true, message: 'Client profile successfully updated.', client: updatedClient });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+
 // ─── Loan Applications & Multi-Channel Disbursement ───────────────────────────
 
 // GET /api/admin/loans
@@ -594,11 +966,66 @@ router.post('/loans/:id/decision', requireAdmin, uploadReceipt.single('receipt_i
     .eq('id', loanId)
     .select(`
       *,
-      client_profiles (id, name, phone_number)
+      client_profiles (id, name, phone_number, email)
     `)
     .single();
 
   if (updateErr) return res.status(500).json({ success: false, message: updateErr.message });
+
+  // Module 9: Cooldown processing
+  const cooldownHours = req.body.cooldown_hours ? parseFloat(req.body.cooldown_hours) : 0;
+  let unlockAt = null;
+  if (cooldownHours > 0) {
+    unlockAt = new Date(Date.now() + cooldownHours * 3600000).toISOString();
+    loanSettings.setClientCooldown(loan.client_id, unlockAt);
+    try {
+      await supabaseAdmin
+        .from('client_profiles')
+        .update({ reapply_unlock_at: unlockAt })
+        .eq('id', loan.client_id);
+    } catch (e) {
+      // Graceful fallback if column not in DB schema
+    }
+  }
+
+  // Module 6: Transactional Disbursement Email Notification
+  if (decision === 'ACCEPTED') {
+    const kycProfile = kycManager.getKycProfile(loan.client_id);
+    const clientEmail = (kycProfile && kycProfile.email) || loan.client_profiles?.email || null;
+    const clientName = (kycProfile && kycProfile.legal_name) || loan.client_profiles?.name || 'Valued Borrower';
+
+    if (clientEmail) {
+      try {
+        const emailResult = await emailService.sendDisbursementNotificationEmail({
+          clientEmail,
+          clientName,
+          loanRef: loanId.slice(0, 8).toUpperCase(),
+          amount: parseFloat(loan.amount) || 0,
+          payoutMethod: payout_method,
+          destinationNumber: destination_number || loan.client_profiles?.phone_number || '',
+          trxId: trx_id || (payout_method === 'CASH' ? 'CASH_HANDOVER' : ''),
+          deadlineDate: loan.deadline_date || '',
+          voucherUrl: `${req.protocol}://${req.get('host')}/admin`,
+        });
+
+        auditTrailEngine.recordExpressAction(req, 'DISBURSEMENT_EMAIL_SENT', 'EMAIL', loanId, {
+          recipient: clientEmail,
+          messageId: emailResult.messageId || 'SIMULATED',
+          payout_method,
+          amount: loan.amount,
+        });
+      } catch (emailErr) {
+        console.warn('[Disbursement Email] Error:', emailErr.message);
+      }
+    } else {
+      try {
+        auditTrailEngine.recordExpressAction(req, 'EMAIL_SKIPPED_NO_ADDRESS', 'EMAIL', loanId, {
+          client_id: loan.client_id,
+          reason: 'NO_VERIFIED_EMAIL_ON_RECORD',
+        });
+      } catch (e) {}
+    }
+  }
 
   const auditAction = decision === 'ACCEPTED' ? 'LOAN_APPROVED' : (decision === 'DECLINED' ? 'LOAN_DECLINED' : 'LOAN_UPDATED');
   try {
@@ -607,6 +1034,8 @@ router.post('/loans/:id/decision', requireAdmin, uploadReceipt.single('receipt_i
       payout_method,
       client_id: loan.client_id,
       decision,
+      cooldown_hours: cooldownHours || undefined,
+      unlock_at: unlockAt || undefined,
       trx_id: trx_id || undefined,
       admin_note: userNote || undefined
     });
@@ -614,11 +1043,13 @@ router.post('/loans/:id/decision', requireAdmin, uploadReceipt.single('receipt_i
     console.warn('[Audit] Failed to log loan decision:', auditErr.message);
   }
 
-  console.log(`[Disbursement] ✅ Loan #${loanId.slice(0, 8)} marked as ${decision} via ${payout_method}. TrxID: ${trx_id || 'N/A'}`);
+  console.log(`[Disbursement] ✅ Loan #${loanId.slice(0, 8)} marked as ${decision} via ${payout_method}. TrxID: ${trx_id || 'N/A'}${cooldownHours > 0 ? ` [Cooldown: ${cooldownHours}h]` : ''}`);
 
   res.json({
     success: true,
-    message: `Loan #${loanId.slice(0, 8)} approved and disbursed via ${payout_method}.`,
+    message: `Loan #${loanId.slice(0, 8)} marked as ${decision} via ${payout_method}.`,
+    cooldown_hours: cooldownHours,
+    reapply_unlock_at: unlockAt,
     loan: {
       ...updatedLoan,
       disbursement: disbursementInfo,

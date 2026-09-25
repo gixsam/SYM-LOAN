@@ -8,6 +8,9 @@
     "updated_by": "ADMIN"
   },
   "client_overrides": {},
+  "client_cooldowns": {},
   "admin_password": "admin",
-  "platform_logo_url": "/images/logo.png"
+  "platform_logo_url": "/images/logo.png",
+  "admin_logo_url": "/images/logo.png",
+  "client_logo_url": "/images/logo.png"
 }

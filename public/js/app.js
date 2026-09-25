@@ -229,6 +229,7 @@ async function initApp() {
   initClientLiveClock();
   initTermsPolicyModal();
   collectAndSendDeviceTelemetry();
+  if (window.StitchIcons?.render) window.StitchIcons.render();
 
   // Parse URL query parameters for admin bypass / deep linking
   const urlParams = new URLSearchParams(window.location.search);
@@ -687,6 +688,13 @@ function renderStandingAndOverdueAlert(standing) {
   } else {
     banner.classList.add('hidden');
   }
+
+  // Module 9: Check active re-application cooldown
+  if (standing.active_cooldown) {
+    startCooldownCountdown(standing.active_cooldown);
+  } else {
+    startCooldownCountdown(null);
+  }
 }
 
 // ─── Phase 11: Dynamic Credit Score & VIP Loyalty Engine ─────────────────────
@@ -872,6 +880,13 @@ async function fetchClientLoans(clientId) {
     }
 
     renderLoans(STATE.loans);
+
+    // Module 7: Update Money Request Lifecycle Stepper
+    const activeLoan = (STATE.loans || []).find(l => l.status === 'PENDING') ||
+                       (STATE.loans || []).find(l => l.status === 'ACCEPTED') ||
+                       (STATE.loans || [])[0] || null;
+    renderLoanProgressStepper(activeLoan);
+
     fetchClientStanding(clientId);
     fetchClientCreditProfile(clientId);
   } catch (err) {
@@ -1157,6 +1172,303 @@ async function handleClientRepaymentSubmit(e) {
     }
   }
 }
+
+// ─── Module 9: Re-Application Cooldown Live Countdown Timer ──────────────────
+let cooldownTimerInterval = null;
+
+function startCooldownCountdown(unlockAt) {
+  const banner = document.getElementById('cooldownAlertBanner');
+  const pill = document.getElementById('cooldownTimeRemainingPill');
+  const countdownText = document.getElementById('cooldownCountdownText');
+  const submitBtn = DOM.submitBtn;
+
+  if (cooldownTimerInterval) {
+    clearInterval(cooldownTimerInterval);
+    cooldownTimerInterval = null;
+  }
+
+  if (!unlockAt) {
+    if (banner) banner.classList.add('hidden');
+    if (submitBtn && (!STATE.client || STATE.client.status !== 'BLOCKED')) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = 'Submit Money Request <i class="fas fa-paper-plane ml-2"></i>';
+      submitBtn.className = 'btn-gold w-full py-3.5 rounded-xl font-black text-sm tracking-wide shadow-lg uppercase';
+    }
+    return;
+  }
+
+  const targetTime = new Date(unlockAt).getTime();
+  if (isNaN(targetTime) || targetTime <= Date.now()) {
+    if (banner) banner.classList.add('hidden');
+    if (submitBtn && (!STATE.client || STATE.client.status !== 'BLOCKED')) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = 'Submit Money Request <i class="fas fa-paper-plane ml-2"></i>';
+      submitBtn.className = 'btn-gold w-full py-3.5 rounded-xl font-black text-sm tracking-wide shadow-lg uppercase';
+    }
+    return;
+  }
+
+  if (banner) banner.classList.remove('hidden');
+
+  // Lock loan application controls while cooldown is active
+  if (DOM.amountSlider) DOM.amountSlider.disabled = true;
+  if (DOM.amountInput) DOM.amountInput.disabled = true;
+  if (DOM.deadlineDate) DOM.deadlineDate.disabled = true;
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Re-Application Locked (Cooldown Active)';
+    submitBtn.className = 'w-full py-3.5 rounded-xl font-bold bg-amber-950/60 text-amber-500/80 border border-amber-500/30 cursor-not-allowed uppercase';
+  }
+
+  const tick = () => {
+    const diff = targetTime - Date.now();
+    if (diff <= 0) {
+      clearInterval(cooldownTimerInterval);
+      cooldownTimerInterval = null;
+      if (banner) banner.classList.add('hidden');
+      if (DOM.amountSlider) DOM.amountSlider.disabled = false;
+      if (DOM.amountInput) DOM.amountInput.disabled = false;
+      if (DOM.deadlineDate) DOM.deadlineDate.disabled = false;
+      if (submitBtn && (!STATE.client || STATE.client.status !== 'BLOCKED')) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Submit Money Request <i class="fas fa-paper-plane ml-2"></i>';
+        submitBtn.className = 'btn-gold w-full py-3.5 rounded-xl font-black text-sm tracking-wide shadow-lg uppercase';
+      }
+      return;
+    }
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+    const formatted = `${String(hours).padStart(2, '0')}h ${String(mins).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
+    if (pill) pill.textContent = formatted;
+    if (countdownText) countdownText.textContent = formatted;
+  };
+
+  tick();
+  cooldownTimerInterval = setInterval(tick, 1000);
+}
+
+// ─── Module 7: Money Request Lifecycle Progress Stepper ───────────────────────
+function renderLoanProgressStepper(activeLoan) {
+  const actionContainer = document.getElementById('stepperActionContainer');
+  const detailMsg = document.getElementById('stepperDetailMessage');
+
+  const setStepState = (stepNum, state, customIcon = null) => {
+    const container = document.getElementById(`step${stepNum}Container`);
+    if (!container) return;
+    const box = container.querySelector('.step-icon-box');
+    const label = container.querySelector('span');
+
+    if (box) {
+      if (state === 'completed') {
+        box.className = 'w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center bg-emerald-500/20 border border-emerald-400 text-emerald-400 text-xs sm:text-sm font-black transition mb-1 step-icon-box';
+        box.innerHTML = customIcon || '<i class="fas fa-check text-xs"></i>';
+      } else if (state === 'active') {
+        box.className = 'w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center bg-amber-500/20 border border-amber-400 text-amber-300 text-xs sm:text-sm font-black ring-2 ring-amber-400/40 animate-pulse transition mb-1 step-icon-box shadow-[0_0_10px_rgba(245,158,11,0.3)]';
+        box.innerHTML = customIcon || `${stepNum}`;
+      } else if (state === 'declined') {
+        box.className = 'w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center bg-rose-500/20 border border-rose-400 text-rose-400 text-xs sm:text-sm font-black transition mb-1 step-icon-box';
+        box.innerHTML = customIcon || '<i class="fas fa-times text-xs"></i>';
+      } else {
+        box.className = 'w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center bg-slate-900 border border-slate-700 text-slate-500 text-xs sm:text-sm font-black transition mb-1 step-icon-box';
+        box.innerHTML = `${stepNum}`;
+      }
+    }
+
+    if (label) {
+      if (state === 'completed') {
+        label.className = 'text-[9px] sm:text-[10px] font-bold text-emerald-400 leading-tight block';
+      } else if (state === 'active') {
+        label.className = 'text-[9px] sm:text-[10px] font-black text-amber-300 leading-tight block';
+      } else if (state === 'declined') {
+        label.className = 'text-[9px] sm:text-[10px] font-bold text-rose-400 leading-tight block';
+      } else {
+        label.className = 'text-[9px] sm:text-[10px] font-bold text-slate-500 leading-tight block';
+      }
+    }
+  };
+
+  if (!activeLoan) {
+    for (let i = 1; i <= 5; i++) setStepState(i, 'inactive');
+    if (actionContainer) actionContainer.innerHTML = '';
+    if (detailMsg) {
+      detailMsg.className = 'text-[11px] text-slate-400 bg-black/40 p-2.5 rounded-xl border border-white/5 text-center';
+      detailMsg.textContent = 'No Active Request — Select your loan amount and repayment duration below.';
+    }
+    return;
+  }
+
+  const amtStr = parseFloat(activeLoan.amount).toLocaleString();
+  const editIconSvg = window.StitchIcons ? window.StitchIcons.get('edit', { size: 12, className: 'mr-1' }) : '<i class="fas fa-edit mr-1"></i>';
+  const voucherIconSvg = window.StitchIcons ? window.StitchIcons.get('voucher', { size: 12, className: 'mr-1' }) : '<i class="fas fa-file-pdf mr-1"></i>';
+
+  if (activeLoan.status === 'PENDING') {
+    setStepState(1, 'completed');
+    setStepState(2, 'active', '<i class="fas fa-hourglass-half text-xs"></i>');
+    setStepState(3, 'inactive');
+    setStepState(4, 'inactive');
+    setStepState(5, 'inactive');
+
+    if (actionContainer) {
+      actionContainer.innerHTML = `
+        <button type="button" onclick="openModifyLoanModal('${activeLoan.id}')" class="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-black uppercase tracking-wider flex items-center transition cursor-pointer shadow-sm">
+          ${editIconSvg}
+          Edit Request
+        </button>
+      `;
+    }
+
+    if (detailMsg) {
+      detailMsg.className = 'text-[11px] text-amber-300 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20 text-center';
+      detailMsg.innerHTML = `⏳ Money Request <b>#${activeLoan.id.slice(0, 6)}</b> (৳${amtStr}) submitted. Executive Underwriting review in progress. You may edit terms while pending.`;
+    }
+  } else if (activeLoan.status === 'ACCEPTED') {
+    setStepState(1, 'completed');
+    setStepState(2, 'completed');
+    setStepState(3, 'completed');
+    setStepState(4, 'active', '<i class="fas fa-coins text-xs"></i>');
+    setStepState(5, 'inactive');
+
+    const payoutMethod = activeLoan.disbursement?.payout_method || 'CASH';
+    const trxId = activeLoan.disbursement?.trx_id ? ` (TrxID: ${activeLoan.disbursement.trx_id})` : '';
+
+    if (actionContainer) {
+      actionContainer.innerHTML = `
+        <div class="flex items-center space-x-1.5">
+          <button type="button" onclick="clientDownloadVoucher('${activeLoan.id}')" class="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-black uppercase flex items-center transition cursor-pointer">
+            ${voucherIconSvg} Voucher
+          </button>
+          <button type="button" onclick="openClientRepayModal('${activeLoan.id}')" class="px-2.5 py-0.5 rounded bg-emerald-500 hover:bg-emerald-400 text-black text-[10px] font-black uppercase flex items-center shadow transition cursor-pointer">
+            Repay
+          </button>
+        </div>
+      `;
+    }
+
+    if (detailMsg) {
+      detailMsg.className = 'text-[11px] text-emerald-300 bg-emerald-500/10 p-2.5 rounded-xl border border-emerald-500/20 text-center';
+      detailMsg.innerHTML = `💳 Disbursed via <b>${payoutMethod}</b>${trxId}. Active loan of <b>৳${amtStr}</b> due by <b>${activeLoan.deadline_date}</b>.`;
+    }
+  } else if (activeLoan.status === 'REPAID') {
+    setStepState(1, 'completed');
+    setStepState(2, 'completed');
+    setStepState(3, 'completed');
+    setStepState(4, 'completed');
+    setStepState(5, 'completed', '<i class="fas fa-certificate text-xs"></i>');
+
+    if (actionContainer) {
+      actionContainer.innerHTML = `
+        <button type="button" onclick="clientDownloadClearanceCertificate('${activeLoan.id}')" class="px-2.5 py-1 rounded bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/40 text-[10px] font-black uppercase flex items-center transition cursor-pointer">
+          <i class="fas fa-certificate mr-1 text-teal-400"></i> Clearance Cert
+        </button>
+      `;
+    }
+
+    if (detailMsg) {
+      detailMsg.className = 'text-[11px] text-teal-300 bg-teal-500/10 p-2.5 rounded-xl border border-teal-500/20 text-center';
+      detailMsg.innerHTML = `🎉 Loan <b>#${activeLoan.id.slice(0, 6)}</b> (৳${amtStr}) settled & cleared! Zero-liability clearance certificate ready.`;
+    }
+  } else if (activeLoan.status === 'DECLINED') {
+    setStepState(1, 'completed');
+    setStepState(2, 'declined');
+    setStepState(3, 'inactive');
+    setStepState(4, 'inactive');
+    setStepState(5, 'inactive');
+
+    if (actionContainer) actionContainer.innerHTML = '';
+
+    if (detailMsg) {
+      detailMsg.className = 'text-[11px] text-rose-300 bg-rose-500/10 p-2.5 rounded-xl border border-rose-500/20 text-center';
+      detailMsg.innerHTML = `❌ Money Request <b>#${activeLoan.id.slice(0, 6)}</b> was declined by executive administration.`;
+    }
+  }
+}
+
+// ─── Module 8: In-Place Loan Modification Modal Handlers ───────────────────────
+window.openModifyLoanModal = function(loanId) {
+  const loan = (STATE.loans || []).find(l => l.id === loanId);
+  if (!loan) {
+    alert('Loan record not found.');
+    return;
+  }
+  const modal = document.getElementById('modifyLoanModal');
+  const idInput = document.getElementById('modifyLoanId');
+  const refText = document.getElementById('modifyLoanRef');
+  const amtInput = document.getElementById('modifyAmountInput');
+  const dateInput = document.getElementById('modifyDeadlineInput');
+
+  if (idInput) idInput.value = loan.id;
+  if (refText) refText.textContent = `Ref: #${loan.id.slice(0, 8)}`;
+  if (amtInput) amtInput.value = loan.amount;
+  if (dateInput) {
+    dateInput.value = loan.deadline_date;
+    if (STATE.limits) {
+      dateInput.min = STATE.limits.min_date;
+      dateInput.max = STATE.limits.max_date;
+    }
+  }
+
+  if (modal) modal.classList.remove('hidden');
+};
+
+window.closeModifyLoanModal = function() {
+  const modal = document.getElementById('modifyLoanModal');
+  if (modal) modal.classList.add('hidden');
+};
+
+window.submitModifyLoan = async function(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  const idInput = document.getElementById('modifyLoanId');
+  const amtInput = document.getElementById('modifyAmountInput');
+  const dateInput = document.getElementById('modifyDeadlineInput');
+  const saveBtn = document.getElementById('saveModifyLoanBtn');
+
+  const loanId = idInput?.value;
+  const amount = parseFloat(amtInput?.value);
+  const deadline_date = dateInput?.value;
+
+  if (!loanId || !amount || !deadline_date) {
+    alert('Please enter a valid amount and deadline date.');
+    return;
+  }
+
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i> Saving...';
+  }
+
+  try {
+    const res = await fetch(`/api/loans/${loanId}/modify`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({ amount, deadline_date }),
+    });
+
+    const json = await res.json();
+    if (!res.ok || !json.success) {
+      throw new Error(json.message || 'Failed to modify loan request.');
+    }
+
+    closeModifyLoanModal();
+    if (STATE.client?.id) {
+      await fetchClientLoans(STATE.client.id);
+    }
+    alert(json.message || 'Money request successfully updated!');
+  } catch (err) {
+    alert('Error: ' + err.message);
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i class="fas fa-check mr-1.5"></i> Save Changes';
+    }
+  }
+};
 
 // ─── Portal View Tab Switcher ────────────────────────────────────────────────
 function switchTab(tabName) {
@@ -2606,6 +2918,9 @@ function setupEventListeners() {
       if (!res.ok || !json.success) {
         if (json.code === 'KYC_REQUIRED') {
           DOM.kycGateModal?.classList.remove('hidden');
+        }
+        if (res.status === 429 && json.unlock_at) {
+          startCooldownCountdown(json.unlock_at);
         }
         throw new Error(json.message || 'Submission failed.');
       }

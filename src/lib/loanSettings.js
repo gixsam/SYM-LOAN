@@ -47,6 +47,7 @@ function loadSettings() {
       settingsState = {
         global: { ...DEFAULT_GLOBAL, ...(parsed.global || {}) },
         client_overrides: parsed.client_overrides || {},
+        client_cooldowns: parsed.client_cooldowns || {},
         admin_password: parsed.admin_password || DEFAULT_ADMIN_PASSWORD,
         platform_logo_url: parsed.platform_logo_url || DEFAULT_PLATFORM_LOGO,
         admin_logo_url: parsed.admin_logo_url || parsed.platform_logo_url || DEFAULT_ADMIN_LOGO,
@@ -60,6 +61,7 @@ function loadSettings() {
     settingsState = {
       global: { ...DEFAULT_GLOBAL },
       client_overrides: {},
+      client_cooldowns: {},
       admin_password: DEFAULT_ADMIN_PASSWORD,
       platform_logo_url: DEFAULT_PLATFORM_LOGO,
       admin_logo_url: DEFAULT_ADMIN_LOGO,
@@ -306,6 +308,43 @@ function updateClientLogo(url) {
   return { success: true, logo_url: settingsState.client_logo_url };
 }
 
+function setClientCooldown(clientId, unlockAt) {
+  if (!clientId || !unlockAt) return { success: false, message: 'Missing clientId or unlockAt' };
+  loadSettings();
+  if (!settingsState.client_cooldowns) settingsState.client_cooldowns = {};
+  let targetDate = unlockAt;
+  if (typeof unlockAt === 'number') {
+    targetDate = new Date(Date.now() + unlockAt * 60 * 60 * 1000).toISOString();
+  }
+  settingsState.client_cooldowns[clientId] = targetDate;
+  saveSettings();
+  return { success: true, clientId, unlockAt: targetDate };
+}
+
+function getClientCooldown(clientId) {
+  if (!clientId) return null;
+  loadSettings();
+  if (!settingsState.client_cooldowns) return null;
+  const unlockAt = settingsState.client_cooldowns[clientId];
+  if (!unlockAt) return null;
+  if (new Date() >= new Date(unlockAt)) {
+    delete settingsState.client_cooldowns[clientId];
+    saveSettings();
+    return null;
+  }
+  return unlockAt;
+}
+
+function removeClientCooldown(clientId) {
+  if (!clientId) return { success: false };
+  loadSettings();
+  if (settingsState.client_cooldowns && settingsState.client_cooldowns[clientId]) {
+    delete settingsState.client_cooldowns[clientId];
+    saveSettings();
+  }
+  return { success: true, clientId };
+}
+
 // Initial load on startup
 loadSettings();
 
@@ -324,7 +363,11 @@ module.exports = {
   updateAdminLogo,
   getClientLogo,
   updateClientLogo,
+  setClientCooldown,
+  getClientCooldown,
+  removeClientCooldown,
   DEFAULT_PLATFORM_LOGO,
   DEFAULT_ADMIN_LOGO,
   DEFAULT_CLIENT_LOGO,
 };
+
