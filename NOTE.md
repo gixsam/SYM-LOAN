@@ -14,7 +14,34 @@
 > **Telegram Bot:** `@money_loan_bot` (Token: `[PROTECTED IN .ENV — Never commit plain tokens]`)  
 > **Technology Stack:** Node.js, Express, Supabase (PostgreSQL), Multer, jsPDF, node-telegram-bot-api, node-cron, CORS, Helmet, dotenv, HTML5, Tailwind CSS, FontAwesome 6, Cloudflare Tunnel  
 > **Live Local Server:** `http://localhost:5000` (Client: `/`, Admin: `/admin`)  
-> **Last Synchronized:** 2026-09-25 21:50 Local Time  
+> **Last Synchronized:** 2026-09-26 00:15 Local Time  
+
+### [Update-070] — Service Worker Network-First Cache Busting, Dual APK Recompilation & Production Deployment Sync (2026-09-26)
+**Type:** Service Worker Network-First Navigation Strategy, Cache-Busting Query Strings (`v2.7.0`), No-Cache Static HTML Headers, Native Client & Admin APK Recompilation, Hostinger Packaging & Git Deployment  
+**Status:** ✅ COMPLETED, TESTED (24/24 AUDIT CHECKS PASSED, 12/12 MASTER TEST SUITES PASSED — 100%), RECOMPILED DUAL APKS, PACKAGED HOSTINGER DEPLOY ZIP & DUAL-SYNCED ACROSS WORKPLACES  
+
+#### Root Cause Analysis, Fixes & Architectural Clarifications:
+1. **Diagnosis — Why Chrome on Mobile (`loan.best-travel.ltd`) Displayed Previous Layout:**
+   - **Reason 1 (Pending Git Push & Deployment):** Prior commits including the client portal restructuring were committed locally (`28b5826`), but had not yet been pushed to GitHub (`origin/main`) or deployed to Hostinger. The live remote web server was physically still serving pre-update files.
+   - **Reason 2 (Service Worker Stale-While-Revalidate):** `public/sw.js` was caching `symloan-v2.6.0` using stale-while-revalidate for `/` and `/index.html`. Even after server changes, mobile Chrome would serve cached HTML until a fresh Service Worker was activated.
+2. **APK Update Architecture Clarification ("Do I have to download APK every time?"):**
+   - **NO.** The native Android APK (`SYM-LOAN.apk`) is architected with a full-screen, high-performance Android `WebView` that connects directly to the live production server `https://symloan.best-travel.ltd`.
+   - Every time a user opens the app, the WebView fetches the live web application. When the website is updated, the app renders the new UI automatically without needing an APK update.
+   - Re-downloading the APK is **only** required when native Android Java code or OS permissions change (e.g. camera intents, biometrics APIs, or system window insets).
+3. **Service Worker & Cache-Busting Hardening (`public/sw.js`, `public/index.html`, `public/admin.html`, `src/app.js`):**
+   - Bumped `CACHE_NAME` to `'symloan-v2.7.0'`.
+   - Converted HTML navigation requests (`mode === 'navigate'` or `/`, `/index.html`) to **Network-First** strategy: fetches the freshest server markup first, updating the cache in the background, and only falling back to cache if completely offline.
+   - Added cache-busting version query parameters (`?v=2.7.0`) to CSS and JS imports in `index.html` and `admin.html`.
+   - Configured Express static middleware in `src/app.js` to set `Cache-Control: no-cache, no-store, must-revalidate` on all `.html` and `sw.js` files to completely eliminate stale browser caching.
+4. **Native Android Dual APK Recompilation:**
+   - Recompiled `public/downloads/SYM-LOAN.apk` (512.46 KB) using Android SDK Build Tools 34.0.0, javac (release 8), D8, zipalign, and apksigner (v2 & v3 schemes).
+   - Recompiled `public/downloads/SYM-LOAN-ADMIN.apk` (516.47 KB) with complete executive admin permissions and insets architecture.
+5. **Testing, Packaging & Sync:**
+   - Re-verified all 12 master test suites: 100% pass rate (0 failures).
+   - Regenerated `dist/hostinger_deploy.zip` (1.62 MB).
+   - Dual-synchronized all files and zip bundle to Google Drive workplace at `G:\My Drive\ALL WEBSITE WORKPLACE\SYM LOAN WORKPLACE\`.
+
+---
 
 ### [Update-069] — Client Portal UI/UX Reorganization & Structural Streamlining (2026-09-25)
 **Type:** Client Portal UI/UX Reorganization, Top Navbar Streamlining, Profile Sub-Section Integration, Conditional KYC Oval Tab, Auto-Hiding Loan Processing Stepper, Real-Time Financial Calculator & Dedicated My Loan Modal  

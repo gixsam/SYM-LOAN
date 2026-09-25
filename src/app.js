@@ -67,8 +67,14 @@ app.use((req, _res, next) => {
   next();
 });
 
-// ─── Static Public Files ──────────────────────────────────────────────────────
-app.use(express.static(path.join(__dirname, '../public')));
+// ─── Static Public Files (with No-Cache on HTML & Service Worker) ─────────────
+app.use(express.static(path.join(__dirname, '../public'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html') || filePath.endsWith('sw.js')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  }
+}));
 
 // ─── Telegram Production Webhook Ingestion Route ──────────────────────────────
 app.post('/api/bot/webhook', async (req, res) => {

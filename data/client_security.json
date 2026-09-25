@@ -2,14 +2,14 @@
   "00000000-0000-0000-0000-000000000001": {
     "client_id": "00000000-0000-0000-0000-000000000001",
     "biometric_pin_enabled": false,
-    "pin_hash": "75a9525150f85184ce43c58d05aee973a2df9891320c62d93a69349babb2b937",
-    "pin_salt": "b94633b42fd226da6a502ccd4608568c",
+    "pin_hash": "8f39a5e3c9164351f51427aa34ef28a83ce26276c5937f67ebd8b8e6bf309a79",
+    "pin_salt": "ff82f5ecd5c8b199202b55aec41f9dab",
     "social_links": {
       "facebook": "https://facebook.com/symempire",
       "instagram": "@sym_empire",
       "whatsapp": "+8801700000000",
       "telegram": "@sym_ceo"
     },
-    "updated_at": "2026-09-25T15:48:14.298Z"
+    "updated_at": "2026-09-25T18:13:27.536Z"
   }
 }
