@@ -105,10 +105,6 @@
           <span class="hidden sm:inline">Admin Login</span>
         </button>
 
-        <!-- Desktop status badge & key input (Delegated to drawer on mobile < 480px) -->
-        <div id="authStatusBadge" class="hidden md:flex px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 items-center">
-          <i class="fas fa-spinner fa-spin mr-1.5"></i> Authenticating...
-        </div>
         <div class="hidden lg:flex items-center">
           <input type="password" id="adminKeyInput" placeholder="Admin Key" class="bg-black/50 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-amber-400 w-32 font-mono">
         </div>
@@ -366,6 +362,15 @@
       <a href="/?admin_mode=true" id="drawerOpenClientPortalBtn" target="_blank" class="w-full py-2 px-3 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold flex items-center justify-center transition cursor-pointer" title="Open Client Portal in Admin Inspection Mode">
         <i class="fas fa-mobile-alt mr-1.5 text-amber-400"></i> Open Client Portal
       </a>
+      <!-- Relocated Authentication Status Indicator -->
+      <div class="pt-2 border-t border-white/5 flex items-center justify-between">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center">
+          <i class="fas fa-shield-alt mr-1 text-amber-400"></i> System Auth
+        </span>
+        <div id="drawerAuthStatusBadge" class="flex px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 items-center">
+          <i class="fas fa-spinner fa-spin mr-1.5"></i> Authenticating...
+        </div>
+      </div>
       <div class="pt-1.5 border-t border-white/5 text-[10px] text-slate-400 flex items-center justify-between">
         <div>Email: <span class="text-amber-400 font-mono font-bold">zillionprince6</span></div>
         <div>Phone: <span class="text-emerald-400 font-mono font-bold">01612669922</span></div>

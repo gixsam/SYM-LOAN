@@ -1,5 +1,5 @@
 {
-  "chain_head": "e929e51cc7e70427bf02eff375aa3b9e340656705bec3291048712a4b608718a",
+  "chain_head": "1c197662e1c6f49fb45aa89d95c73bd46bfeb9b302c710d094c3ffa8225d17f4",
   "blocks": [
     {
       "index": 0,
@@ -2712,6 +2712,328 @@
       "user_agent": "Unknown",
       "hash": "e929e51cc7e70427bf02eff375aa3b9e340656705bec3291048712a4b608718a",
       "block_hash": "e929e51cc7e70427bf02eff375aa3b9e340656705bec3291048712a4b608718a"
+    },
+    {
+      "index": 127,
+      "block_index": 127,
+      "timestamp": "2026-09-25T05:14:07.303Z",
+      "previous_hash": "e929e51cc7e70427bf02eff375aa3b9e340656705bec3291048712a4b608718a",
+      "staff_id": "stf_superadmin_01",
+      "staff_name": "Executive Managing Director",
+      "staff_role": "SUPER_ADMIN",
+      "action": "REPAYMENT_APPROVED",
+      "entity_type": "REPAYMENT",
+      "entity_id": "rep_1790313246208_7h7z12",
+      "details": {
+        "repayment_id": "rep_1790313246208_7h7z12",
+        "admin_note": "Verified with bank statement",
+        "settled_at": "2026-09-25T05:14:06.790Z"
+      },
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148",
+      "hash": "38feee6dc3da7243ed31111ec5f2261c9733f5210d0c45fe2ef3945d5b8c2b52",
+      "block_hash": "38feee6dc3da7243ed31111ec5f2261c9733f5210d0c45fe2ef3945d5b8c2b52"
+    },
+    {
+      "index": 128,
+      "block_index": 128,
+      "timestamp": "2026-09-25T05:14:07.313Z",
+      "previous_hash": "38feee6dc3da7243ed31111ec5f2261c9733f5210d0c45fe2ef3945d5b8c2b52",
+      "staff_id": "stf_superadmin_01",
+      "staff_name": "Executive Managing Director",
+      "staff_role": "SUPER_ADMIN",
+      "action": "REPAYMENT_APPROVED",
+      "entity_type": "REPAYMENT",
+      "entity_id": "rep_1790313246208_7h7z12",
+      "details": {
+        "repayment_id": "rep_1790313246208_7h7z12",
+        "settled_at": "2026-09-25T05:14:06.790Z"
+      },
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148",
+      "hash": "b81b0f7de67c96906cbfee82f2e02a6f56dee8d36dcf6715481aef7fd63f06df",
+      "block_hash": "b81b0f7de67c96906cbfee82f2e02a6f56dee8d36dcf6715481aef7fd63f06df"
+    },
+    {
+      "index": 129,
+      "block_index": 129,
+      "timestamp": "2026-09-25T05:14:08.126Z",
+      "previous_hash": "b81b0f7de67c96906cbfee82f2e02a6f56dee8d36dcf6715481aef7fd63f06df",
+      "staff_id": "stf_superadmin_01",
+      "staff_name": "Executive Managing Director",
+      "staff_role": "SUPER_ADMIN",
+      "action": "REPAYMENT_REJECTED",
+      "entity_type": "REPAYMENT",
+      "entity_id": "rep_1790313247817_vdr7jo",
+      "details": {
+        "repayment_id": "rep_1790313247817_vdr7jo",
+        "reason": "TrxID does not exist on Nagad network"
+      },
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148",
+      "hash": "8e5ea8d3a878088dfaf58c11f8072bd2e031fc5e59abb53520bb5af7390a88c8",
+      "block_hash": "8e5ea8d3a878088dfaf58c11f8072bd2e031fc5e59abb53520bb5af7390a88c8"
+    },
+    {
+      "index": 130,
+      "block_index": 130,
+      "timestamp": "2026-09-25T05:14:13.737Z",
+      "previous_hash": "8e5ea8d3a878088dfaf58c11f8072bd2e031fc5e59abb53520bb5af7390a88c8",
+      "staff_id": "stf_superadmin_01",
+      "staff_name": "Executive Managing Director",
+      "staff_role": "SUPER_ADMIN",
+      "action": "CREDIT_OVERRIDE_SET",
+      "entity_type": "CLIENT_CREDIT",
+      "entity_id": "e84ecb25-5fa1-42fb-ab04-8e3c5112a69b",
+      "details": {
+        "score_offset": 25,
+        "admin_note": "Automated test API override"
+      },
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+      "hash": "1aecf799a0833d676e968c0e43fa2ad28fd4acbbc492085eb0c222462b4079ec",
+      "block_hash": "1aecf799a0833d676e968c0e43fa2ad28fd4acbbc492085eb0c222462b4079ec"
+    },
+    {
+      "index": 131,
+      "block_index": 131,
+      "timestamp": "2026-09-25T05:14:14.579Z",
+      "previous_hash": "1aecf799a0833d676e968c0e43fa2ad28fd4acbbc492085eb0c222462b4079ec",
+      "staff_id": "stf_superadmin_01",
+      "staff_name": "Executive Managing Director",
+      "staff_role": "SUPER_ADMIN",
+      "action": "CREDIT_OVERRIDE_REMOVED",
+      "entity_type": "CLIENT_CREDIT",
+      "entity_id": "e84ecb25-5fa1-42fb-ab04-8e3c5112a69b",
+      "details": {
+        "removed": true
+      },
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+      "hash": "9080715a7f3ea3f7d317c99ada1097612f80d1d6d7973d56cf6ba5e55deb5083",
+      "block_hash": "9080715a7f3ea3f7d317c99ada1097612f80d1d6d7973d56cf6ba5e55deb5083"
+    },
+    {
+      "index": 132,
+      "block_index": 132,
+      "timestamp": "2026-09-25T05:14:15.287Z",
+      "previous_hash": "9080715a7f3ea3f7d317c99ada1097612f80d1d6d7973d56cf6ba5e55deb5083",
+      "staff_id": "stf_superadmin_01",
+      "staff_name": "Executive Managing Director",
+      "staff_role": "SUPER_ADMIN",
+      "action": "STAFF_LOGIN",
+      "entity_type": "STAFF",
+      "entity_id": "stf_superadmin_01",
+      "details": {
+        "username": "superadmin",
+        "role": "SUPER_ADMIN"
+      },
+      "ip_address": "127.0.0.1",
+      "user_agent": "Unknown",
+      "hash": "0e98fddebc81fa3518e4bfc0af1dadf7d04172bd4e8a32a554d4851d866b4c12",
+      "block_hash": "0e98fddebc81fa3518e4bfc0af1dadf7d04172bd4e8a32a554d4851d866b4c12"
+    },
+    {
+      "index": 133,
+      "block_index": 133,
+      "timestamp": "2026-09-25T05:14:15.307Z",
+      "previous_hash": "0e98fddebc81fa3518e4bfc0af1dadf7d04172bd4e8a32a554d4851d866b4c12",
+      "staff_id": "stf_loanofficer_01",
+      "staff_name": "Karim Uddin (Underwriting)",
+      "staff_role": "LOAN_OFFICER",
+      "action": "STAFF_LOGIN",
+      "entity_type": "STAFF",
+      "entity_id": "stf_loanofficer_01",
+      "details": {
+        "username": "officer_karim",
+        "role": "LOAN_OFFICER"
+      },
+      "ip_address": "127.0.0.1",
+      "user_agent": "Unknown",
+      "hash": "de73397f94c356d9cdd31a000cbeedc568733d0169360c212bd6246ac8401201",
+      "block_hash": "de73397f94c356d9cdd31a000cbeedc568733d0169360c212bd6246ac8401201"
+    },
+    {
+      "index": 134,
+      "block_index": 134,
+      "timestamp": "2026-09-25T05:14:15.324Z",
+      "previous_hash": "de73397f94c356d9cdd31a000cbeedc568733d0169360c212bd6246ac8401201",
+      "staff_id": "stf_superadmin_01",
+      "staff_name": "Executive Managing Director",
+      "staff_role": "SUPER_ADMIN",
+      "action": "STAFF_CREATED",
+      "entity_type": "STAFF",
+      "entity_id": "stf_1790313255322_kwt5",
+      "details": {
+        "username": "test_officer_1790313255321",
+        "role": "LOAN_OFFICER",
+        "permissions": [
+          "loans:read",
+          "loans:view",
+          "loans:review",
+          "loans:approve",
+          "loans:decline",
+          "loans:decision",
+          "loans:disburse",
+          "clients:read",
+          "credit:read",
+          "audit:read"
+        ]
+      },
+      "ip_address": "127.0.0.1",
+      "user_agent": "Unknown",
+      "hash": "c5a5805797c015d283e2984e6918d7c79d0541858cea6e1a3cb0439edcca3110",
+      "block_hash": "c5a5805797c015d283e2984e6918d7c79d0541858cea6e1a3cb0439edcca3110"
+    },
+    {
+      "index": 135,
+      "block_index": 135,
+      "timestamp": "2026-09-25T05:14:15.342Z",
+      "previous_hash": "c5a5805797c015d283e2984e6918d7c79d0541858cea6e1a3cb0439edcca3110",
+      "staff_id": "stf_superadmin_01",
+      "staff_name": "Executive Managing Director",
+      "staff_role": "SUPER_ADMIN",
+      "action": "STAFF_UPDATED",
+      "entity_type": "STAFF",
+      "entity_id": "stf_1790313255322_kwt5",
+      "details": {
+        "status": "SUSPENDED",
+        "approval_ceiling": 5000
+      },
+      "ip_address": "127.0.0.1",
+      "user_agent": "Unknown",
+      "hash": "bd3f90f674a9caf90ec2dd9b219b0cf94d248cf343b9eb683b02565270d64c5f",
+      "block_hash": "bd3f90f674a9caf90ec2dd9b219b0cf94d248cf343b9eb683b02565270d64c5f"
+    },
+    {
+      "index": 136,
+      "block_index": 136,
+      "timestamp": "2026-09-25T05:14:15.363Z",
+      "previous_hash": "bd3f90f674a9caf90ec2dd9b219b0cf94d248cf343b9eb683b02565270d64c5f",
+      "staff_id": "stf_loanofficer_01",
+      "staff_name": "Karim Uddin (Underwriting)",
+      "staff_role": "LOAN_OFFICER",
+      "action": "TEST_AUDIT_ACTION",
+      "entity_type": "TEST_ENTITY",
+      "entity_id": "test_ent_999",
+      "details": {
+        "test_key": "test_value_123"
+      },
+      "ip_address": "192.168.1.100",
+      "user_agent": "Automated Test Runner",
+      "hash": "822ee9b3759be904cb971fd9980697ce8482d314999937327cfa03a2be93dc95",
+      "block_hash": "822ee9b3759be904cb971fd9980697ce8482d314999937327cfa03a2be93dc95"
+    },
+    {
+      "index": 137,
+      "block_index": 137,
+      "timestamp": "2026-09-25T05:14:15.466Z",
+      "previous_hash": "822ee9b3759be904cb971fd9980697ce8482d314999937327cfa03a2be93dc95",
+      "staff_id": "stf_loanofficer_01",
+      "staff_name": "Karim Uddin (Underwriting)",
+      "staff_role": "LOAN_OFFICER",
+      "action": "STAFF_LOGIN",
+      "entity_type": "STAFF",
+      "entity_id": "stf_loanofficer_01",
+      "details": {
+        "username": "officer_karim",
+        "role": "LOAN_OFFICER"
+      },
+      "ip_address": "127.0.0.1",
+      "user_agent": "Unknown",
+      "hash": "0fdf1d9ac335bf1f8617e7be39cd04f0315105ea2897129c4bc6ed21be74ffed",
+      "block_hash": "0fdf1d9ac335bf1f8617e7be39cd04f0315105ea2897129c4bc6ed21be74ffed"
+    },
+    {
+      "index": 138,
+      "block_index": 138,
+      "timestamp": "2026-09-25T05:14:15.493Z",
+      "previous_hash": "0fdf1d9ac335bf1f8617e7be39cd04f0315105ea2897129c4bc6ed21be74ffed",
+      "staff_id": "stf_superadmin_01",
+      "staff_name": "Executive Managing Director",
+      "staff_role": "SUPER_ADMIN",
+      "action": "STAFF_CREATED",
+      "entity_type": "STAFF",
+      "entity_id": "stf_1790313255490_vuqr",
+      "details": {
+        "username": "http_officer_1790313255488",
+        "role": "COMPLIANCE_OFFICER",
+        "permissions": [
+          "kyc:read",
+          "kyc:verify",
+          "kyc:reject",
+          "fraud:read",
+          "fraud:resolve",
+          "credit:read",
+          "credit:override",
+          "audit:read",
+          "audit:verify"
+        ]
+      },
+      "ip_address": "127.0.0.1",
+      "user_agent": "Unknown",
+      "hash": "1d254fe2182a6b8e51f82e288a1b5b45cb4867dc2013f56c1a7d8e063cac6219",
+      "block_hash": "1d254fe2182a6b8e51f82e288a1b5b45cb4867dc2013f56c1a7d8e063cac6219"
+    },
+    {
+      "index": 139,
+      "block_index": 139,
+      "timestamp": "2026-09-25T05:14:15.506Z",
+      "previous_hash": "1d254fe2182a6b8e51f82e288a1b5b45cb4867dc2013f56c1a7d8e063cac6219",
+      "staff_id": "stf_superadmin_01",
+      "staff_name": "Executive Managing Director",
+      "staff_role": "SUPER_ADMIN",
+      "action": "STAFF_UPDATED",
+      "entity_type": "STAFF",
+      "entity_id": "stf_1790313255490_vuqr",
+      "details": {
+        "status": "ACTIVE",
+        "department": "Risk & Surveillance Division"
+      },
+      "ip_address": "127.0.0.1",
+      "user_agent": "Unknown",
+      "hash": "686b83319f2d48a6da392e432e9b0c05658ebe17dee88c06658c9b60076f1d26",
+      "block_hash": "686b83319f2d48a6da392e432e9b0c05658ebe17dee88c06658c9b60076f1d26"
+    },
+    {
+      "index": 140,
+      "block_index": 140,
+      "timestamp": "2026-09-25T05:14:15.777Z",
+      "previous_hash": "686b83319f2d48a6da392e432e9b0c05658ebe17dee88c06658c9b60076f1d26",
+      "staff_id": "stf_superadmin_01",
+      "staff_name": "Executive Managing Director",
+      "staff_role": "SUPER_ADMIN",
+      "action": "CREDIT_OVERRIDE_SET",
+      "entity_type": "CLIENT_CREDIT",
+      "entity_id": "test_cli_1790313255529",
+      "details": {
+        "score_offset": 25,
+        "fixed_grade": "A",
+        "admin_note": "Audit trail integration automated verification test"
+      },
+      "ip_address": "::1",
+      "user_agent": "Unknown",
+      "hash": "1d9318469824fc9f602afa1989749aabefc3a315b8b6e40e5ca222d86f15fff6",
+      "block_hash": "1d9318469824fc9f602afa1989749aabefc3a315b8b6e40e5ca222d86f15fff6"
+    },
+    {
+      "index": 141,
+      "block_index": 141,
+      "timestamp": "2026-09-25T05:14:16.069Z",
+      "previous_hash": "1d9318469824fc9f602afa1989749aabefc3a315b8b6e40e5ca222d86f15fff6",
+      "staff_id": "stf_superadmin_01",
+      "staff_name": "Executive Managing Director",
+      "staff_role": "SUPER_ADMIN",
+      "action": "CREDIT_OVERRIDE_REMOVED",
+      "entity_type": "CLIENT_CREDIT",
+      "entity_id": "test_cli_1790313255529",
+      "details": {
+        "removed": true
+      },
+      "ip_address": "::1",
+      "user_agent": "Unknown",
+      "hash": "1c197662e1c6f49fb45aa89d95c73bd46bfeb9b302c710d094c3ffa8225d17f4",
+      "block_hash": "1c197662e1c6f49fb45aa89d95c73bd46bfeb9b302c710d094c3ffa8225d17f4"
     }
   ]
 }

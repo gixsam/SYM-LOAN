@@ -3,5 +3,6 @@
     <style name="AppTheme" parent="@android:style/Theme.NoTitleBar">
         <item name="android:windowBackground">#070b14</item>
         <item name="android:colorBackground">#070b14</item>
+        <item name="android:fitsSystemWindows">true</item>
     </style>
 </resources>

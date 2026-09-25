@@ -25,7 +25,8 @@ let ACTIVE_DISBURSE_LOAN = null;
 
 const DOM = {
   adminKeyInput: document.getElementById('adminKeyInput'),
-  authStatusBadge: document.getElementById('authStatusBadge'),
+  authStatusBadge: document.getElementById('drawerAuthStatusBadge') || document.getElementById('authStatusBadge'),
+  drawerAuthStatusBadge: document.getElementById('drawerAuthStatusBadge'),
   globalForm: document.getElementById('globalForm'),
   globalMinAmount: document.getElementById('globalMinAmount'),
   globalMaxAmount: document.getElementById('globalMaxAmount'),
@@ -334,6 +335,8 @@ function refreshDOM() {
   if (!DOM.suiteTabBtnClock) DOM.suiteTabBtnClock = document.getElementById('tabBtnClock') || document.getElementById('suiteTabBtnClock');
   if (!DOM.suiteTabBtnMaps) DOM.suiteTabBtnMaps = document.getElementById('tabBtnMaps') || document.getElementById('suiteTabBtnMaps');
   if (!DOM.suiteTabContentNotes) DOM.suiteTabContentNotes = document.getElementById('suiteTabContentNotepad') || document.getElementById('suiteTabContentNotes');
+  DOM.drawerAuthStatusBadge = document.getElementById('drawerAuthStatusBadge');
+  DOM.authStatusBadge = DOM.drawerAuthStatusBadge || document.getElementById('authStatusBadge');
 }
 
 let KYC_CACHE = [];
@@ -399,19 +402,31 @@ async function loadAllData() {
       tasks.push(window.loadUnifiedClientRoster());
     }
     await Promise.allSettled(tasks);
-    const badge = DOM.authStatusBadge || document.getElementById('authStatusBadge');
-    if (badge) {
-      badge.className = 'hidden md:flex px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 items-center';
-      badge.innerHTML = '<i class="fas fa-shield-alt mr-1.5"></i> Authenticated';
-    }
+    setAuthStatus('authenticated');
   } catch (err) {
-    const badge = DOM.authStatusBadge || document.getElementById('authStatusBadge');
-    if (badge) {
-      badge.className = 'hidden md:flex px-3 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 items-center';
-      badge.innerHTML = '<i class="fas fa-lock mr-1.5"></i> Invalid Key';
-    }
+    setAuthStatus('invalid');
   }
 }
+
+function setAuthStatus(status) {
+  try {
+    const badge = document.getElementById('drawerAuthStatusBadge') || DOM.drawerAuthStatusBadge || DOM.authStatusBadge || document.getElementById('authStatusBadge');
+    if (!badge) return;
+    if (status === 'authenticated' || status === 'valid') {
+      badge.className = 'flex px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 items-center';
+      badge.innerHTML = '<i class="fas fa-shield-alt mr-1.5"></i> Authenticated';
+    } else if (status === 'invalid' || status === 'error') {
+      badge.className = 'flex px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 items-center';
+      badge.innerHTML = '<i class="fas fa-lock mr-1.5"></i> Invalid Key';
+    } else {
+      badge.className = 'flex px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 items-center';
+      badge.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i> Authenticating...';
+    }
+  } catch (e) {
+    console.warn('[Admin] setAuthStatus error:', e);
+  }
+}
+window.setAuthStatus = setAuthStatus;
 
 window.loadAllData = loadAllData;
 window.refreshAdminDashboard = async function() {

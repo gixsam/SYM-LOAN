@@ -371,4 +371,15 @@ header, nav.admin-header {
   }
 }
 
+/* ─── Safe-Area Mobile Optimized Modal Container ────────────────────────────── */
+.modal-safe-container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-top: max(4.5rem, env(safe-area-inset-top, 28px));
+  padding-bottom: max(2rem, env(safe-area-inset-bottom, 20px));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+
 

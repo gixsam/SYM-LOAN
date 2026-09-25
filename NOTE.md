@@ -14,7 +14,43 @@
 > **Telegram Bot:** `@money_loan_bot` (Token: `[PROTECTED IN .ENV — Never commit plain tokens]`)  
 > **Technology Stack:** Node.js, Express, Supabase (PostgreSQL), Multer, jsPDF, node-telegram-bot-api, node-cron, CORS, Helmet, dotenv, HTML5, Tailwind CSS, FontAwesome 6, Cloudflare Tunnel  
 > **Live Local Server:** `http://localhost:5000` (Client: `/`, Admin: `/admin`)  
-> **Last Synchronized:** 2026-09-25 11:00 Local Time  
+> **Last Synchronized:** 2026-09-25 11:20 Local Time  
+
+### [Update-067] — Critical UI/UX Patch: Admin Auth Status Removal & User Settings Safe-Area Overlap Fix (2026-09-25)
+**Type:** Mobile Header Collision Fix, Admin Auth Status Relocation, Safe-Area Viewport Constraints (`100dvh`), Pinned Modal Header Bar, 40px Touch Target & Android Insets Architecture  
+**Status:** ✅ COMPLETED, TESTED (16/16 UI/UX PATCH TESTS PASSED, 28/28 PART 2 TESTS PASSED, 51/51 MASTER OVERHAUL TESTS PASSED, 374+ TOTAL REGRESSION TESTS PASSED — 100%), RECOMPILED DUAL APKS (ADMIN & CLIENT), PACKAGED HOSTINGER DEPLOY ZIP & DUAL-SYNCED ACROSS WORKPLACES  
+
+#### User Request & Execution Directives:
+1. **Module 1 (Admin Navbar — Remove 'Authenticated' Badge & Relocate to Drawer - Photo 1):**
+   - Eliminated `#authStatusBadge` completely from the sticky top navigation header bar in `public/admin.html`, purging the element that crowded out the live clock ticker, notification bell, and settings cog on mobile viewports (< 480px / 390px).
+   - Relocated the authentication status indicator exclusively inside the slide-out navigation drawer (`#adminDrawer`) as `#drawerAuthStatusBadge`, positioned cleanly at the bottom directly above the administrative credentials (`zillionprince6` / `01612669922`).
+   - Hardened `public/js/admin.js` by authoring `setAuthStatus(status)` and updating `DOM`, `refreshDOM()`, and `loadAllData()` with safe fallbacks and optional chaining, completely preventing `TypeError: Cannot set properties of null`.
+   - Verified the top admin header bar on mobile strictly retains only:
+     - **Left:** Hamburger button (`#hamburgerBtn`) + Brand Logo (`#adminNavLogo`).
+     - **Center:** Compact live clock pill (`#adminLiveClockTicker`).
+     - **Right:** Notification bell (`#adminNotificationBellBtn`) + Settings cog (`#openSettingsModalBtn`).
+
+2. **Module 2 (User Settings Modal — Safe-Area Inset & Address Bar Overlap Fix - Photos 2 & 3):**
+   - Added responsive `.modal-safe-container` in `public/css/style.css` enforcing `min-height: 100dvh`, `padding-top: max(4.5rem, env(safe-area-inset-top, 28px))`, `padding-bottom: max(2rem, env(safe-area-inset-bottom, 20px))`, and `-webkit-overflow-scrolling: touch`.
+   - Re-architected `#clientSettingsModal` (and all client-side modals in `public/index.html`): switched from centering (`items-center`) to top-alignment (`items-start`) with dynamic safe-area top clearance `pt-[max(4.5rem,env(safe-area-inset-top,24px))]` and `.modal-safe-container`. This prevents mobile Chrome's dynamic URL bar and Android's hardware status bar from clipping modal headers.
+   - Pinned modal header bar inside `#clientSettingsModal`: `flex items-center justify-between pb-3 mb-4 border-b border-slate-800/80` ensuring title "Setting" and close button remain 100% visible and accessible.
+   - Enforced generous 40x40px touch target on close button `#closeSettingsModalBtn` (`w-10 h-10 min-w-[40px] min-h-[40px] rounded-full bg-slate-800/90 text-slate-300 hover:text-white border border-slate-700/80 active:scale-95 transition-all text-lg`).
+   - Wired `closeSettingsModalBtn` in `public/js/app.js` with dual backward compatibility (`closeClientSettingsBtn` and `closeSettingsModalBtn`) and exported `closeClientSettingsModal` onto `window`.
+   - Immunized all remaining client modals (`#phoneInputModal`, `#avatarModal`, `#clientReceiptModal`, `#kycGateModal`, `#permissionGuidanceModal`, `#termsPolicyModal`, `#clientRepayModal`, `#modifyLoanModal`, `#kycInfoModal`, `#biometricPermModal`, `#setPinModal`, `#loanPinConfirmModal`, `#clientProfileHubModal`) with `modal-safe-container`.
+
+3. **Module 3 (Android Native APK Safe Layout Architecture):**
+   - Hardened `android/src/com/symempire/symloan/MainActivity.java` and `android-admin/src/com/symempire/symloanadmin/MainActivity.java` with native `rootLayout.setFitsSystemWindows(true);` and dynamic physical status bar pixel padding via `status_bar_height` dimension query.
+   - Set status bar colors in both apps to match their dark canvas themes (`#070B14` for client, `#06090F` for admin).
+   - Added `<item name="android:fitsSystemWindows">true</item>` in both `styles.xml` resources.
+   - Recompiled and cryptographically signed both binaries: `SYM-LOAN.apk` (512.46 KB) and `SYM-LOAN-ADMIN.apk` (516.47 KB).
+
+4. **Testing, Packaging & Sync:**
+   - Authored and verified `scripts/test_ui_ux_patch.js` (16/16 passed — 100%).
+   - Verified regression pass rate: 28/28 on Part 2, 51/51 on Master Overhaul, 8/8 on UI Interactions, 75/75 on Phase 12, 60/60 on Phase 11, 374+ tests platform-wide (100% pass rate).
+   - Re-packaged production deployment zip `dist/hostinger_deploy.zip` (1.61 MB).
+   - Synchronized all updated source files, APKs, and deployment bundle to Google Drive `G:\My Drive\ALL WEBSITE WORKPLACE\SYM LOAN WORKPLACE\`.
+
+---
 
 ### [Update-066] — Implementation Part 2/2: Client Portal, Biometrics, PIN Security, KYC Governance & User Profile Hub (2026-09-25)
 **Type:** Client Portal UI/UX Overhaul, Telegram Executive CTA Button, WebAuthn & PIN Security Interceptor, OTP Security Sanitization, KYC Verification Governance & User Profile Hub with Social Links  

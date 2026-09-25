@@ -51,6 +51,20 @@ public class MainActivity extends Activity {
 
         FrameLayout rootLayout = new FrameLayout(this);
         rootLayout.setBackgroundColor(0xFF070B14);
+        rootLayout.setFitsSystemWindows(true);
+
+        int statusBarHeight = 0;
+        int resId = getResources().getIdentifier("status_bar_height", "dimen", "android");
+        if (resId > 0) {
+            statusBarHeight = getResources().getDimensionPixelSize(resId);
+        }
+        if (statusBarHeight > 0) {
+            rootLayout.setPadding(0, statusBarHeight, 0, 0);
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            getWindow().setStatusBarColor(0xFF070B14);
+        }
 
         mWebView = new WebView(this);
         mWebView.setBackgroundColor(0xFF070B14);

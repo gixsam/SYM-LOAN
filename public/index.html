@@ -930,8 +930,8 @@
   </div>
 
   <!-- ─── PHONE LOOKUP & TELEGRAM OTP MODAL ───────────────────────────────────── -->
-  <div id="phoneInputModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
-    <div class="glass-card-gold max-w-sm w-full p-6 text-center space-y-4 shadow-2xl">
+  <div id="phoneInputModal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 overflow-y-auto bg-slate-950/85 backdrop-blur-md min-h-[100dvh] pt-[max(4.5rem,env(safe-area-inset-top,24px))] pb-8 modal-safe-container">
+    <div class="glass-card-gold max-w-sm w-full p-6 text-center space-y-4 shadow-2xl my-2 sm:my-4">
       <div class="w-16 h-16 rounded-2xl bg-black/50 border border-amber-500/40 flex items-center justify-center mx-auto overflow-hidden p-1.5 shadow-lg shadow-amber-500/20">
         <img class="platform-logo-img max-w-full max-h-full object-contain" src="/images/logo.png" alt="SYM EMPIRE">
       </div>
@@ -1010,8 +1010,8 @@
   </div>
 
   <!-- ─── PROFILE PICTURE / AVATAR SELECTION MODAL ────────────────────────── -->
-  <div id="avatarModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
-    <div class="max-w-md w-full glass-card p-6 space-y-4 relative border-amber-500/30">
+  <div id="avatarModal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 overflow-y-auto bg-slate-950/85 backdrop-blur-md min-h-[100dvh] pt-[max(4.5rem,env(safe-area-inset-top,24px))] pb-8 modal-safe-container">
+    <div class="max-w-md w-full glass-card p-6 space-y-4 relative border-amber-500/30 my-2 sm:my-4">
       <div class="flex items-center justify-between border-b border-white/10 pb-3">
         <div class="flex items-center space-x-2">
           <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-black font-black text-sm">
@@ -1097,8 +1097,8 @@
   </div>
 
   <!-- ─── RECEIPT LIGHTBOX MODAL ─────────────────────────────────────────── -->
-  <div id="clientReceiptModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-lg flex items-center justify-center p-4 hidden">
-    <div class="max-w-md w-full glass-card p-4 space-y-3 relative text-center">
+  <div id="clientReceiptModal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 overflow-y-auto bg-slate-950/90 backdrop-blur-lg min-h-[100dvh] pt-[max(4.5rem,env(safe-area-inset-top,24px))] pb-8 modal-safe-container">
+    <div class="max-w-md w-full glass-card p-4 space-y-3 relative text-center my-2 sm:my-4">
       <div class="flex items-center justify-between border-b border-white/10 pb-2">
         <h4 class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center">
           <i class="fas fa-receipt mr-1.5"></i> Payment Proof Screenshot
@@ -1117,8 +1117,8 @@
   </div>
 
   <!-- ─── KYC GATEKEEPER MODAL ─────────────────────────────────────────── -->
-  <div id="kycGateModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
-    <div class="max-w-md w-full glass-card-gold p-6 space-y-4 relative text-center border-amber-500/50 shadow-2xl">
+  <div id="kycGateModal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 overflow-y-auto bg-slate-950/85 backdrop-blur-md min-h-[100dvh] pt-[max(4.5rem,env(safe-area-inset-top,24px))] pb-8 modal-safe-container">
+    <div class="max-w-md w-full glass-card-gold p-6 space-y-4 relative text-center border-amber-500/50 shadow-2xl my-2 sm:my-4">
       <div class="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center mx-auto text-amber-400 text-2xl shadow-lg shadow-amber-500/20 pulse-live">
         <i class="fas fa-shield-alt"></i>
       </div>
@@ -1152,19 +1152,20 @@
   </div>
 
   <!-- ─── CLIENT SETTINGS & PREFERENCES MODAL ─────────────────────────────── -->
-  <div id="clientSettingsModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 hidden overflow-y-auto">
-    <div class="max-w-md w-full glass-card p-6 space-y-5 relative border-cyan-500/30 shadow-2xl my-6">
-      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+  <!-- Safe-Area Mobile Optimized Modal Container -->
+  <div id="clientSettingsModal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 overflow-y-auto bg-slate-950/85 backdrop-blur-md min-h-[100dvh] pt-[max(4.5rem,env(safe-area-inset-top,24px))] pb-8 modal-safe-container">
+    <div class="max-w-md w-full glass-card p-6 space-y-5 relative border-cyan-500/30 shadow-2xl my-2 sm:my-4">
+      <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800/80">
         <div class="flex items-center space-x-2.5">
-          <div class="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-base border border-cyan-500/30">
+          <div class="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-base border border-cyan-500/30 flex-shrink-0">
             <i class="fas fa-cog"></i>
           </div>
           <div>
-            <h3 class="text-sm font-extrabold text-white">Setting</h3>
+            <h3 class="text-base font-extrabold text-white">Setting</h3>
             <p class="text-[11px] text-slate-400">Manage notifications, security & confirmations</p>
           </div>
         </div>
-        <button id="closeClientSettingsBtn" class="text-slate-400 hover:text-white text-lg p-1 cursor-pointer">
+        <button type="button" id="closeSettingsModalBtn" onclick="closeClientSettingsModal()" class="w-10 h-10 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-full bg-slate-800/90 text-slate-300 hover:text-white border border-slate-700/80 active:scale-95 transition-all text-lg cursor-pointer" title="Close Setting">
           <i class="fas fa-times"></i>
         </button>
       </div>
@@ -1296,8 +1297,8 @@
   </div>
 
   <!-- ─── PROGRESSIVE PERMISSION & TRUST GUIDANCE MODAL ────────────────────── -->
-  <div id="permissionGuidanceModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
-    <div class="max-w-sm w-full glass-card p-5 space-y-4 relative text-center border-amber-500/40 shadow-2xl">
+  <div id="permissionGuidanceModal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 overflow-y-auto bg-slate-950/85 backdrop-blur-md min-h-[100dvh] pt-[max(4.5rem,env(safe-area-inset-top,24px))] pb-8 modal-safe-container">
+    <div class="max-w-sm w-full glass-card p-5 space-y-4 relative text-center border-amber-500/40 shadow-2xl my-2 sm:my-4">
       <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-300 text-black flex items-center justify-center mx-auto text-2xl shadow-lg shadow-amber-500/20" id="permissionModalIcon">
         <i class="fas fa-camera"></i>
       </div>
@@ -1326,8 +1327,8 @@
   </div>
 
   <!-- ─── TERMS AND POLICY MODAL ─────────────────────────────────────────── -->
-  <div id="termsPolicyModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 hidden">
-    <div class="max-w-2xl w-full glass-card p-6 space-y-4 relative border-amber-500/30 shadow-2xl max-h-[90vh] flex flex-col">
+  <div id="termsPolicyModal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 overflow-y-auto bg-slate-950/90 backdrop-blur-md min-h-[100dvh] pt-[max(4.5rem,env(safe-area-inset-top,24px))] pb-8 modal-safe-container">
+    <div class="max-w-2xl w-full glass-card p-6 space-y-4 relative border-amber-500/30 shadow-2xl max-h-[90vh] flex flex-col my-2 sm:my-4">
       <div class="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
         <div class="flex items-center space-x-2.5">
           <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-base border border-amber-500/30">
@@ -1420,8 +1421,8 @@
   </div>
 
   <!-- ─── PHASE 9: CLIENT SELF-SERVICE REPAYMENT MODAL ─────────────────────── -->
-  <div id="clientRepayModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 hidden">
-    <div class="max-w-lg w-full glass-card p-6 space-y-4 relative border-emerald-500/40 shadow-2xl max-h-[92vh] flex flex-col">
+  <div id="clientRepayModal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 overflow-y-auto bg-slate-950/90 backdrop-blur-md min-h-[100dvh] pt-[max(4.5rem,env(safe-area-inset-top,24px))] pb-8 modal-safe-container">
+    <div class="max-w-lg w-full glass-card p-6 space-y-4 relative border-emerald-500/40 shadow-2xl max-h-[92vh] flex flex-col my-2 sm:my-4">
       <!-- Modal Header -->
       <div class="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
         <div class="flex items-center space-x-2.5">
@@ -1574,8 +1575,8 @@
       </div>
     </div>
   <!-- ─── IN-PLACE LOAN MODIFICATION MODAL (MODULE 8) ────────────────────────── -->
-  <div id="modifyLoanModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
-    <div class="glass-card-gold max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl relative">
+  <div id="modifyLoanModal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 overflow-y-auto bg-slate-950/85 backdrop-blur-md min-h-[100dvh] pt-[max(4.5rem,env(safe-area-inset-top,24px))] pb-8 modal-safe-container">
+    <div class="glass-card-gold max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl relative my-2 sm:my-4">
       <div class="flex items-center justify-between border-b border-white/10 pb-3">
         <div class="flex items-center space-x-2">
           <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm">
@@ -1624,8 +1625,8 @@
   </div>
 
   <!-- ─── KYC INFORMATIVE POPUP MODAL (MODULE 9) ────────────────────────── -->
-  <div id="kycInfoModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
-    <div class="max-w-md w-full glass-card p-6 space-y-4 relative border-amber-500/30 shadow-2xl">
+  <div id="kycInfoModal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 overflow-y-auto bg-slate-950/85 backdrop-blur-md min-h-[100dvh] pt-[max(4.5rem,env(safe-area-inset-top,24px))] pb-8 modal-safe-container">
+    <div class="max-w-md w-full glass-card p-6 space-y-4 relative border-amber-500/30 shadow-2xl my-2 sm:my-4">
       <div class="flex items-center justify-between border-b border-white/10 pb-3">
         <div class="flex items-center space-x-2.5">
           <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-base border border-amber-500/30">
@@ -1669,8 +1670,8 @@
   </div>
 
   <!-- ─── BIOMETRIC ENROLLMENT / PERMISSION MODAL (MODULE 10) ─────────────── -->
-  <div id="biometricPermModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
-    <div class="max-w-sm w-full glass-card p-6 space-y-4 relative text-center border-amber-500/40 shadow-2xl">
+  <div id="biometricPermModal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 overflow-y-auto bg-slate-950/85 backdrop-blur-md min-h-[100dvh] pt-[max(4.5rem,env(safe-area-inset-top,24px))] pb-8 modal-safe-container">
+    <div class="max-w-sm w-full glass-card p-6 space-y-4 relative text-center border-amber-500/40 shadow-2xl my-2 sm:my-4">
       <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-300 text-black flex items-center justify-center mx-auto text-2xl shadow-lg shadow-amber-500/20">
         <i class="fas fa-fingerprint"></i>
       </div>
@@ -1698,8 +1699,8 @@
   </div>
 
   <!-- ─── SET 4-DIGIT SECURITY PIN MODAL (MODULE 10) ──────────────────────── -->
-  <div id="setPinModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
-    <div class="max-w-sm w-full glass-card p-6 space-y-4 relative border-cyan-500/40 shadow-2xl">
+  <div id="setPinModal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 overflow-y-auto bg-slate-950/85 backdrop-blur-md min-h-[100dvh] pt-[max(4.5rem,env(safe-area-inset-top,24px))] pb-8 modal-safe-container">
+    <div class="max-w-sm w-full glass-card p-6 space-y-4 relative border-cyan-500/40 shadow-2xl my-2 sm:my-4">
       <div class="flex items-center justify-between border-b border-white/10 pb-3">
         <div class="flex items-center space-x-2.5">
           <div class="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-base border border-cyan-500/30">
@@ -1734,8 +1735,8 @@
   </div>
 
   <!-- ─── ANTI-SHOULDER SURFING PIN CONFIRMATION KEYPAD (MODULE 10) ──────── -->
-  <div id="loanPinConfirmModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 hidden">
-    <div class="max-w-xs w-full glass-card p-6 space-y-4 relative text-center border-amber-500/40 shadow-2xl">
+  <div id="loanPinConfirmModal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 overflow-y-auto bg-slate-950/90 backdrop-blur-md min-h-[100dvh] pt-[max(4.5rem,env(safe-area-inset-top,24px))] pb-8 modal-safe-container">
+    <div class="max-w-xs w-full glass-card p-6 space-y-4 relative text-center border-amber-500/40 shadow-2xl my-2 sm:my-4">
       <div class="flex items-center justify-between border-b border-white/10 pb-2">
         <span class="text-xs font-black uppercase text-amber-400 tracking-wider flex items-center">
           <i class="fas fa-lock mr-1.5"></i> Confirm Loan Request
@@ -1763,8 +1764,8 @@
   </div>
 
   <!-- ─── USER PROFILE HUB & SOCIAL MEDIA MODAL (MODULE 11) ───────────────── -->
-  <div id="clientProfileHubModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 hidden overflow-y-auto">
-    <div class="max-w-md w-full glass-card p-6 space-y-4 relative border-amber-500/30 shadow-2xl my-6">
+  <div id="clientProfileHubModal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 overflow-y-auto bg-slate-950/90 backdrop-blur-md min-h-[100dvh] pt-[max(4.5rem,env(safe-area-inset-top,24px))] pb-8 modal-safe-container">
+    <div class="max-w-md w-full glass-card p-6 space-y-4 relative border-amber-500/30 shadow-2xl my-2 sm:my-4">
       <!-- Header -->
       <div class="flex items-center justify-between border-b border-white/10 pb-3">
         <div class="flex items-center space-x-2.5">

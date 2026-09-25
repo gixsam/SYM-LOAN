@@ -50,7 +50,8 @@ const DOM = {
 
   // Client Settings & Preferences Modal Elements
   clientSettingsModal: document.getElementById('clientSettingsModal'),
-  closeClientSettingsBtn: document.getElementById('closeClientSettingsBtn'),
+  closeClientSettingsBtn: document.getElementById('closeSettingsModalBtn') || document.getElementById('closeClientSettingsBtn'),
+  closeSettingsModalBtn: document.getElementById('closeSettingsModalBtn') || document.getElementById('closeClientSettingsBtn'),
   settingsClientKycBadge: document.getElementById('settingsClientKycBadge'),
   settingsClientName: document.getElementById('settingsClientName'),
   settingsClientPhone: document.getElementById('settingsClientPhone'),
@@ -1598,6 +1599,8 @@ function openClientSettingsModal() {
 function closeClientSettingsModal() {
   DOM.clientSettingsModal?.classList.add('hidden');
 }
+window.openClientSettingsModal = openClientSettingsModal;
+window.closeClientSettingsModal = closeClientSettingsModal;
 
 // ─── Module 9: KYC Informative Modal Handlers ────────────────────────────────
 function openKycInfoModal() {
@@ -2942,7 +2945,7 @@ function setupEventListeners() {
   });
 
   // Client Settings Modal Controls
-  DOM.closeClientSettingsBtn?.addEventListener('click', closeClientSettingsModal);
+  (DOM.closeSettingsModalBtn || DOM.closeClientSettingsBtn || document.getElementById('closeSettingsModalBtn'))?.addEventListener('click', closeClientSettingsModal);
   DOM.settingsJumpKycBtn?.addEventListener('click', () => {
     closeClientSettingsModal();
     switchTab('kyc');
