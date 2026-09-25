@@ -1,5 +1,151 @@
 [
   {
+    "id": "rem_1790312223993_907mu",
+    "client_id": "cl_demo_test",
+    "client_name": "Client",
+    "client_phone": "",
+    "loan_id": null,
+    "loan_amount": 0,
+    "deadline_date": null,
+    "channel": "SMS",
+    "template_type": "MANUAL_DUNNING",
+    "message_text": "Phase 10 Automated Dunning Test",
+    "trigger": "ADMIN_MANUAL",
+    "status": "FAILED",
+    "results": {
+      "telegram": null,
+      "sms": {
+        "success": false,
+        "status": "NO_PHONE_NUMBER",
+        "note": "Client has no phone number on file."
+      }
+    },
+    "dispatched_at": "2026-09-25T04:57:03.993Z"
+  },
+  {
+    "id": "rem_1790312222631_2mw3c",
+    "client_id": "cl_test_001",
+    "client_name": "Al-Amin Hossain",
+    "client_phone": "+8801700112233",
+    "loan_id": "loan_test_001",
+    "loan_amount": 8000,
+    "deadline_date": "2026-09-25",
+    "channel": "SMS",
+    "template_type": "PRE_DUE_3D",
+    "message_text": "⏰ [SYM LOAN Reminder] Dear Al-Amin Hossain, your loan of ৳8,000 is due in 3 days on 2026-09-25. Please prepare repayment via bKash/Nagad/Rocket/Bank to maintain your 5-star credit standing. Portal: https://symloan.best-travel.ltd",
+    "trigger": "AUTOMATED_CRON",
+    "status": "DELIVERED",
+    "results": {
+      "telegram": null,
+      "sms": {
+        "success": true,
+        "status": "SIMULATED_DELIVERED",
+        "note": "SMS simulated successfully. Configure SMS_GATEWAY_URL and SMS_API_KEY in .env for live carrier delivery."
+      }
+    },
+    "dispatched_at": "2026-09-25T04:57:02.631Z"
+  },
+  {
+    "id": "rem_1790311449013_vgv0q",
+    "client_id": "cl_demo_test",
+    "client_name": "Client",
+    "client_phone": "",
+    "loan_id": null,
+    "loan_amount": 0,
+    "deadline_date": null,
+    "channel": "SMS",
+    "template_type": "MANUAL_DUNNING",
+    "message_text": "Phase 10 Automated Dunning Test",
+    "trigger": "ADMIN_MANUAL",
+    "status": "FAILED",
+    "results": {
+      "telegram": null,
+      "sms": {
+        "success": false,
+        "status": "NO_PHONE_NUMBER",
+        "note": "Client has no phone number on file."
+      }
+    },
+    "dispatched_at": "2026-09-25T04:44:09.013Z"
+  },
+  {
+    "id": "rem_1790310492971_guhg5",
+    "client_id": "cl_demo_test",
+    "client_name": "Client",
+    "client_phone": "",
+    "loan_id": null,
+    "loan_amount": 0,
+    "deadline_date": null,
+    "channel": "SMS",
+    "template_type": "MANUAL_DUNNING",
+    "message_text": "Phase 10 Automated Dunning Test",
+    "trigger": "ADMIN_MANUAL",
+    "status": "FAILED",
+    "results": {
+      "telegram": null,
+      "sms": {
+        "success": false,
+        "status": "NO_PHONE_NUMBER",
+        "note": "Client has no phone number on file."
+      }
+    },
+    "dispatched_at": "2026-09-25T04:28:12.971Z"
+  },
+  {
+    "id": "rem_1790308801399_1nm3m",
+    "client_id": "e84ecb25-5fa1-42fb-ab04-8e3c5112a69b",
+    "client_name": "MD GIXSAM ISLAM",
+    "client_phone": "+8801612669922",
+    "loan_id": "881407d6-df0d-489e-a9e1-2e8f81b5e036",
+    "loan_amount": 1000,
+    "deadline_date": "2026-09-23",
+    "channel": "BOTH",
+    "template_type": "OVERDUE_STRIKE",
+    "message_text": "🔴 [SYM LOAN OVERDUE ALERT] Strike #2 has been issued to MD GIXSAM ISLAM! Your loan of ৳1,000 is OVERDUE (due: 2026-09-23). Accumulating 3 strikes results in PERMANENT ACCOUNT BLACKLIST & legal collection actions. Settle immediately: https://symloan.best-travel.ltd",
+    "trigger": "AUTOMATED_CRON",
+    "status": "DELIVERED",
+    "results": {
+      "telegram": {
+        "success": false,
+        "status": "NO_TELEGRAM_ID",
+        "note": "Client has not connected Telegram account."
+      },
+      "sms": {
+        "success": true,
+        "status": "SIMULATED_DELIVERED",
+        "note": "SMS simulated successfully. Configure SMS_GATEWAY_URL and SMS_API_KEY in .env for live carrier delivery."
+      }
+    },
+    "dispatched_at": "2026-09-25T04:00:01.399Z"
+  },
+  {
+    "id": "rem_1790308800960_q0t77",
+    "client_id": "e84ecb25-5fa1-42fb-ab04-8e3c5112a69b",
+    "client_name": "MD GIXSAM ISLAM",
+    "client_phone": "+8801612669922",
+    "loan_id": "d7fd28a1-fd0a-4fe2-bf9a-9658e38b9722",
+    "loan_amount": 5000,
+    "deadline_date": "2026-09-28",
+    "channel": "BOTH",
+    "template_type": "PRE_DUE_3D",
+    "message_text": "⏰ [SYM LOAN Reminder] Dear MD GIXSAM ISLAM, your loan of ৳5,000 is due in 3 days on 2026-09-28. Please prepare repayment via bKash/Nagad/Rocket/Bank to maintain your 5-star credit standing. Portal: https://symloan.best-travel.ltd",
+    "trigger": "AUTOMATED_CRON",
+    "status": "DELIVERED",
+    "results": {
+      "telegram": {
+        "success": false,
+        "status": "NO_TELEGRAM_ID",
+        "note": "Client has not connected Telegram account."
+      },
+      "sms": {
+        "success": true,
+        "status": "SIMULATED_DELIVERED",
+        "note": "SMS simulated successfully. Configure SMS_GATEWAY_URL and SMS_API_KEY in .env for live carrier delivery."
+      }
+    },
+    "dispatched_at": "2026-09-25T04:00:00.960Z"
+  },
+  {
     "id": "rem_1790297134287_16rf1",
     "client_id": "cl_demo_test",
     "client_name": "Client",

@@ -12,6 +12,7 @@ const STATE = {
   cameraStream: null,
   activeTab: 'loans',
   creditProfile: null,
+  securityProfile: null,
 };
 
 const DOM = {
@@ -25,6 +26,7 @@ const DOM = {
   drawerClientName: document.getElementById('drawerClientName'),
   drawerClientPhone: document.getElementById('drawerClientPhone'),
   drawerKycBadge: document.getElementById('drawerKycBadge'),
+  drawerNavProfile: document.getElementById('drawerNavProfile'),
   drawerNavLoans: document.getElementById('drawerNavLoans'),
   drawerNavKyc: document.getElementById('drawerNavKyc'),
   drawerNavKycDot: document.getElementById('drawerNavKycDot'),
@@ -58,6 +60,54 @@ const DOM = {
   settingsLogoutBtn: document.getElementById('settingsLogoutBtn'),
   pwaInstallBtn: document.getElementById('pwaInstallBtn'),
   settingsPwaInstallBtn: document.getElementById('settingsPwaInstallBtn'),
+
+  // KYC Gatekeeper Info Modal (Module 9)
+  kycInfoModal: document.getElementById('kycInfoModal'),
+  closeKycInfoModalBtn: document.getElementById('closeKycInfoModalBtn'),
+  dismissKycInfoModalBtn: document.getElementById('dismissKycInfoModalBtn'),
+  kycInfoBtn: document.getElementById('kycInfoBtn'),
+
+  // Biometric & PIN Security Elements (Module 10)
+  biometricPinToggle: document.getElementById('biometricPinToggle'),
+  biometricStatusBadge: document.getElementById('biometricStatusBadge'),
+  securityConfigRow: document.getElementById('securityConfigRow'),
+  btnConfigBiometricPin: document.getElementById('btnConfigBiometricPin'),
+  biometricPermModal: document.getElementById('biometricPermModal'),
+  btnEnableBiometrics: document.getElementById('btnEnableBiometrics'),
+  btnFallbackPin: document.getElementById('btnFallbackPin'),
+  btnCancelBiometricPerm: document.getElementById('btnCancelBiometricPerm'),
+  setPinModal: document.getElementById('setPinModal'),
+  closeSetPinModalBtn: document.getElementById('closeSetPinModalBtn'),
+  setPinForm: document.getElementById('setPinForm'),
+  newPinInput: document.getElementById('newPinInput'),
+  confirmPinInput: document.getElementById('confirmPinInput'),
+  setPinNotice: document.getElementById('setPinNotice'),
+  btnSavePin: document.getElementById('btnSavePin'),
+  loanPinConfirmModal: document.getElementById('loanPinConfirmModal'),
+  closeLoanPinConfirmBtn: document.getElementById('closeLoanPinConfirmBtn'),
+  pinDotsContainer: document.getElementById('pinDotsContainer'),
+  scrambledKeypadGrid: document.getElementById('scrambledKeypadGrid'),
+  loanPinErrorText: document.getElementById('loanPinErrorText'),
+
+  // User Profile Hub & Social Links Elements (Module 11)
+  clientProfileHubModal: document.getElementById('clientProfileHubModal'),
+  closeProfileHubModalBtn: document.getElementById('closeProfileHubModalBtn'),
+  hubLiveSelfieImg: document.getElementById('hubLiveSelfieImg'),
+  hubSelfiePlaceholder: document.getElementById('hubSelfiePlaceholder'),
+  hubKycVerifiedBadge: document.getElementById('hubKycVerifiedBadge'),
+  hubClientName: document.getElementById('hubClientName'),
+  hubVipTierBadge: document.getElementById('hubVipTierBadge'),
+  hubClientPhone: document.getElementById('hubClientPhone'),
+  hubClientEmail: document.getElementById('hubClientEmail'),
+  hubKycStatusText: document.getElementById('hubKycStatusText'),
+  hubCreditScoreText: document.getElementById('hubCreditScoreText'),
+  socialLinksForm: document.getElementById('socialLinksForm'),
+  inputSocialFacebook: document.getElementById('inputSocialFacebook'),
+  inputSocialInstagram: document.getElementById('inputSocialInstagram'),
+  inputSocialWhatsapp: document.getElementById('inputSocialWhatsapp'),
+  inputSocialTelegram: document.getElementById('inputSocialTelegram'),
+  socialLinksNotice: document.getElementById('socialLinksNotice'),
+  btnSaveSocialLinks: document.getElementById('btnSaveSocialLinks'),
 
   // Progressive Contextual Permission & Trust Modal Elements
   permissionGuidanceModal: document.getElementById('permissionGuidanceModal'),
@@ -376,6 +426,9 @@ function loadSavedClient() {
   if (saved) {
     try {
       STATE.client = JSON.parse(saved);
+      if (STATE.client?.id) {
+        loadClientSecurityProfile(STATE.client.id);
+      }
     } catch (e) {
       localStorage.removeItem('sep_loan_client');
     }
@@ -385,6 +438,9 @@ function loadSavedClient() {
 function saveClient(client) {
   STATE.client = client;
   localStorage.setItem('sep_loan_client', JSON.stringify(client));
+  if (client?.id) {
+    loadClientSecurityProfile(client.id);
+  }
 }
 
 function openLoginModal() {
@@ -447,6 +503,7 @@ async function fetchClientProfile(clientId) {
       await fetchClientLoans(clientId);
       await fetchKycProfile(clientId);
       await fetchClientCreditProfile(clientId);
+      await loadClientSecurityProfile(clientId);
       fetchClientNotifications();
     } else {
       const adminKey = sessionStorage.getItem('sep_admin_key') || localStorage.getItem('sep_admin_key');
@@ -1531,11 +1588,410 @@ function openClientSettingsModal() {
     DOM.togglePushAlertsBtn.className = 'px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold';
   }
 
+  if (STATE.client?.id) {
+    loadClientSecurityProfile(STATE.client.id);
+  }
+
   DOM.clientSettingsModal.classList.remove('hidden');
 }
 
 function closeClientSettingsModal() {
   DOM.clientSettingsModal?.classList.add('hidden');
+}
+
+// ─── Module 9: KYC Informative Modal Handlers ────────────────────────────────
+function openKycInfoModal() {
+  DOM.kycInfoModal?.classList.remove('hidden');
+}
+
+function closeKycInfoModal() {
+  DOM.kycInfoModal?.classList.add('hidden');
+}
+
+// ─── Module 10: Biometric & Security PIN Governance ──────────────────────────
+let activePendingLoanSubmission = null;
+let currentEnteredPin = '';
+
+async function loadClientSecurityProfile(clientId) {
+  if (!clientId) return;
+  try {
+    const res = await fetch(`/api/clients/${clientId}/security-profile`);
+    const json = await res.json();
+    if (res.ok && json.success) {
+      STATE.securityProfile = json.profile;
+      updateSecurityUi();
+    }
+  } catch (err) {
+    console.error('Failed to load security profile:', err);
+  }
+}
+
+function updateSecurityUi() {
+  const prof = STATE.securityProfile;
+  if (!DOM.biometricPinToggle) return;
+
+  const isEnabled = !!(prof && prof.security_enabled);
+  DOM.biometricPinToggle.checked = isEnabled;
+
+  if (DOM.biometricStatusBadge) {
+    if (!isEnabled) {
+      DOM.biometricStatusBadge.textContent = 'DISABLED';
+      DOM.biometricStatusBadge.className = 'font-mono font-bold px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700';
+      DOM.securityConfigRow?.classList.add('hidden');
+    } else if (prof.security_type === 'BIOMETRIC') {
+      DOM.biometricStatusBadge.textContent = 'ENABLED (BIOMETRIC)';
+      DOM.biometricStatusBadge.className = 'font-mono font-bold px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40';
+      DOM.securityConfigRow?.classList.remove('hidden');
+    } else {
+      DOM.biometricStatusBadge.textContent = 'ENABLED (PIN)';
+      DOM.biometricStatusBadge.className = 'font-mono font-bold px-2 py-0.5 rounded text-[10px] bg-cyan-500/20 text-cyan-400 border border-cyan-500/40';
+      DOM.securityConfigRow?.classList.remove('hidden');
+    }
+  }
+}
+
+function handleBiometricToggleChange(e) {
+  const isChecking = e.target.checked;
+  if (isChecking) {
+    if (window.PublicKeyCredential) {
+      DOM.biometricPermModal?.classList.remove('hidden');
+    } else {
+      openSetPinModal();
+    }
+  } else {
+    if (STATE.client && STATE.client.id) {
+      fetch(`/api/clients/${STATE.client.id}/security/biometric`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ disable: true })
+      }).then(() => {
+        loadClientSecurityProfile(STATE.client.id);
+      });
+    }
+  }
+}
+
+function openSetPinModal() {
+  DOM.biometricPermModal?.classList.add('hidden');
+  if (DOM.newPinInput) DOM.newPinInput.value = '';
+  if (DOM.confirmPinInput) DOM.confirmPinInput.value = '';
+  if (DOM.setPinNotice) DOM.setPinNotice.className = 'hidden';
+  DOM.setPinModal?.classList.remove('hidden');
+}
+
+function closeSetPinModal() {
+  DOM.setPinModal?.classList.add('hidden');
+  updateSecurityUi();
+}
+
+async function handleSavePinSubmit(e) {
+  e.preventDefault();
+  if (!STATE.client || !STATE.client.id) return;
+  const pin = (DOM.newPinInput?.value || '').trim();
+  const confirm = (DOM.confirmPinInput?.value || '').trim();
+
+  if (!/^\d{4}$/.test(pin)) {
+    showPinNotice('PIN must be exactly 4 digits.', 'error');
+    return;
+  }
+  if (pin !== confirm) {
+    showPinNotice('PIN confirmation does not match.', 'error');
+    return;
+  }
+
+  try {
+    DOM.btnSavePin.disabled = true;
+    DOM.btnSavePin.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Saving...';
+
+    const res = await fetch(`/api/clients/${STATE.client.id}/security/set-pin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin }),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message || 'Failed to save PIN.');
+
+    showPinNotice('✅ 4-Digit Security PIN successfully set!', 'success');
+    await loadClientSecurityProfile(STATE.client.id);
+    setTimeout(() => {
+      closeSetPinModal();
+    }, 900);
+  } catch (err) {
+    showPinNotice(err.message, 'error');
+  } finally {
+    DOM.btnSavePin.disabled = false;
+    DOM.btnSavePin.innerHTML = 'Save Security PIN';
+  }
+}
+
+function showPinNotice(msg, type) {
+  if (!DOM.setPinNotice) return;
+  DOM.setPinNotice.className = type === 'success'
+    ? 'p-2 rounded-lg text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+    : 'p-2 rounded-lg text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30';
+  DOM.setPinNotice.textContent = msg;
+  DOM.setPinNotice.classList.remove('hidden');
+}
+
+async function enrollWebAuthnBiometrics() {
+  if (!STATE.client || !STATE.client.id) return;
+  DOM.biometricPermModal?.classList.add('hidden');
+
+  try {
+    if (!navigator.credentials || !navigator.credentials.create) {
+      throw new Error('WebAuthn biometrics not supported on this browser.');
+    }
+
+    const challenge = new Uint8Array(32);
+    window.crypto.getRandomValues(challenge);
+    const userIdBytes = new TextEncoder().encode(STATE.client.id.slice(0, 16));
+
+    const credential = await navigator.credentials.create({
+      publicKey: {
+        challenge,
+        rp: { name: 'SYM LOAN (S.E.P.)' },
+        user: {
+          id: userIdBytes,
+          name: STATE.client.phone_number || 'client',
+          displayName: STATE.client.name || 'Client',
+        },
+        pubKeyCredParams: [
+          { alg: -7, type: 'public-key' },
+          { alg: -257, type: 'public-key' }
+        ],
+        authenticatorSelection: {
+          authenticatorAttachment: 'platform',
+          userVerification: 'required',
+        },
+        timeout: 60000,
+      }
+    });
+
+    if (credential) {
+      const credIdBase64 = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
+      const res = await fetch(`/api/clients/${STATE.client.id}/security/biometric`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          credentialId: credIdBase64,
+          type: 'BIOMETRIC',
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message || 'Failed to register biometrics.');
+
+      await loadClientSecurityProfile(STATE.client.id);
+      alert('✅ Hardware Biometric Authentication successfully enabled!');
+    }
+  } catch (err) {
+    console.warn('Biometrics enrollment fallback:', err);
+    openSetPinModal();
+  }
+}
+
+// ─── Anti-Shoulder Surfing PIN Keypad Modal Logic ────────────────────────────
+function openLoanPinConfirmModal(onVerifiedCallback) {
+  activePendingLoanSubmission = onVerifiedCallback;
+  currentEnteredPin = '';
+  updatePinDots();
+  if (DOM.loanPinErrorText) DOM.loanPinErrorText.textContent = '';
+  renderScrambledKeypad();
+  DOM.loanPinConfirmModal?.classList.remove('hidden');
+}
+
+function closeLoanPinConfirmModal() {
+  DOM.loanPinConfirmModal?.classList.add('hidden');
+  activePendingLoanSubmission = null;
+  currentEnteredPin = '';
+}
+
+function updatePinDots() {
+  const dots = DOM.pinDotsContainer ? DOM.pinDotsContainer.querySelectorAll('.pin-dot') : [];
+  dots.forEach((dot, idx) => {
+    if (idx < currentEnteredPin.length) {
+      dot.className = 'w-3.5 h-3.5 rounded-full border-2 border-amber-400 bg-amber-400 transition-all scale-110 shadow-[0_0_8px_rgba(245,158,11,0.6)] pin-dot';
+    } else {
+      dot.className = 'w-3.5 h-3.5 rounded-full border-2 border-amber-400/50 bg-transparent transition-all pin-dot';
+    }
+  });
+}
+
+function renderScrambledKeypad() {
+  if (!DOM.scrambledKeypadGrid) return;
+  const digits = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+
+  DOM.scrambledKeypadGrid.innerHTML = '';
+
+  for (let i = 0; i < 9; i++) {
+    const digit = digits[i];
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'h-12 rounded-xl bg-black/60 hover:bg-amber-500/20 active:bg-amber-500/40 border border-white/10 text-white font-mono font-black text-lg flex items-center justify-center transition cursor-pointer select-none';
+    btn.textContent = digit;
+    btn.addEventListener('click', () => handleKeypadDigit(digit));
+    DOM.scrambledKeypadGrid.appendChild(btn);
+  }
+
+  const clearBtn = document.createElement('button');
+  clearBtn.type = 'button';
+  clearBtn.className = 'h-12 rounded-xl bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/30 text-rose-400 font-bold text-xs uppercase flex items-center justify-center transition cursor-pointer select-none';
+  clearBtn.textContent = 'CLR';
+  clearBtn.addEventListener('click', () => {
+    currentEnteredPin = '';
+    updatePinDots();
+  });
+  DOM.scrambledKeypadGrid.appendChild(clearBtn);
+
+  const lastDigit = digits[9];
+  const lastBtn = document.createElement('button');
+  lastBtn.type = 'button';
+  lastBtn.className = 'h-12 rounded-xl bg-black/60 hover:bg-amber-500/20 active:bg-amber-500/40 border border-white/10 text-white font-mono font-black text-lg flex items-center justify-center transition cursor-pointer select-none';
+  lastBtn.textContent = lastDigit;
+  lastBtn.addEventListener('click', () => handleKeypadDigit(lastDigit));
+  DOM.scrambledKeypadGrid.appendChild(lastBtn);
+
+  const backBtn = document.createElement('button');
+  backBtn.type = 'button';
+  backBtn.className = 'h-12 rounded-xl bg-black/60 hover:bg-amber-500/20 active:bg-amber-500/40 border border-white/10 text-amber-300 font-bold text-sm flex items-center justify-center transition cursor-pointer select-none';
+  backBtn.innerHTML = '<i class="fas fa-backspace"></i>';
+  backBtn.addEventListener('click', () => {
+    if (currentEnteredPin.length > 0) {
+      currentEnteredPin = currentEnteredPin.slice(0, -1);
+      updatePinDots();
+    }
+  });
+  DOM.scrambledKeypadGrid.appendChild(backBtn);
+}
+
+async function handleKeypadDigit(digit) {
+  if (currentEnteredPin.length >= 4) return;
+  currentEnteredPin += digit;
+  updatePinDots();
+
+  if (currentEnteredPin.length === 4) {
+    if (DOM.loanPinErrorText) DOM.loanPinErrorText.textContent = 'Verifying PIN...';
+    try {
+      const res = await fetch(`/api/clients/${STATE.client.id}/security/verify-pin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: currentEnteredPin }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message || 'Invalid PIN.');
+
+      const pinToken = json.token;
+      const callback = activePendingLoanSubmission;
+      closeLoanPinConfirmModal();
+      if (callback) callback({ 'x-pin-token': pinToken });
+    } catch (err) {
+      if (DOM.loanPinErrorText) DOM.loanPinErrorText.textContent = err.message || 'Incorrect PIN. Try again.';
+      currentEnteredPin = '';
+      updatePinDots();
+      renderScrambledKeypad();
+    }
+  }
+}
+
+// ─── Module 11: User Profile Hub & Social Media Links ─────────────────────────
+async function openUserProfileHub() {
+  if (!STATE.client || !STATE.client.id) {
+    openLoginModal();
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/clients/${STATE.client.id}/profile-hub`);
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message);
+
+    const { client, kyc, credit, social_links } = json.profile;
+
+    if (DOM.hubClientName) DOM.hubClientName.textContent = (kyc && kyc.legal_name) || client.name || 'Client';
+    if (DOM.hubClientPhone) DOM.hubClientPhone.textContent = client.phone_number || '';
+    if (DOM.hubClientEmail) DOM.hubClientEmail.textContent = (kyc && kyc.email) || client.email || 'Not verified';
+
+    const kycStatus = (kyc && kyc.status) || 'UNVERIFIED';
+    if (DOM.hubKycStatusText) DOM.hubKycStatusText.textContent = kycStatus;
+    if (DOM.hubKycVerifiedBadge) {
+      if (kycStatus === 'VERIFIED') {
+        DOM.hubKycVerifiedBadge.classList.remove('hidden');
+      } else {
+        DOM.hubKycVerifiedBadge.classList.add('hidden');
+      }
+    }
+
+    if (DOM.hubLiveSelfieImg && DOM.hubSelfiePlaceholder) {
+      if (kyc && kyc.live_selfie_url) {
+        DOM.hubLiveSelfieImg.src = kyc.live_selfie_url;
+        DOM.hubLiveSelfieImg.classList.remove('hidden');
+        DOM.hubSelfiePlaceholder.classList.add('hidden');
+      } else {
+        DOM.hubLiveSelfieImg.classList.add('hidden');
+        DOM.hubSelfiePlaceholder.classList.remove('hidden');
+        DOM.hubSelfiePlaceholder.textContent = (client.name || 'SYM').slice(0, 3).toUpperCase();
+      }
+    }
+
+    if (DOM.hubCreditScoreText) {
+      DOM.hubCreditScoreText.textContent = `${credit?.score || 550} / 850`;
+    }
+    if (DOM.hubVipTierBadge) {
+      DOM.hubVipTierBadge.textContent = credit?.tier?.name || 'BRONZE';
+    }
+
+    // Populate social links
+    if (DOM.inputSocialFacebook) DOM.inputSocialFacebook.value = social_links?.facebook || '';
+    if (DOM.inputSocialInstagram) DOM.inputSocialInstagram.value = social_links?.instagram || '';
+    if (DOM.inputSocialWhatsapp) DOM.inputSocialWhatsapp.value = social_links?.whatsapp || '';
+    if (DOM.inputSocialTelegram) DOM.inputSocialTelegram.value = social_links?.telegram || '';
+    if (DOM.socialLinksNotice) DOM.socialLinksNotice.className = 'hidden';
+
+    DOM.clientProfileHubModal?.classList.remove('hidden');
+  } catch (err) {
+    alert(`Could not load Profile Hub: ${err.message}`);
+  }
+}
+
+function closeUserProfileHub() {
+  DOM.clientProfileHubModal?.classList.add('hidden');
+}
+
+async function handleSaveSocialLinks(e) {
+  e.preventDefault();
+  if (!STATE.client || !STATE.client.id) return;
+
+  const facebook = (DOM.inputSocialFacebook?.value || '').trim();
+  const instagram = (DOM.inputSocialInstagram?.value || '').trim();
+  const whatsapp = (DOM.inputSocialWhatsapp?.value || '').trim();
+  const telegram = (DOM.inputSocialTelegram?.value || '').trim();
+
+  try {
+    DOM.btnSaveSocialLinks.disabled = true;
+    DOM.btnSaveSocialLinks.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i> Saving...';
+
+    const res = await fetch(`/api/clients/${STATE.client.id}/social-links`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ facebook, instagram, whatsapp, telegram }),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.message || 'Failed to save social links.');
+
+    if (DOM.socialLinksNotice) {
+      DOM.socialLinksNotice.className = 'p-2 rounded-lg text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+      DOM.socialLinksNotice.textContent = '✅ Social profiles linked! Account trustworthiness upgraded.';
+      DOM.socialLinksNotice.classList.remove('hidden');
+    }
+  } catch (err) {
+    if (DOM.socialLinksNotice) {
+      DOM.socialLinksNotice.className = 'p-2 rounded-lg text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30';
+      DOM.socialLinksNotice.textContent = err.message;
+      DOM.socialLinksNotice.classList.remove('hidden');
+    }
+  } finally {
+    DOM.btnSaveSocialLinks.disabled = false;
+    DOM.btnSaveSocialLinks.innerHTML = '<i class="fas fa-save mr-1.5"></i> Save Social Profiles';
+  }
 }
 
 // ─── Real-Time Client Notifications ──────────────────────────────────────────
@@ -1833,7 +2289,7 @@ function renderKycUI(kyc) {
     }
   }
 
-  // 9. Gatekeeper Banner and Lock Rules
+  // 9. Gatekeeper Banner and Lock Rules (Module 9 Refactored)
   if (isVerified) {
     DOM.kycRequiredBanner?.classList.add('hidden');
     DOM.headerKycDot?.classList.add('hidden');
@@ -1845,20 +2301,43 @@ function renderKycUI(kyc) {
   } else if (isPending || isLocked) {
     DOM.kycRequiredBanner?.classList.remove('hidden');
     DOM.kycRequiredBanner.innerHTML = `
-      <div class="flex items-center space-x-2 font-black uppercase tracking-wide text-amber-400 text-sm">
-        <i class="fas fa-clock text-base"></i>
-        <span>KYC Under Executive Review</span>
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2 font-black uppercase tracking-wide text-amber-400 text-sm">
+          <i class="fas fa-clock text-base"></i>
+          <span>KYC Under Executive Review</span>
+          <button type="button" id="kycInfoBtn" title="Why is KYC required?" class="w-5 h-5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 hover:text-white border border-amber-500/40 flex items-center justify-center text-[10px] font-black cursor-pointer transition">?</button>
+        </div>
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/30 text-amber-300 border border-amber-500/40">IN REVIEW</span>
       </div>
       <p class="text-[11px] text-slate-300 leading-relaxed">
         Your identity documents and live photo have been submitted and are currently being reviewed by Admin. Loan requests will unlock once approved.
       </p>
     `;
+    document.getElementById('kycInfoBtn')?.addEventListener('click', openKycInfoModal);
     DOM.kycStatusMessage.textContent = '⏳ KYC Documents submitted. Executive compliance desk is currently reviewing and matching your NID with your live selfie.';
     DOM.kycImmutabilityNotice?.classList.remove('hidden');
     DOM.kycRejectionBox?.classList.add('hidden');
     lockAllKycInputs(true);
   } else if (isRejected) {
     DOM.kycRequiredBanner?.classList.remove('hidden');
+    DOM.kycRequiredBanner.innerHTML = `
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2 font-black uppercase tracking-wide text-rose-400 text-sm">
+          <i class="fas fa-exclamation-triangle text-base"></i>
+          <span>KYC Verification Rejected</span>
+          <button type="button" id="kycInfoBtn" title="Why is KYC required?" class="w-5 h-5 rounded-full bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 hover:text-white border border-rose-500/40 flex items-center justify-center text-[10px] font-black cursor-pointer transition">?</button>
+        </div>
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/30 text-rose-300 border border-rose-500/40">RESUBMIT REQUIRED</span>
+      </div>
+      <p class="text-[11px] text-slate-300 leading-relaxed">
+        ${kyc.rejection_reason || 'Document mismatch or unclear image. Please review admin feedback and resubmit.'}
+      </p>
+      <button type="button" id="bannerGoToKycBtn" class="btn-gold w-full py-2.5 px-4 rounded-xl font-black text-xs uppercase tracking-wide flex items-center justify-center shadow cursor-pointer">
+        <i class="fas fa-id-card mr-2"></i> Fix & Resubmit KYC Now
+      </button>
+    `;
+    document.getElementById('kycInfoBtn')?.addEventListener('click', openKycInfoModal);
+    document.getElementById('bannerGoToKycBtn')?.addEventListener('click', () => switchTab('kyc'));
     DOM.kycStatusMessage.textContent = '❌ Your previous KYC submission was rejected. Please review admin feedback below and resubmit.';
     DOM.kycRejectionBox?.classList.remove('hidden');
     DOM.kycRejectionReasonText.textContent = kyc.rejection_reason || 'Document mismatch or unclear image.';
@@ -1866,6 +2345,24 @@ function renderKycUI(kyc) {
     lockAllKycInputs(false);
   } else {
     DOM.kycRequiredBanner?.classList.remove('hidden');
+    DOM.kycRequiredBanner.innerHTML = `
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2 font-black uppercase tracking-wide text-amber-400 text-sm">
+          <i class="fas fa-shield-alt text-base"></i>
+          <span>COMPLETE KYC VERIFICATION NOW</span>
+          <button type="button" id="kycInfoBtn" title="Why is KYC required?" class="w-5 h-5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 hover:text-white border border-amber-500/40 flex items-center justify-center text-[10px] font-black cursor-pointer transition">?</button>
+        </div>
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/30 text-amber-300 border border-amber-500/40">PRE-LOAN GATE</span>
+      </div>
+      <p class="text-[11px] text-slate-300 leading-relaxed">
+        SYM EMPIRE PLATFORM (S.E.P.) requires mandatory KYC verification (NID Front/Back, Email OTP, and Live Photo) before any money requests can be submitted or approved.
+      </p>
+      <button type="button" id="bannerGoToKycBtn" class="btn-gold w-full py-2.5 px-4 rounded-xl font-black text-xs uppercase tracking-wide flex items-center justify-center shadow cursor-pointer">
+        <i class="fas fa-id-card mr-2"></i> Complete KYC Verification Now
+      </button>
+    `;
+    document.getElementById('kycInfoBtn')?.addEventListener('click', openKycInfoModal);
+    document.getElementById('bannerGoToKycBtn')?.addEventListener('click', () => switchTab('kyc'));
     DOM.kycStatusMessage.textContent = 'Upload your National ID (Front & Back), confirm your email via OTP, and take a real-time live selfie to verify your identity.';
     DOM.kycImmutabilityNotice?.classList.add('hidden');
     DOM.kycRejectionBox?.classList.add('hidden');
@@ -2161,11 +2658,7 @@ async function requestEmailOtp() {
     startEmailOtpTimer(json.expires_in || 300);
 
     DOM.emailOtpFeedback.className = 'text-[11px] font-bold p-2 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
-    if (json.previewCode) {
-      DOM.emailOtpFeedback.textContent = `✅ Passcode sent! (Hostinger SMTP Preview: ${json.previewCode})`;
-    } else {
-      DOM.emailOtpFeedback.textContent = '✅ Passcode sent to your email inbox! Valid for 5 minutes.';
-    }
+    DOM.emailOtpFeedback.textContent = '✅ Verification code dispatched to your email inbox! Valid for 5 minutes.';
     DOM.emailOtpFeedback.classList.remove('hidden');
   } catch (err) {
     alert(`Email OTP Error: ${err.message}`);
@@ -2429,7 +2922,14 @@ function setupEventListeners() {
   DOM.clientDrawerBtn?.addEventListener('click', openClientDrawer);
   DOM.closeClientDrawerBtn?.addEventListener('click', closeClientDrawer);
   DOM.clientDrawerBackdrop?.addEventListener('click', closeClientDrawer);
-  DOM.drawerProfileCard?.addEventListener('click', () => switchTab('kyc'));
+  DOM.drawerProfileCard?.addEventListener('click', () => {
+    closeClientDrawer();
+    openUserProfileHub();
+  });
+  DOM.drawerNavProfile?.addEventListener('click', () => {
+    closeClientDrawer();
+    openUserProfileHub();
+  });
   DOM.drawerNavLoans?.addEventListener('click', () => switchTab('loans'));
   DOM.drawerNavKyc?.addEventListener('click', () => switchTab('kyc'));
   DOM.drawerNavSettings?.addEventListener('click', () => {
@@ -2452,6 +2952,28 @@ function setupEventListeners() {
     DOM.logoutBtn.click();
   });
   DOM.togglePushAlertsBtn?.addEventListener('click', requestPushNotificationPermission);
+
+  // Module 9: KYC Informative Modal Listeners
+  DOM.closeKycInfoModalBtn?.addEventListener('click', closeKycInfoModal);
+  DOM.dismissKycInfoModalBtn?.addEventListener('click', closeKycInfoModal);
+  DOM.kycInfoBtn?.addEventListener('click', openKycInfoModal);
+
+  // Module 10: Biometric & Security PIN Controls
+  DOM.biometricPinToggle?.addEventListener('change', handleBiometricToggleChange);
+  DOM.btnConfigBiometricPin?.addEventListener('click', openSetPinModal);
+  DOM.btnEnableBiometrics?.addEventListener('click', enrollWebAuthnBiometrics);
+  DOM.btnFallbackPin?.addEventListener('click', openSetPinModal);
+  DOM.btnCancelBiometricPerm?.addEventListener('click', () => {
+    DOM.biometricPermModal?.classList.add('hidden');
+    updateSecurityUi();
+  });
+  DOM.closeSetPinModalBtn?.addEventListener('click', closeSetPinModal);
+  DOM.setPinForm?.addEventListener('submit', handleSavePinSubmit);
+  DOM.closeLoanPinConfirmBtn?.addEventListener('click', closeLoanPinConfirmModal);
+
+  // Module 11: User Profile Hub Listeners
+  DOM.closeProfileHubModalBtn?.addEventListener('click', closeUserProfileHub);
+  DOM.socialLinksForm?.addEventListener('submit', handleSaveSocialLinks);
 
   // Admin Client Switcher Dropdown Listener
   DOM.adminClientSwitcherSelect?.addEventListener('change', async (e) => {
@@ -2888,74 +3410,123 @@ function setupEventListeners() {
       return;
     }
 
-    const amount = parseFloat(DOM.amountInput.value);
-    const deadline = DOM.deadlineDate.value;
-    const note = DOM.loanNote.value.trim();
+    const executeLoanSubmission = async (extraHeaders = {}) => {
+      const amount = parseFloat(DOM.amountInput.value);
+      const deadline = DOM.deadlineDate.value;
+      const note = DOM.loanNote.value.trim();
 
-    DOM.submitBtn.disabled = true;
-    DOM.submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
-    DOM.formFeedback.classList.add('hidden');
+      DOM.submitBtn.disabled = true;
+      DOM.submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+      DOM.formFeedback.classList.add('hidden');
 
-    try {
-      const headers = { 'Content-Type': 'application/json' };
-      if (isAdmin && adminKey) {
-        headers['x-admin-key'] = adminKey;
-      }
-
-      const res = await fetch('/api/loans', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          client_id: STATE.client.id,
-          amount,
-          deadline_date: deadline,
-          admin_note: note,
-        }),
-      });
-
-      const json = await res.json();
-
-      if (!res.ok || !json.success) {
-        if (json.code === 'KYC_REQUIRED') {
-          DOM.kycGateModal?.classList.remove('hidden');
+      try {
+        const headers = Object.assign({ 'Content-Type': 'application/json' }, extraHeaders);
+        if (isAdmin && adminKey) {
+          headers['x-admin-key'] = adminKey;
         }
-        if (res.status === 429 && json.unlock_at) {
-          startCooldownCountdown(json.unlock_at);
+
+        const res = await fetch('/api/loans', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            client_id: STATE.client.id,
+            amount,
+            deadline_date: deadline,
+            admin_note: note,
+          }),
+        });
+
+        const json = await res.json();
+
+        if (!res.ok || !json.success) {
+          if (json.code === 'KYC_REQUIRED') {
+            DOM.kycGateModal?.classList.remove('hidden');
+          }
+          if (res.status === 429 && json.unlock_at) {
+            startCooldownCountdown(json.unlock_at);
+          }
+          throw new Error(json.message || 'Submission failed.');
         }
-        throw new Error(json.message || 'Submission failed.');
+
+        // Success
+        DOM.formFeedback.className = 'mt-4 p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold';
+        DOM.formFeedback.innerHTML = `
+          <div class="flex items-center">
+            <i class="fas fa-check-circle text-lg mr-2 text-emerald-400"></i>
+            <span>${json.message}</span>
+          </div>
+        `;
+        DOM.formFeedback.classList.remove('hidden');
+
+        DOM.loanNote.value = '';
+        await fetchClientLoans(STATE.client.id);
+        await fetchClientCreditProfile(STATE.client.id);
+
+        setTimeout(() => {
+          DOM.formFeedback.classList.add('hidden');
+        }, 6000);
+
+      } catch (err) {
+        DOM.formFeedback.className = 'mt-4 p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-bold';
+        DOM.formFeedback.innerHTML = `
+          <div class="flex items-center">
+            <i class="fas fa-exclamation-triangle text-lg mr-2 text-rose-400"></i>
+            <span>${err.message}</span>
+          </div>
+        `;
+        DOM.formFeedback.classList.remove('hidden');
+      } finally {
+        DOM.submitBtn.disabled = false;
+        DOM.submitBtn.innerHTML = 'Submit Money Request <i class="fas fa-paper-plane ml-2"></i>';
       }
+    };
 
-      // Success
-      DOM.formFeedback.className = 'mt-4 p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold';
-      DOM.formFeedback.innerHTML = `
-        <div class="flex items-center">
-          <i class="fas fa-check-circle text-lg mr-2 text-emerald-400"></i>
-          <span>${json.message}</span>
-        </div>
-      `;
-      DOM.formFeedback.classList.remove('hidden');
-
-      DOM.loanNote.value = '';
-      await fetchClientLoans(STATE.client.id);
-      await fetchClientCreditProfile(STATE.client.id);
-
-      setTimeout(() => {
-        DOM.formFeedback.classList.add('hidden');
-      }, 6000);
-
-    } catch (err) {
-      DOM.formFeedback.className = 'mt-4 p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-bold';
-      DOM.formFeedback.innerHTML = `
-        <div class="flex items-center">
-          <i class="fas fa-exclamation-triangle text-lg mr-2 text-rose-400"></i>
-          <span>${err.message}</span>
-        </div>
-      `;
-      DOM.formFeedback.classList.remove('hidden');
-    } finally {
-      DOM.submitBtn.disabled = false;
-      DOM.submitBtn.innerHTML = 'Submit Money Request <i class="fas fa-paper-plane ml-2"></i>';
+    // Pre-submission Security Interceptor (Module 10)
+    if (!isAdmin && STATE.securityProfile && STATE.securityProfile.security_enabled) {
+      if (STATE.securityProfile.security_type === 'BIOMETRIC') {
+        try {
+          if (!navigator.credentials || !navigator.credentials.get) {
+            throw new Error('WebAuthn not supported');
+          }
+          const challenge = new Uint8Array(32);
+          window.crypto.getRandomValues(challenge);
+          const assertion = await navigator.credentials.get({
+            publicKey: {
+              challenge,
+              timeout: 60000,
+              userVerification: 'required',
+            }
+          });
+          if (assertion) {
+            const credId = btoa(String.fromCharCode(...new Uint8Array(assertion.rawId)));
+            const tokenRes = await fetch(`/api/clients/${STATE.client.id}/security/biometric-token`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ credentialId: credId }),
+            });
+            const tokenJson = await tokenRes.json();
+            if (tokenRes.ok && tokenJson.success) {
+              return executeLoanSubmission({ 'x-biometric-token': tokenJson.token });
+            }
+          }
+        } catch (authErr) {
+          console.warn('Biometrics prompt failed/cancelled. Opening PIN keypad fallback...', authErr);
+        }
+        // Fallback to PIN keypad
+        openLoanPinConfirmModal((authHeaders) => {
+          executeLoanSubmission(authHeaders);
+        });
+        return;
+      } else if (STATE.securityProfile.security_type === 'PIN') {
+        openLoanPinConfirmModal((authHeaders) => {
+          executeLoanSubmission(authHeaders);
+        });
+        return;
+      }
     }
+
+    // Direct submission if security not active or admin testing
+    executeLoanSubmission({});
   });
 
   // ─── Repayment Modal & Form Events (Phase 9) ───

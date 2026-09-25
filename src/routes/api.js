@@ -36,6 +36,7 @@ const smsService     = require('../lib/smsService');
 const collectionEngine = require('../lib/collectionEngine');
 const creditScoreEngine = require('../lib/creditScoreEngine');
 const fraudDetectionEngine = require('../lib/fraudDetectionEngine');
+const clientSecurityManager = require('../lib/clientSecurityManager');
 
 const router = express.Router();
 
@@ -425,6 +426,21 @@ router.post('/loans', async (req, res) => {
         message: 'You already have an active loan request in progress. You cannot apply for a new loan until your existing request is settled or adjudicated.',
         active_loan: existingActive[0],
       });
+    }
+
+    // 2b-2. Biometric / PIN Loan Confirmation Check (Module 10)
+    const secProfile = clientSecurityManager.getSecurityProfile(client_id);
+    if (secProfile && secProfile.biometric_pin_enabled) {
+      const bioToken = req.headers['x-biometric-token'] || req.body?.biometric_token;
+      const pinToken = req.headers['x-pin-token'] || req.body?.pin_token;
+      const validToken = clientSecurityManager.verifySecurityToken(client_id, bioToken) || clientSecurityManager.verifySecurityToken(client_id, pinToken);
+      if (!validToken) {
+        return res.status(403).json({
+          success: false,
+          error: 'BIOMETRIC_OR_PIN_REQUIRED',
+          message: 'Biometric fingerprint/Face ID or private 4-digit PIN confirmation required to submit money request.',
+        });
+      }
     }
   }
 
@@ -916,8 +932,7 @@ router.post('/kyc/request-email-otp', async (req, res) => {
   const emailRes = await emailService.sendEmailOtp(cleanEmail, otpRes.code, 'KYC Email Verification');
   res.json({
     success: true,
-    message: emailRes.message,
-    previewCode: emailRes.previewCode,
+    message: 'Verification code dispatched to your email.',
     expires_in: 300,
   });
 });
@@ -1195,6 +1210,133 @@ router.post('/telemetry/device', (req, res) => {
         fraud_score: result.fraud_score,
         risk_tier: result.risk_tier,
         status: result.status
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/clients/:id/security-profile — Get biometric & PIN security state
+router.get('/clients/:id/security-profile', (req, res) => {
+  try {
+    const profile = clientSecurityManager.getSecurityProfile(req.params.id);
+    res.json({
+      success: true,
+      biometric_pin_enabled: profile ? profile.biometric_pin_enabled : false,
+      has_pin: Boolean(profile && profile.pin_hash),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/clients/:id/security/biometric — Toggle biometric/PIN enforcement
+router.post('/clients/:id/security/biometric', (req, res) => {
+  try {
+    const { enabled } = req.body;
+    const profile = clientSecurityManager.setBiometricPinEnabled(req.params.id, enabled);
+    res.json({
+      success: true,
+      biometric_pin_enabled: profile.biometric_pin_enabled,
+      has_pin: Boolean(profile.pin_hash),
+      message: `Biometric / PIN confirmation is now ${profile.biometric_pin_enabled ? 'ENABLED' : 'DISABLED'}.`,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/clients/:id/security/set-pin — Set or update 4-digit security PIN
+router.post('/clients/:id/security/set-pin', (req, res) => {
+  try {
+    const { pin } = req.body;
+    const result = clientSecurityManager.setPin(req.params.id, pin);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/clients/:id/security/verify-pin — Verify PIN and receive short-lived token
+router.post('/clients/:id/security/verify-pin', (req, res) => {
+  try {
+    const { pin } = req.body;
+    const result = clientSecurityManager.verifyPin(req.params.id, pin);
+    if (!result.valid) {
+      return res.status(401).json({ success: false, message: result.message });
+    }
+    res.json({ success: true, token: result.token, message: result.message });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/clients/:id/security/biometric-token — Issue biometric validation token
+router.post('/clients/:id/security/biometric-token', (req, res) => {
+  try {
+    const token = clientSecurityManager.issueSecurityToken(req.params.id, 'BIOMETRIC');
+    res.json({ success: true, token, message: 'Biometric authorization token issued.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/clients/:id/social-links — Get social media links
+router.get('/clients/:id/social-links', (req, res) => {
+  try {
+    const links = clientSecurityManager.getSocialLinks(req.params.id);
+    res.json({ success: true, social_links: links });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/clients/:id/social-links — Update social media links
+router.post('/clients/:id/social-links', async (req, res) => {
+  try {
+    const { facebook, instagram, whatsapp, telegram } = req.body;
+    const updated = clientSecurityManager.saveSocialLinks(req.params.id, { facebook, instagram, whatsapp, telegram });
+    
+    // Also sync to Supabase client_profiles if available
+    try {
+      await supabaseAdmin.from('client_profiles').update({ social_links: updated }).eq('id', req.params.id);
+    } catch (e) {}
+
+    res.json({ success: true, social_links: updated, message: 'Social media links saved successfully.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/clients/:id/profile-hub — Unified user profile hub data (Module 11)
+router.get('/clients/:id/profile-hub', async (req, res) => {
+  try {
+    const clientId = req.params.id;
+    const { data: client } = await supabaseAdmin.from('client_profiles').select('*').eq('id', clientId).maybeSingle();
+    const kyc = kycManager.getKycProfile(clientId) || {};
+    let creditProfile = null;
+    try {
+      creditProfile = await creditScoreEngine.getClientCreditProfile(clientId);
+    } catch (e) {}
+    const socialLinks = clientSecurityManager.getSocialLinks(clientId);
+    const secProfile = clientSecurityManager.getSecurityProfile(clientId);
+
+    res.json({
+      success: true,
+      profile: {
+        id: clientId,
+        name: (kyc && kyc.legal_name) || client?.name || 'Registered Client',
+        phone_number: client?.phone_number || kyc?.phone || '',
+        email: (kyc && kyc.email) || client?.email || '',
+        live_selfie_url: (kyc && kyc.live_selfie_url) || '',
+        vip_tier: creditProfile?.vip_tier || { name: 'Bronze Member', badge: '🥉' },
+        credit_score: creditProfile?.score || 550,
+        social_links: socialLinks,
+        biometric_pin_enabled: secProfile.biometric_pin_enabled,
+        has_pin: Boolean(secProfile.pin_hash),
+        joined_at: client?.created_at || null,
+        kyc_status: kyc?.status || 'UNSUBMITTED',
       }
     });
   } catch (err) {

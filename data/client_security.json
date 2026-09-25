@@ -1,0 +1,15 @@
+{
+  "00000000-0000-0000-0000-000000000001": {
+    "client_id": "00000000-0000-0000-0000-000000000001",
+    "biometric_pin_enabled": false,
+    "pin_hash": "0a79c306809734a3c044d20bce60f96e0d416c32273ca348e6ca4c714a00837a",
+    "pin_salt": "db48b93607fae6271c64b880ec842e10",
+    "social_links": {
+      "facebook": "https://facebook.com/symempire",
+      "instagram": "@sym_empire",
+      "whatsapp": "+8801700000000",
+      "telegram": "@sym_ceo"
+    },
+    "updated_at": "2026-09-25T04:54:46.558Z"
+  }
+}
