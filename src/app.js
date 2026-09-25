@@ -84,7 +84,7 @@ app.post('/api/bot/webhook', async (req, res) => {
   }
 });
 
-// ─── Direct Android APK Download Route (Exempt from mobile check) ───────────
+// ─── Direct Android APK Download Routes (Exempt from mobile check) ───────────
 app.get(['/downloads/SYM-LOAN.apk', '/api/app/download-apk'], (_req, res) => {
   const apkPath = path.join(__dirname, '../public/downloads/SYM-LOAN.apk');
   if (!fs.existsSync(apkPath)) {
@@ -95,6 +95,19 @@ app.get(['/downloads/SYM-LOAN.apk', '/api/app/download-apk'], (_req, res) => {
   }
   res.setHeader('Content-Type', 'application/vnd.android.package-archive');
   res.setHeader('Content-Disposition', 'attachment; filename="SYM-LOAN.apk"');
+  res.sendFile(apkPath);
+});
+
+app.get(['/downloads/SYM-LOAN-ADMIN.apk', '/api/app/download-admin-apk'], (_req, res) => {
+  const apkPath = path.join(__dirname, '../public/downloads/SYM-LOAN-ADMIN.apk');
+  if (!fs.existsSync(apkPath)) {
+    return res.status(404).json({
+      success: false,
+      message: 'SYM LOAN ADMIN Native Android APK is being packaged. Please try again shortly.',
+    });
+  }
+  res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+  res.setHeader('Content-Disposition', 'attachment; filename="SYM-LOAN-ADMIN.apk"');
   res.sendFile(apkPath);
 });
 
@@ -109,6 +122,7 @@ app.use('/api', (req, res, next) => {
     req.path.startsWith('/auth/') ||
     req.path === '/bot/webhook' ||
     req.path === '/app/download-apk' ||
+    req.path === '/app/download-admin-apk' ||
     req.path === '/telemetry/device'
   ) {
     return next();

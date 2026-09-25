@@ -9,7 +9,8 @@
         "build:apk": "node scripts/build_apk.js",
         "build:admin-apk": "node scripts/build_admin_apk.js",
         "package": "node scripts/package_hostinger.js",
-        "test": "echo 'No tests configured yet'"
+        "audit": "node scripts/audit_codebase.js",
+        "test": "node scripts/run_all_tests.js"
     },
     "repository": {
         "type": "git",

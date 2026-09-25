@@ -300,9 +300,22 @@ async function runTests() {
   const targetBlock = parsedAudit.blocks[parsedAudit.blocks.length - 1];
   const originalAction = targetBlock.action;
 
+  function safeWriteTestFile(p, content) {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        fs.writeFileSync(p, content, 'utf8');
+        return;
+      } catch (e) {
+        if (attempt === 4) throw e;
+        const start = Date.now();
+        while (Date.now() - start < 40 * (attempt + 1)) {}
+      }
+    }
+  }
+
   // Tamper with payload
   targetBlock.action = 'TAMPERED_ACTION_FRAUD';
-  fs.writeFileSync(auditFilePath, JSON.stringify(parsedAudit, null, 2), 'utf8');
+  safeWriteTestFile(auditFilePath, JSON.stringify(parsedAudit, null, 2));
 
   // Verify that tamper is detected
   const tamperedIntegrity = auditTrailEngine.verifyChainIntegrity();
@@ -311,7 +324,7 @@ async function runTests() {
 
   // Revert tamper back to clean state
   targetBlock.action = originalAction;
-  fs.writeFileSync(auditFilePath, JSON.stringify(parsedAudit, null, 2), 'utf8');
+  safeWriteTestFile(auditFilePath, JSON.stringify(parsedAudit, null, 2));
 
   const restoredIntegrity = auditTrailEngine.verifyChainIntegrity();
   assert(restoredIntegrity.valid === true, 'Chain integrity restored to 100% valid after reverting test tamper');

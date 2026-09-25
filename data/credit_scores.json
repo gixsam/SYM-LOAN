@@ -2,6 +2,206 @@
   "overrides": {},
   "audit_log": [
     {
+      "client_id": "test_cli_1790346888541",
+      "action": "REMOVE_OVERRIDE",
+      "timestamp": "2026-09-25T14:34:48.789Z"
+    },
+    {
+      "client_id": "test_cli_1790346888541",
+      "action": "SET_OVERRIDE",
+      "details": {
+        "client_id": "test_cli_1790346888541",
+        "score_offset": 25,
+        "fixed_grade": "A",
+        "fixed_tier": null,
+        "force_status": null,
+        "admin_note": "Audit trail integration automated verification test",
+        "admin_user": "Admin",
+        "updated_at": "2026-09-25T14:34:48.543Z"
+      },
+      "timestamp": "2026-09-25T14:34:48.543Z"
+    },
+    {
+      "client_id": "e84ecb25-5fa1-42fb-ab04-8e3c5112a69b",
+      "action": "REMOVE_OVERRIDE",
+      "timestamp": "2026-09-25T14:34:47.387Z"
+    },
+    {
+      "client_id": "e84ecb25-5fa1-42fb-ab04-8e3c5112a69b",
+      "action": "SET_OVERRIDE",
+      "details": {
+        "client_id": "e84ecb25-5fa1-42fb-ab04-8e3c5112a69b",
+        "score_offset": 25,
+        "fixed_grade": null,
+        "fixed_tier": null,
+        "force_status": null,
+        "admin_note": "Automated test API override",
+        "admin_user": "Admin",
+        "updated_at": "2026-09-25T14:34:47.051Z"
+      },
+      "timestamp": "2026-09-25T14:34:47.051Z"
+    },
+    {
+      "client_id": "test_cl_phase11_override",
+      "action": "REMOVE_OVERRIDE",
+      "timestamp": "2026-09-25T14:34:44.913Z"
+    },
+    {
+      "client_id": "test_cl_phase11_override",
+      "action": "SET_OVERRIDE",
+      "details": {
+        "client_id": "test_cl_phase11_override",
+        "score_offset": 75,
+        "fixed_grade": null,
+        "fixed_tier": "PLATINUM",
+        "force_status": null,
+        "admin_note": "Automated test override verification",
+        "admin_user": "TestRunner",
+        "updated_at": "2026-09-25T14:34:44.902Z"
+      },
+      "timestamp": "2026-09-25T14:34:44.904Z"
+    },
+    {
+      "client_id": "test_cli_1790346840299",
+      "action": "REMOVE_OVERRIDE",
+      "timestamp": "2026-09-25T14:34:00.550Z"
+    },
+    {
+      "client_id": "test_cli_1790346840299",
+      "action": "SET_OVERRIDE",
+      "details": {
+        "client_id": "test_cli_1790346840299",
+        "score_offset": 25,
+        "fixed_grade": "A",
+        "fixed_tier": null,
+        "force_status": null,
+        "admin_note": "Audit trail integration automated verification test",
+        "admin_user": "Admin",
+        "updated_at": "2026-09-25T14:34:00.301Z"
+      },
+      "timestamp": "2026-09-25T14:34:00.301Z"
+    },
+    {
+      "client_id": "e84ecb25-5fa1-42fb-ab04-8e3c5112a69b",
+      "action": "REMOVE_OVERRIDE",
+      "timestamp": "2026-09-25T14:33:59.188Z"
+    },
+    {
+      "client_id": "e84ecb25-5fa1-42fb-ab04-8e3c5112a69b",
+      "action": "SET_OVERRIDE",
+      "details": {
+        "client_id": "e84ecb25-5fa1-42fb-ab04-8e3c5112a69b",
+        "score_offset": 25,
+        "fixed_grade": null,
+        "fixed_tier": null,
+        "force_status": null,
+        "admin_note": "Automated test API override",
+        "admin_user": "Admin",
+        "updated_at": "2026-09-25T14:33:58.788Z"
+      },
+      "timestamp": "2026-09-25T14:33:58.788Z"
+    },
+    {
+      "client_id": "test_cl_phase11_override",
+      "action": "REMOVE_OVERRIDE",
+      "timestamp": "2026-09-25T14:33:56.696Z"
+    },
+    {
+      "client_id": "test_cl_phase11_override",
+      "action": "SET_OVERRIDE",
+      "details": {
+        "client_id": "test_cl_phase11_override",
+        "score_offset": 75,
+        "fixed_grade": null,
+        "fixed_tier": "PLATINUM",
+        "force_status": null,
+        "admin_note": "Automated test override verification",
+        "admin_user": "TestRunner",
+        "updated_at": "2026-09-25T14:33:56.684Z"
+      },
+      "timestamp": "2026-09-25T14:33:56.685Z"
+    },
+    {
+      "client_id": "test_cli_1790346804008",
+      "action": "REMOVE_OVERRIDE",
+      "timestamp": "2026-09-25T14:33:25.018Z"
+    },
+    {
+      "client_id": "test_cli_1790346804008",
+      "action": "SET_OVERRIDE",
+      "details": {
+        "client_id": "test_cli_1790346804008",
+        "score_offset": 25,
+        "fixed_grade": "A",
+        "fixed_tier": null,
+        "force_status": null,
+        "admin_note": "Audit trail integration automated verification test",
+        "admin_user": "Admin",
+        "updated_at": "2026-09-25T14:33:24.009Z"
+      },
+      "timestamp": "2026-09-25T14:33:24.009Z"
+    },
+    {
+      "client_id": "test_cli_1790346405686",
+      "action": "REMOVE_OVERRIDE",
+      "timestamp": "2026-09-25T14:26:46.001Z"
+    },
+    {
+      "client_id": "test_cli_1790346405686",
+      "action": "SET_OVERRIDE",
+      "details": {
+        "client_id": "test_cli_1790346405686",
+        "score_offset": 25,
+        "fixed_grade": "A",
+        "fixed_tier": null,
+        "force_status": null,
+        "admin_note": "Audit trail integration automated verification test",
+        "admin_user": "Admin",
+        "updated_at": "2026-09-25T14:26:45.688Z"
+      },
+      "timestamp": "2026-09-25T14:26:45.688Z"
+    },
+    {
+      "client_id": "e84ecb25-5fa1-42fb-ab04-8e3c5112a69b",
+      "action": "REMOVE_OVERRIDE",
+      "timestamp": "2026-09-25T14:26:25.387Z"
+    },
+    {
+      "client_id": "e84ecb25-5fa1-42fb-ab04-8e3c5112a69b",
+      "action": "SET_OVERRIDE",
+      "details": {
+        "client_id": "e84ecb25-5fa1-42fb-ab04-8e3c5112a69b",
+        "score_offset": 25,
+        "fixed_grade": null,
+        "fixed_tier": null,
+        "force_status": null,
+        "admin_note": "Automated test API override",
+        "admin_user": "Admin",
+        "updated_at": "2026-09-25T14:26:24.921Z"
+      },
+      "timestamp": "2026-09-25T14:26:24.921Z"
+    },
+    {
+      "client_id": "test_cl_phase11_override",
+      "action": "REMOVE_OVERRIDE",
+      "timestamp": "2026-09-25T14:26:21.928Z"
+    },
+    {
+      "client_id": "test_cl_phase11_override",
+      "action": "SET_OVERRIDE",
+      "details": {
+        "client_id": "test_cl_phase11_override",
+        "score_offset": 75,
+        "fixed_grade": null,
+        "fixed_tier": "PLATINUM",
+        "force_status": null,
+        "admin_note": "Automated test override verification",
+        "admin_user": "TestRunner",
+        "updated_at": "2026-09-25T14:26:21.783Z"
+      },
+      "timestamp": "2026-09-25T14:26:21.784Z"
+    },
+    {
       "client_id": "test_cli_1790313255529",
       "action": "REMOVE_OVERRIDE",
       "timestamp": "2026-09-25T05:14:15.795Z"

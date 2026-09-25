@@ -256,27 +256,27 @@ const DOM = {
 
   // Upcoming Repayments Analytics Elements (Step 3)
   refreshUpcomingRepaymentsBtn: document.getElementById('refreshUpcomingRepaymentsBtn'),
-  badgeRepayOverdue: document.getElementById('badgeRepayOverdue'),
-  badgeRepayToday: document.getElementById('badgeRepayToday'),
-  badgeRepay3Days: document.getElementById('badgeRepay3Days'),
-  badgeRepay7Days: document.getElementById('badgeRepay7Days'),
-  badgeRepayTotalInflow: document.getElementById('badgeRepayTotalInflow'),
+  badgeRepayOverdue: document.getElementById('overdueCountBadge') || document.getElementById('badgeRepayOverdue'),
+  badgeRepayToday: document.getElementById('dueTodayCountBadge') || document.getElementById('badgeRepayToday'),
+  badgeRepay3Days: document.getElementById('due3DaysCountBadge') || document.getElementById('badgeRepay3Days'),
+  badgeRepay7Days: document.getElementById('due3DaysCountBadge') || document.getElementById('badgeRepay7Days'),
+  badgeRepayTotalInflow: document.getElementById('totalInflowsText') || document.getElementById('badgeRepayTotalInflow'),
   upcomingRepaymentsTableBody: document.getElementById('upcomingRepaymentsTableBody'),
 
   // Daily Expense Tracking Elements (Step 1)
   expenseForm: document.getElementById('expenseForm'),
-  expenseCategory: document.getElementById('expenseCategory'),
-  expenseAmount: document.getElementById('expenseAmount'),
-  expenseDate: document.getElementById('expenseDate'),
-  expensePayer: document.getElementById('expensePayer'),
-  expenseSplitWith: document.getElementById('expenseSplitWith'),
-  expenseDescription: document.getElementById('expenseDescription'),
-  submitExpenseBtn: document.getElementById('submitExpenseBtn'),
-  refreshExpensesBtn: document.getElementById('refreshExpensesBtn'),
+  expenseCategory: document.getElementById('expenseCategorySelect') || document.getElementById('expenseCategory'),
+  expenseAmount: document.getElementById('expenseAmountInput') || document.getElementById('expenseAmount'),
+  expenseDate: document.getElementById('expenseDateInput') || document.getElementById('expenseDate'),
+  expensePayer: document.getElementById('expensePayeeInput') || document.getElementById('expensePayer'),
+  expenseSplitWith: document.getElementById('expenseSplitWith') || document.getElementById('expenseCategorySelect'),
+  expenseDescription: document.getElementById('expenseNoteInput') || document.getElementById('expenseDescription'),
+  submitExpenseBtn: document.getElementById('logExpenseBtn') || document.getElementById('submitExpenseBtn'),
+  refreshExpensesBtn: document.getElementById('refreshExpensesBtn') || document.getElementById('exportExpensesBtn'),
   exportExpensesBtn: document.getElementById('exportExpensesBtn'),
-  filterExpenseCategory: document.getElementById('filterExpenseCategory'),
+  filterExpenseCategory: document.getElementById('filterExpenseCategory') || document.getElementById('expenseCategorySelect'),
   expensesTableBody: document.getElementById('expensesTableBody'),
-  totalExpensesFooterAmount: document.getElementById('totalExpensesFooterAmount'),
+  totalExpensesFooterAmount: document.getElementById('expensesTotalAmount') || document.getElementById('totalExpensesFooterAmount'),
 
   // Executive Operations Suite Elements (Step 6)
   suiteTabBtnNotes: document.getElementById('tabBtnNotepad') || document.getElementById('suiteTabBtnNotes'),
@@ -288,16 +288,16 @@ const DOM = {
   suiteTabContentClock: document.getElementById('suiteTabContentClock'),
   suiteTabContentMaps: document.getElementById('suiteTabContentMaps'),
   suiteNoteTitleInput: document.getElementById('suiteNoteTitleInput'),
-  suiteNoteCategoryInput: document.getElementById('suiteNoteCategoryInput'),
+  suiteNoteCategoryInput: document.getElementById('suiteNoteTagSelect') || document.getElementById('suiteNoteCategoryInput'),
   suiteNoteContentInput: document.getElementById('suiteNoteContentInput'),
   saveSuiteNoteBtn: document.getElementById('saveSuiteNoteBtn'),
   suiteNotesGrid: document.getElementById('suiteNotesGrid'),
-  suiteEventTitleInput: document.getElementById('suiteEventTitleInput'),
-  suiteEventDateInput: document.getElementById('suiteEventDateInput'),
-  suiteEventTimeInput: document.getElementById('suiteEventTimeInput'),
-  suiteEventClientInput: document.getElementById('suiteEventClientInput'),
-  suiteEventDescriptionInput: document.getElementById('suiteEventDescriptionInput'),
-  saveSuiteEventBtn: document.getElementById('saveSuiteEventBtn'),
+  suiteEventTitleInput: document.getElementById('suiteEventTitle') || document.getElementById('suiteEventTitleInput'),
+  suiteEventDateInput: document.getElementById('suiteEventDate') || document.getElementById('suiteEventDateInput'),
+  suiteEventTimeInput: document.getElementById('suiteEventTime') || document.getElementById('suiteEventTimeInput'),
+  suiteEventClientInput: document.getElementById('suiteEventClient') || document.getElementById('suiteEventClientInput'),
+  suiteEventDescriptionInput: document.getElementById('suiteEventDesc') || document.getElementById('suiteEventDescriptionInput'),
+  saveSuiteEventBtn: document.getElementById('createSuiteEventBtn') || document.getElementById('saveSuiteEventBtn'),
   suiteEventsList: document.getElementById('suiteEventsList'),
   suiteAlarmTimeInput: document.getElementById('suiteAlarmTimeInput'),
   suiteAlarmLabelInput: document.getElementById('suiteAlarmLabelInput'),
@@ -321,6 +321,7 @@ const DOM = {
   termsPolicyModal: document.getElementById('termsPolicyModal'),
   closeTermsModalBtn: document.getElementById('closeTermsModalBtn'),
   termsModalOkBtn: document.getElementById('termsModalOkBtn'),
+  settingsModal: document.getElementById('adminSettingsModal') || document.getElementById('settingsModal'),
 };
 
 function refreshDOM() {
@@ -335,6 +336,25 @@ function refreshDOM() {
   if (!DOM.suiteTabBtnClock) DOM.suiteTabBtnClock = document.getElementById('tabBtnClock') || document.getElementById('suiteTabBtnClock');
   if (!DOM.suiteTabBtnMaps) DOM.suiteTabBtnMaps = document.getElementById('tabBtnMaps') || document.getElementById('suiteTabBtnMaps');
   if (!DOM.suiteTabContentNotes) DOM.suiteTabContentNotes = document.getElementById('suiteTabContentNotepad') || document.getElementById('suiteTabContentNotes');
+  if (!DOM.suiteNoteCategoryInput) DOM.suiteNoteCategoryInput = document.getElementById('suiteNoteTagSelect') || document.getElementById('suiteNoteCategoryInput');
+  if (!DOM.suiteEventTitleInput) DOM.suiteEventTitleInput = document.getElementById('suiteEventTitle') || document.getElementById('suiteEventTitleInput');
+  if (!DOM.suiteEventDateInput) DOM.suiteEventDateInput = document.getElementById('suiteEventDate') || document.getElementById('suiteEventDateInput');
+  if (!DOM.suiteEventTimeInput) DOM.suiteEventTimeInput = document.getElementById('suiteEventTime') || document.getElementById('suiteEventTimeInput');
+  if (!DOM.suiteEventClientInput) DOM.suiteEventClientInput = document.getElementById('suiteEventClient') || document.getElementById('suiteEventClientInput');
+  if (!DOM.suiteEventDescriptionInput) DOM.suiteEventDescriptionInput = document.getElementById('suiteEventDesc') || document.getElementById('suiteEventDescriptionInput');
+  if (!DOM.saveSuiteEventBtn) DOM.saveSuiteEventBtn = document.getElementById('createSuiteEventBtn') || document.getElementById('saveSuiteEventBtn');
+  if (!DOM.expenseCategory) DOM.expenseCategory = document.getElementById('expenseCategorySelect') || document.getElementById('expenseCategory');
+  if (!DOM.expenseAmount) DOM.expenseAmount = document.getElementById('expenseAmountInput') || document.getElementById('expenseAmount');
+  if (!DOM.expenseDate) DOM.expenseDate = document.getElementById('expenseDateInput') || document.getElementById('expenseDate');
+  if (!DOM.expensePayer) DOM.expensePayer = document.getElementById('expensePayeeInput') || document.getElementById('expensePayer');
+  if (!DOM.expenseDescription) DOM.expenseDescription = document.getElementById('expenseNoteInput') || document.getElementById('expenseDescription');
+  if (!DOM.submitExpenseBtn) DOM.submitExpenseBtn = document.getElementById('logExpenseBtn') || document.getElementById('submitExpenseBtn');
+  if (!DOM.totalExpensesFooterAmount) DOM.totalExpensesFooterAmount = document.getElementById('expensesTotalAmount') || document.getElementById('totalExpensesFooterAmount');
+  if (!DOM.badgeRepayOverdue) DOM.badgeRepayOverdue = document.getElementById('overdueCountBadge') || document.getElementById('badgeRepayOverdue');
+  if (!DOM.badgeRepayToday) DOM.badgeRepayToday = document.getElementById('dueTodayCountBadge') || document.getElementById('badgeRepayToday');
+  if (!DOM.badgeRepay3Days) DOM.badgeRepay3Days = document.getElementById('due3DaysCountBadge') || document.getElementById('badgeRepay3Days');
+  if (!DOM.badgeRepayTotalInflow) DOM.badgeRepayTotalInflow = document.getElementById('totalInflowsText') || document.getElementById('badgeRepayTotalInflow');
+  if (!DOM.settingsModal) DOM.settingsModal = document.getElementById('adminSettingsModal') || document.getElementById('settingsModal');
   DOM.drawerAuthStatusBadge = document.getElementById('drawerAuthStatusBadge');
   DOM.authStatusBadge = DOM.drawerAuthStatusBadge || document.getElementById('authStatusBadge');
 }

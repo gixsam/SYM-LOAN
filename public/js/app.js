@@ -120,7 +120,7 @@ const DOM = {
 
   // Header Elements
   headerKycBtn: document.getElementById('headerKycBtn'),
-  headerKycDot: document.getElementById('headerKycDot'),
+  headerKycDot: document.getElementById('drawerNavKycDot') || document.getElementById('headerKycDot'),
   clientBadge: document.getElementById('clientBadge'),
   clientName: document.getElementById('clientName'),
   clientPhone: document.getElementById('clientPhone'),

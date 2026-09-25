@@ -86,7 +86,16 @@ function saveStore() {
   try {
     const dir = path.dirname(DATA_FILE);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(DATA_FILE, JSON.stringify(auditStore, null, 2), 'utf8');
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        fs.writeFileSync(DATA_FILE, JSON.stringify(auditStore, null, 2), 'utf8');
+        break;
+      } catch (err) {
+        if (attempt === 4) throw err;
+        const start = Date.now();
+        while (Date.now() - start < 40 * (attempt + 1)) {}
+      }
+    }
   } catch (err) {
     console.error('[AuditTrailEngine] Error saving audit_trail.json:', err.message);
   }
