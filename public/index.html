@@ -66,16 +66,27 @@
           <span>User Profile</span>
         </button>
 
-        <button id="drawerNavLoans" class="w-full text-left flex items-center space-x-3 px-3.5 py-3 rounded-xl text-slate-200 hover:text-white hover:bg-white/5 transition cursor-pointer">
-          <i class="fas fa-hand-holding-usd text-amber-400 w-5"></i>
-          <span>Loans & Repayment</span>
+        <!-- My Loan Trigger (Opens Dedicated My Loan Modal) -->
+        <button id="drawerNavMyLoan" class="w-full text-left flex items-center space-x-3 px-3.5 py-3 rounded-xl text-slate-200 hover:text-white hover:bg-white/5 transition cursor-pointer">
+          <i class="fas fa-coins text-amber-400 w-5"></i>
+          <span>My Loan</span>
         </button>
+        <button id="drawerNavLoans" class="hidden" style="display:none;"></button>
 
         <button id="drawerNavKyc" class="w-full text-left flex items-center space-x-3 px-3.5 py-3 rounded-xl text-slate-200 hover:text-white hover:bg-white/5 transition cursor-pointer">
           <i class="fas fa-id-card text-emerald-400 w-5"></i>
           <span>KYC Identity Verification</span>
           <span id="drawerNavKycDot" class="ml-auto w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
         </button>
+
+        <!-- Telegram Verification (Relocated from Dashboard) -->
+        <a id="drawerNavTelegram" href="https://t.me/money_loan_bot" target="_blank" rel="noopener noreferrer" class="w-full text-left flex items-center space-x-3 px-3.5 py-2.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-300 hover:text-white transition cursor-pointer">
+          <i class="fab fa-telegram-plane text-sky-400 text-base w-5"></i>
+          <div>
+            <div class="font-bold flex items-center">Telegram Verification <i class="fas fa-external-link-alt ml-1.5 text-[9px]"></i></div>
+            <div class="text-[10px] text-slate-400 font-normal">@money_loan_bot</div>
+          </div>
+        </a>
 
         <!-- Settings Section in Navigation Drawer -->
         <button id="drawerNavSettings" class="w-full text-left flex items-center space-x-3 px-3.5 py-3 rounded-xl text-slate-200 hover:text-white hover:bg-white/5 transition cursor-pointer">
@@ -141,44 +152,28 @@
       </div>
     </div>
 
-    <!-- ─── HEADER / BRAND BANNER ───────────────────────────────────────────── -->
-    <header class="sticky top-0 z-30 bg-[#070b14]/90 backdrop-blur-xl border-b border-white/10 px-5 py-4">
+    <!-- ─── 1. TOP NAVIGATION BAR ─────────────────────────────────────────── -->
+    <header class="sticky top-0 z-30 bg-[#070b14]/90 backdrop-blur-xl border-b border-white/10 px-5 py-3.5">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-3">
           <!-- Mobile Drawer Hamburger Icon -->
-          <button id="clientDrawerBtn" title="Open Navigation Menu" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/10 transition cursor-pointer">
-            <i class="fas fa-bars text-sm"></i>
+          <button id="clientDrawerBtn" title="Open Navigation Menu" class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/10 transition cursor-pointer">
+            <i class="fas fa-bars text-base"></i>
           </button>
           <img class="platform-logo-img h-10 w-auto rounded-xl object-contain shadow-md border border-white/10 p-0.5 bg-black/40" src="/images/logo.png" alt="SYM EMPIRE">
-          <div>
-            <h1 class="text-lg font-black tracking-tight text-white">SYM LOAN</h1>
-          </div>
         </div>
 
-        <div class="flex items-center space-x-2">
-          <!-- Client Live Clock Ticker (HH:MM:SS | DD/MM/YY) -->
-          <div id="clientLiveClockTicker" class="hidden sm:flex items-center space-x-2 px-2.5 py-1.5 rounded-xl bg-black/60 border border-amber-500/30 text-[11px] font-mono shadow-inner">
-            <div class="flex items-center text-amber-300 font-bold">
-              <i class="far fa-calendar-alt text-[10px] mr-1 text-amber-400"></i>
-              <span id="clientLiveDateText">--/--/--</span>
-            </div>
-            <span class="text-slate-600">|</span>
-            <div class="flex items-center text-emerald-400 font-bold tracking-wider">
-              <i class="far fa-clock text-[10px] mr-1 text-emerald-400 animate-pulse"></i>
-              <span id="clientLiveTimeText">--:--:--</span>
-            </div>
-          </div>
-
+        <div class="flex items-center space-x-2.5">
           <!-- Client Real-Time Notification Bell Button -->
           <div class="relative">
-            <button id="clientNotifBellBtn" title="Account Notifications & Alerts" class="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-300 hover:text-amber-400 transition cursor-pointer relative">
+            <button id="clientNotifBellBtn" title="Account Notifications & Alerts" class="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-300 hover:text-amber-400 transition cursor-pointer relative">
               <i class="fas fa-bell text-sm"></i>
-              <span id="clientNotifDot" class="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full animate-ping hidden"></span>
-              <span id="clientNotifBadge" class="absolute -top-1.5 -right-1.5 px-1 min-w-[16px] h-4 rounded-full bg-rose-500 text-white font-mono font-bold text-[9px] flex items-center justify-center hidden">0</span>
+              <span id="clientNotifDot" class="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full animate-ping hidden"></span>
+              <span id="clientNotifBadge" class="absolute -top-1 -right-1 px-1 min-w-[16px] h-4 rounded-full bg-rose-500 text-white font-mono font-bold text-[9px] flex items-center justify-center hidden">0</span>
             </button>
 
             <!-- Slide-down Notification Dropdown Tray -->
-            <div id="clientNotifDropdown" class="hidden absolute right-0 top-11 w-80 sm:w-96 rounded-2xl bg-[#0d1527]/98 border border-amber-500/30 backdrop-blur-2xl shadow-2xl p-4 z-50 space-y-3">
+            <div id="clientNotifDropdown" class="hidden absolute right-0 top-12 w-80 sm:w-96 rounded-2xl bg-[#0d1527]/98 border border-amber-500/30 backdrop-blur-2xl shadow-2xl p-4 z-50 space-y-3">
               <div class="flex items-center justify-between border-b border-white/10 pb-2.5">
                 <div class="flex items-center space-x-2">
                   <i class="fas fa-bell text-amber-400 text-sm"></i>
@@ -206,66 +201,87 @@
             </div>
           </div>
 
-          <!-- Profile & KYC Settings Icon (Relocated to Drawer) -->
-          <button id="headerKycBtn" class="hidden"></button>
-          <button id="logoutBtn" class="hidden"></button>
+          <!-- Hidden compatibility anchors for existing JS event bindings -->
+          <div id="clientLiveClockTicker" class="hidden" style="display:none;">
+            <span id="clientLiveDateText"></span>
+            <span id="clientLiveTimeText"></span>
+          </div>
+          <button id="headerKycBtn" class="hidden" style="display:none;"></button>
+          <button id="logoutBtn" class="hidden" style="display:none;"></button>
         </div>
       </div>
 
-      <!-- ─── CLIENT PROFILE BADGE ─────────────────────────────────────────── -->
-      <div id="clientBadge" class="mt-3.5 glass-card-emerald p-3.5 flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <!-- Clickable VIP Avatar (Leads to KYC / Profile) -->
-          <button id="avatarTriggerBtn" title="Tap to view KYC Profile & Settings" class="relative group cursor-pointer focus:outline-none">
-            <div class="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-800 flex items-center justify-center text-white font-black text-sm border-2 border-emerald-400/50 shadow-inner group-hover:border-amber-400 transition">
-              <img id="clientAvatarImg" src="" alt="Avatar" class="w-full h-full object-cover hidden">
-              <span id="clientAvatarText">SYM</span>
+      <!-- ─── 2. USER PROFILE SUMMARY WITH 2.1 CREDIT SCORE & VIP TIER SUB-SECTION ─── -->
+      <div id="clientBadge" class="mt-3.5 glass-card-emerald p-3.5 space-y-3 border-emerald-500/30">
+        <!-- Top Profile Row -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <!-- Clickable VIP Avatar (Leads to KYC / Profile) -->
+            <button id="avatarTriggerBtn" title="Tap to view KYC Profile & Settings" class="relative group cursor-pointer focus:outline-none">
+              <div class="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-800 flex items-center justify-center text-white font-black text-sm border-2 border-emerald-400/50 shadow-inner group-hover:border-amber-400 transition">
+                <img id="clientAvatarImg" src="" alt="Avatar" class="w-full h-full object-cover hidden">
+                <span id="clientAvatarText">SYM</span>
+              </div>
+              <div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-500 text-black flex items-center justify-center text-[10px] font-black border-2 border-[#070b14] shadow group-hover:scale-110 transition">
+                <i class="fas fa-id-badge"></i>
+              </div>
+            </button>
+            <div>
+              <div class="flex items-center space-x-2">
+                <span id="clientName" class="font-extrabold text-sm text-white">Connecting...</span>
+                <span id="clientStatusPill" class="px-2 py-0.2 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ACTIVE</span>
+              </div>
+              <div class="text-xs font-mono text-slate-400 flex items-center space-x-2 mt-0.5">
+                <span id="clientPhone"><i class="fas fa-phone-alt text-[10px] mr-1 text-emerald-400"></i> —</span>
+                <span>•</span>
+                <span id="clientIdText" class="text-[10px] text-slate-400">ID: —</span>
+              </div>
             </div>
-            <div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-500 text-black flex items-center justify-center text-[10px] font-black border-2 border-[#070b14] shadow group-hover:scale-110 transition">
-              <i class="fas fa-id-badge"></i>
-            </div>
-          </button>
-          <div>
-            <div class="flex items-center space-x-2">
-              <span id="clientName" class="font-extrabold text-sm text-white">Connecting...</span>
-              <span id="clientStatusPill" class="px-2 py-0.2 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ACTIVE</span>
-            </div>
-            <div class="text-xs font-mono text-slate-400 flex items-center space-x-2 mt-0.5">
-              <span id="clientPhone"><i class="fas fa-phone-alt text-[10px] mr-1 text-emerald-400"></i> —</span>
-              <span>•</span>
-              <span id="clientIdText" class="text-[10px] text-slate-400">ID: —</span>
+          </div>
+
+          <!-- Strike Shield -->
+          <div class="flex flex-col items-end">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Strikes</span>
+            <div class="flex items-center space-x-1.5">
+              <div id="strikeDots" class="flex space-x-1">
+                <div class="strike-dot clean"></div>
+                <div class="strike-dot clean"></div>
+                <div class="strike-dot clean"></div>
+              </div>
+              <span id="strikeCountText" class="text-xs font-mono font-bold text-slate-300 ml-1">0/3</span>
             </div>
           </div>
         </div>
 
-        <!-- Strike Shield -->
-        <div class="flex flex-col items-end">
-          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Strikes</span>
-          <div class="flex items-center space-x-1.5">
-            <div id="strikeDots" class="flex space-x-1">
-              <div class="strike-dot clean"></div>
-              <div class="strike-dot clean"></div>
-              <div class="strike-dot clean"></div>
+        <!-- 2.1 SUB-SECTION: Credit Score & VIP Tier -->
+        <div id="profileCreditSubSection" class="pt-3 border-t border-white/10 flex items-center justify-between text-xs bg-black/30 -mx-3.5 -mb-3.5 px-3.5 py-2.5 rounded-b-2xl">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xs border border-cyan-500/30">
+              <i class="fas fa-chart-line"></i>
             </div>
-            <span id="strikeCountText" class="text-xs font-mono font-bold text-slate-300 ml-1">0/3</span>
+            <div>
+              <div class="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Credit Rating</div>
+              <div class="flex items-center space-x-1.5 font-mono">
+                <span id="clientCreditScoreNum" class="text-sm font-black text-white">550</span>
+                <span class="text-[9px] text-slate-400">/ 850</span>
+                <span id="clientCreditGradePill" class="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">GRADE C</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- VIP Tier Badge -->
+          <div id="clientVipTierBadge" class="px-2.5 py-1 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 flex items-center space-x-1.5 shadow">
+            <span id="clientVipTierIcon" class="text-xs">🥉</span>
+            <span id="clientVipTierName" class="text-[10px] font-black uppercase tracking-wide">BRONZE MEMBER</span>
           </div>
         </div>
       </div>
     </header>
 
-    <!-- ─── PORTAL VIEW SWITCHER TABS ────────────────────────────────────────── -->
-    <div class="px-5 pt-3">
-      <div class="grid grid-cols-2 gap-2 p-1 bg-black/40 rounded-2xl border border-white/10">
-        <button id="tabBtnLoans" class="portal-tab-btn active py-2.5 px-3 rounded-xl text-xs font-black tracking-wide uppercase flex items-center justify-center space-x-2 cursor-pointer">
-          <i class="fas fa-coins text-amber-400"></i>
-          <span>Loans & Ledger</span>
-        </button>
-        <button id="tabBtnKyc" class="portal-tab-btn py-2.5 px-3 rounded-xl text-xs font-black tracking-wide uppercase flex items-center justify-center space-x-2 cursor-pointer">
-          <i class="fas fa-id-card text-emerald-400"></i>
-          <span>Profile & KYC</span>
-          <span id="tabKycPill" class="ml-1 px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">UNVERIFIED</span>
-        </button>
-      </div>
+    <!-- Hidden compatibility portal tab switcher -->
+    <div id="portalTabSwitcher" class="hidden" style="display:none;">
+      <button id="tabBtnLoans" class="portal-tab-btn active"></button>
+      <button id="tabBtnKyc" class="portal-tab-btn"><span id="tabKycPill"></span></button>
     </div>
 
     <!-- ─── MAIN CONTENT ────────────────────────────────────────────────────── -->
@@ -275,68 +291,6 @@
       <!-- VIEW A: LOAN APPLICATION & REPAYMENT LEDGER                           -->
       <!-- ===================================================================== -->
       <div id="viewLoans" class="space-y-6">
-
-        <!-- ─── CLIENT MONEY REQUEST PROGRESS STEPPER (MODULE 9) ─────────────── -->
-        <div id="loanProgressStepper" class="glass-card p-4 sm:p-5 mb-5 rounded-2xl border-white/10 space-y-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-              <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs">
-                <span class="stitch-icon-wrapper" data-stitch="stepper-check" data-size="14"></span>
-              </div>
-              <h3 class="text-xs font-black uppercase tracking-wider text-white">Money Request Lifecycle</h3>
-            </div>
-            <div id="stepperActionContainer">
-              <!-- Edit Request button dynamically populated when PENDING -->
-            </div>
-          </div>
-
-          <!-- Stepper 5 Stages Grid -->
-          <div class="grid grid-cols-5 gap-1.5 sm:gap-2 text-center pt-2 relative" id="stepperStagesGrid">
-            <!-- Stage 1: Request Submitted -->
-            <div class="stepper-step relative flex flex-col items-center" id="step1Container">
-              <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center bg-slate-900 border border-slate-700 text-slate-400 text-xs sm:text-sm font-black transition mb-1 step-icon-box">
-                1
-              </div>
-              <span class="text-[9px] sm:text-[10px] font-bold text-slate-400 leading-tight block">Request Submitted</span>
-            </div>
-
-            <!-- Stage 2: Under Review -->
-            <div class="stepper-step relative flex flex-col items-center" id="step2Container">
-              <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center bg-slate-900 border border-slate-700 text-slate-400 text-xs sm:text-sm font-black transition mb-1 step-icon-box">
-                2
-              </div>
-              <span class="text-[9px] sm:text-[10px] font-bold text-slate-400 leading-tight block">Under Review</span>
-            </div>
-
-            <!-- Stage 3: Disbursed -->
-            <div class="stepper-step relative flex flex-col items-center" id="step3Container">
-              <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center bg-slate-900 border border-slate-700 text-slate-400 text-xs sm:text-sm font-black transition mb-1 step-icon-box">
-                3
-              </div>
-              <span class="text-[9px] sm:text-[10px] font-bold text-slate-400 leading-tight block">Disbursed</span>
-            </div>
-
-            <!-- Stage 4: Repayment Pending -->
-            <div class="stepper-step relative flex flex-col items-center" id="step4Container">
-              <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center bg-slate-900 border border-slate-700 text-slate-400 text-xs sm:text-sm font-black transition mb-1 step-icon-box">
-                4
-              </div>
-              <span class="text-[9px] sm:text-[10px] font-bold text-slate-400 leading-tight block">Repayment Pending</span>
-            </div>
-
-            <!-- Stage 5: Cleared -->
-            <div class="stepper-step relative flex flex-col items-center" id="step5Container">
-              <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center bg-slate-900 border border-slate-700 text-slate-400 text-xs sm:text-sm font-black transition mb-1 step-icon-box">
-                5
-              </div>
-              <span class="text-[9px] sm:text-[10px] font-bold text-slate-400 leading-tight block">Cleared</span>
-            </div>
-          </div>
-
-          <div id="stepperDetailMessage" class="text-[11px] text-slate-400 bg-black/40 p-2.5 rounded-xl border border-white/5 text-center">
-            No Active Request — Select your loan amount and repayment duration below.
-          </div>
-        </div>
 
         <!-- Phase 10: Critical Overdue & Strike Warning Banner -->
         <div id="clientOverdueAlertBanner" class="hidden p-4 rounded-2xl bg-gradient-to-r from-rose-600/30 via-red-600/20 to-rose-950/40 border border-rose-500/50 text-rose-200 text-xs space-y-2.5 shadow-xl shadow-rose-950/40">
@@ -357,103 +311,74 @@
           </div>
         </div>
 
-        <!-- KYC Required Gatekeeper Banner (Module 9 Refactored) -->
-        <div id="kycRequiredBanner" class="hidden p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 to-yellow-600/10 border border-amber-500/40 text-amber-300 text-xs space-y-2.5 shadow-lg">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-2 font-black uppercase tracking-wide text-amber-400 text-sm">
-              <i class="fas fa-shield-alt text-base"></i>
-              <span>COMPLETE KYC VERIFICATION NOW</span>
-              <button type="button" id="kycInfoBtn" title="Why is KYC required?" class="w-5 h-5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 hover:text-white border border-amber-500/40 flex items-center justify-center text-[10px] font-black cursor-pointer transition">
-                ?
-              </button>
-            </div>
-            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/30 text-amber-300 border border-amber-500/40">PRE-LOAN GATE</span>
-          </div>
-          <p class="text-[11px] text-slate-300 leading-relaxed">
-            SYM EMPIRE PLATFORM (S.E.P.) requires mandatory KYC verification (NID Front/Back, Email OTP, and Live Photo) before any money requests can be submitted or approved.
-          </p>
-          <button type="button" id="bannerGoToKycBtn" class="btn-gold w-full py-2.5 px-4 rounded-xl font-black text-xs uppercase tracking-wide flex items-center justify-center shadow cursor-pointer">
-            <i class="fas fa-id-card mr-2"></i> Complete KYC Verification Now
+        <!-- ─── 3. COMPLETE KYC VERIFICATION NOW (CONDITIONAL OVAL TAB) ──────── -->
+        <div id="kycRequiredBanner" class="hidden">
+          <button type="button" id="bannerGoToKycBtn" class="btn-gold w-full py-3.5 px-5 rounded-full font-black text-xs uppercase tracking-wider flex items-center justify-center shadow-lg transition-transform active:scale-[0.98] cursor-pointer border border-amber-400/50">
+            <i class="fas fa-id-card mr-2 text-sm"></i>
+            <span>COMPLETE KYC VERIFICATION NOW</span>
           </button>
+          <button type="button" id="kycInfoBtn" class="hidden" style="display:none;"></button>
         </div>
 
-        <!-- Phase 11: Dynamic Credit Score & VIP Loyalty Showcase -->
-        <div id="clientCreditScoreCard" class="p-4 rounded-2xl bg-gradient-to-br from-[#0c1529]/95 via-[#0e1f3d]/90 to-[#070d1a]/98 border border-cyan-500/30 text-white space-y-3.5 shadow-xl shadow-cyan-950/30 relative overflow-hidden">
-          <div class="absolute -right-8 -top-8 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none"></div>
-
-          <!-- Header: Score + VIP Status -->
+        <!-- ─── 4. LOAN PROCESSING (RENAMED STEPPER - ONLY SHOWS WHEN ACTIVE LOAN) ─── -->
+        <div id="loanProgressStepper" class="hidden glass-card p-4 sm:p-5 mb-5 rounded-2xl border-white/10 space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-2">
-              <div class="w-8 h-8 rounded-xl bg-cyan-500/20 flex items-center justify-center text-cyan-400 border border-cyan-500/30">
-                <i class="fas fa-chart-line text-sm"></i>
+              <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs">
+                <span class="stitch-icon-wrapper" data-stitch="stepper-check" data-size="14"></span>
               </div>
-              <div>
-                <h3 class="text-xs font-black uppercase tracking-wider text-cyan-300">Credit Score & VIP Tier</h3>
-                <span class="text-[10px] font-mono text-slate-400">Autonomous FICO Rating</span>
-              </div>
+              <h3 class="text-xs font-black uppercase tracking-wider text-white">LOAN PROCESSING</h3>
             </div>
-            <!-- VIP Tier Badge -->
-            <div id="clientVipTierBadge" class="px-2.5 py-1 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 flex items-center space-x-1.5 shadow">
-              <span id="clientVipTierIcon" class="text-xs">🥉</span>
-              <span id="clientVipTierName" class="text-[11px] font-black uppercase tracking-wide">BRONZE MEMBER</span>
+            <div id="stepperActionContainer">
+              <!-- Edit Request button dynamically populated when PENDING -->
             </div>
           </div>
 
-          <!-- Main Metrics Grid: Speedometer Gauge + Tier Benefits -->
-          <div class="grid grid-cols-12 gap-3 items-center bg-black/40 p-3 rounded-xl border border-white/5">
-            <!-- Left: Score Ring & Grade (5 cols) -->
-            <div class="col-span-5 flex flex-col items-center justify-center border-r border-white/10 pr-2">
-              <div class="relative w-20 h-20 flex items-center justify-center">
-                <!-- SVG Radial Ring -->
-                <svg class="w-20 h-20 transform -rotate-90" viewBox="0 0 36 36">
-                  <path class="text-slate-800" stroke-width="3.5" stroke="currentColor" fill="none"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                  <path id="clientScoreSvgRing" class="text-amber-400 transition-all duration-1000 ease-out" stroke-dasharray="64, 100" stroke-width="3.5" stroke-linecap="round" stroke="currentColor" fill="none"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                </svg>
-                <div class="absolute flex flex-col items-center justify-center text-center">
-                  <span id="clientCreditScoreNum" class="text-lg font-black font-mono text-white leading-none">550</span>
-                  <span class="text-[9px] font-mono text-slate-400">/ 850</span>
-                </div>
+          <!-- Stepper 5 Stages Grid -->
+          <div class="grid grid-cols-5 gap-1.5 sm:gap-2 text-center pt-2 relative" id="stepperStagesGrid">
+            <!-- Stage 1: Submitted -->
+            <div class="stepper-step relative flex flex-col items-center" id="step1Container">
+              <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center bg-slate-900 border border-slate-700 text-slate-400 text-xs sm:text-sm font-black transition mb-1 step-icon-box">
+                1
               </div>
-              <div class="mt-1 flex items-center space-x-1">
-                <span id="clientCreditGradePill" class="px-2 py-0.2 rounded text-[10px] font-mono font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">GRADE C</span>
-              </div>
+              <span class="text-[9px] sm:text-[10px] font-bold text-slate-400 leading-tight block">Submitted</span>
             </div>
 
-            <!-- Right: Telemetry & Limits (7 cols) -->
-            <div class="col-span-7 space-y-1.5 pl-1 text-xs">
-              <div class="flex items-center justify-between">
-                <span class="text-slate-400 text-[10px]">Rating:</span>
-                <span id="clientRatingTitle" class="font-bold text-amber-400 text-[11px]">Fair Risk</span>
+            <!-- Stage 2: Review -->
+            <div class="stepper-step relative flex flex-col items-center" id="step2Container">
+              <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center bg-slate-900 border border-slate-700 text-slate-400 text-xs sm:text-sm font-black transition mb-1 step-icon-box">
+                2
               </div>
-              <div class="flex items-center justify-between">
-                <span class="text-slate-400 text-[10px]">Eligible Limit:</span>
-                <span id="clientEligibleLimitText" class="font-mono font-bold text-white text-[11px]">৳10,000</span>
+              <span class="text-[9px] sm:text-[10px] font-bold text-slate-400 leading-tight block">Review</span>
+            </div>
+
+            <!-- Stage 3: Disbursed -->
+            <div class="stepper-step relative flex flex-col items-center" id="step3Container">
+              <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center bg-slate-900 border border-slate-700 text-slate-400 text-xs sm:text-sm font-black transition mb-1 step-icon-box">
+                3
               </div>
-              <div class="flex items-center justify-between">
-                <span class="text-slate-400 text-[10px]">Fee Discount:</span>
-                <span id="clientFeeDiscountText" class="font-mono font-bold text-emerald-400 text-[11px]">0% (Standard 10%)</span>
+              <span class="text-[9px] sm:text-[10px] font-bold text-slate-400 leading-tight block">Disbursed</span>
+            </div>
+
+            <!-- Stage 4: Active -->
+            <div class="stepper-step relative flex flex-col items-center" id="step4Container">
+              <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center bg-slate-900 border border-slate-700 text-slate-400 text-xs sm:text-sm font-black transition mb-1 step-icon-box">
+                4
               </div>
-              <div class="flex items-center justify-between">
-                <span class="text-slate-400 text-[10px]">Anti-Fraud Seal:</span>
-                <span class="text-emerald-400 text-[10px] font-bold flex items-center">
-                  <i class="fas fa-shield-alt mr-1"></i> Hardware Verified
-                </span>
+              <span class="text-[9px] sm:text-[10px] font-bold text-slate-400 leading-tight block">Active</span>
+            </div>
+
+            <!-- Stage 5: Settled -->
+            <div class="stepper-step relative flex flex-col items-center" id="step5Container">
+              <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center bg-slate-900 border border-slate-700 text-slate-400 text-xs sm:text-sm font-black transition mb-1 step-icon-box">
+                5
               </div>
+              <span class="text-[9px] sm:text-[10px] font-bold text-slate-400 leading-tight block">Settled</span>
             </div>
           </div>
 
-          <!-- Progress towards next VIP Tier -->
-          <div class="space-y-1">
-            <div class="flex justify-between items-center text-[10px]">
-              <span class="text-slate-400" id="clientNextTierLabel">Next Tier: Silver Member (Max ৳25,000)</span>
-              <span id="clientNextTierPercent" class="font-mono font-bold text-cyan-400">0%</span>
-            </div>
-            <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden border border-white/5">
-              <div id="clientNextTierProgressBar" class="bg-gradient-to-r from-cyan-500 to-blue-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
-            </div>
-            <p id="clientNextTierHint" class="text-[9px] text-slate-400 text-right">Settle 1 more loan on time to unlock Silver benefits</p>
+          <div id="stepperDetailMessage" class="text-[11px] text-slate-400 bg-black/40 p-2.5 rounded-xl border border-white/5 text-center">
+            No Active Request — Select your loan amount and repayment duration below.
           </div>
         </div>
 
@@ -477,7 +402,7 @@
           </div>
         </div>
 
-        <!-- ─── LOAN APPLICATION FORM ────────────────────────────────────────── -->
+        <!-- ─── 4.1 APPLY FOR LOAN ────────────────────────────────────────────── -->
         <section class="glass-card-gold p-5 relative overflow-hidden">
           <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
 
@@ -535,12 +460,53 @@
               </p>
             </div>
 
-            <!-- Note / Purpose -->
+            <!-- Feature 1: Live Financial Breakdown & Calculator Preview -->
+            <div id="loanFinancialBreakdownCard" class="p-3.5 rounded-xl bg-black/50 border border-amber-500/25 space-y-2 text-xs">
+              <div class="text-[10px] font-black uppercase text-amber-400 tracking-wider flex items-center justify-between">
+                <span>Financial Calculation Breakdown</span>
+                <span id="calcVipDiscountBadge" class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 border border-slate-700">STANDARD FEE (10%)</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2 text-[11px] pt-1 border-t border-white/5">
+                <div>
+                  <span class="text-slate-400">Principal:</span>
+                  <span id="calcPrincipalText" class="font-mono font-bold text-white ml-1">৳ 5,000</span>
+                </div>
+                <div>
+                  <span class="text-slate-400">Platform Fee:</span>
+                  <span id="calcPlatformFeeText" class="font-mono font-bold text-amber-400 ml-1">৳ 500 (10%)</span>
+                </div>
+                <div>
+                  <span class="text-slate-400">Total Repayable:</span>
+                  <span id="calcTotalRepayableText" class="font-mono font-black text-emerald-400 ml-1">৳ 5,500</span>
+                </div>
+                <div>
+                  <span class="text-slate-400">Daily Estimate:</span>
+                  <span id="calcDailyRateText" class="font-mono font-bold text-cyan-400 ml-1">—</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Feature 4: Loan Purpose Category Selector -->
+            <div>
+              <label for="loanPurposeCategorySelect" class="text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5 block">
+                Loan Purpose Category *
+              </label>
+              <select id="loanPurposeCategorySelect" class="w-full bg-black/50 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400 transition cursor-pointer">
+                <option value="Emergency Medical">Emergency Medical</option>
+                <option value="Business Inventory & Stock">Business Inventory & Stock</option>
+                <option value="Utility & Household Bills">Utility & Household Bills</option>
+                <option value="Personal & Family Support" selected>Personal & Family Support</option>
+                <option value="Education & Tuition">Education & Tuition</option>
+                <option value="Other General Purpose">Other General Purpose</option>
+              </select>
+            </div>
+
+            <!-- Note / Additional Details -->
             <div>
               <label for="loanNote" class="text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5 block">
-                Purpose / Note (Optional)
+                Additional Notes (Optional)
               </label>
-              <input type="text" id="loanNote" placeholder="e.g. Emergency medical, business inventory..." maxlength="150" class="w-full bg-black/50 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400 transition placeholder:text-slate-600">
+              <input type="text" id="loanNote" placeholder="Additional details or specific instructions..." maxlength="150" class="w-full bg-black/50 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400 transition placeholder:text-slate-600">
             </div>
 
             <!-- Submit Button -->
@@ -553,41 +519,17 @@
           <div id="formFeedback" class="hidden mt-4"></div>
         </section>
 
-        <!-- ─── REPAYMENT TRACKER & ACTIVE LOANS ─────────────────────────────── -->
-        <section class="space-y-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-              <div class="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-                <i class="fas fa-history text-xs"></i>
-              </div>
-              <h2 class="text-sm font-black uppercase tracking-wider text-white">Loan Ledger</h2>
-            </div>
-            <span id="loansCountBadge" class="text-[10px] font-mono font-bold bg-white/5 text-slate-400 px-2 py-0.5 rounded border border-white/10">0 Record(s)</span>
-          </div>
-
-          <div id="loansContainer" class="space-y-2.5">
-            <div class="p-6 text-center text-slate-500 text-sm glass-card">
-              <i class="fas fa-spinner fa-spin text-2xl text-emerald-500 mb-2 block"></i>
-              Loading ledger records...
-            </div>
-          </div>
-        </section>
-
-        <!-- ─── TELEGRAM BOT LINK CARD ───────────────────────────────────────── -->
-        <section class="glass-card p-4 flex items-center justify-between border-slate-700/60 bg-gradient-to-r from-blue-950/40 to-slate-900/60">
-          <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white text-lg shadow-lg shadow-blue-500/30">
-              <i class="fab fa-telegram-plane"></i>
-            </div>
-            <div>
-              <h3 class="text-xs font-black text-white uppercase">Telegram Verification</h3>
-              <p class="text-[11px] text-slate-400">Verify identity or check strikes via bot</p>
-            </div>
-          </div>
-          <a href="https://t.me/money_loan_bot" target="_blank" class="px-3 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs transition shadow flex items-center">
-            Open Bot <i class="fas fa-external-link-alt ml-1 text-[10px]"></i>
-          </a>
-        </section>
+        <!-- Hidden Compatibility Container for Credit Score Elements -->
+        <div id="clientCreditScoreCard" class="hidden" style="display:none;">
+          <svg><path id="clientScoreSvgRing"></path></svg>
+          <span id="clientRatingTitle"></span>
+          <span id="clientEligibleLimitText"></span>
+          <span id="clientFeeDiscountText"></span>
+          <span id="clientNextTierLabel"></span>
+          <span id="clientNextTierPercent"></span>
+          <div id="clientNextTierProgressBar"></div>
+          <span id="clientNextTierHint"></span>
+        </div>
 
         <!-- ─── STRIKE SYSTEM POLICY NOTICE ──────────────────────────────────── -->
         <section class="p-4 rounded-xl bg-rose-500/5 border border-rose-500/20 text-slate-400 text-xs space-y-1.5">
@@ -1416,6 +1358,38 @@
         <button type="button" id="termsModalOkBtn" class="btn-gold px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer">
           I Understand & Agree
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── DEDICATED MY LOAN MODAL (MODULE 5) ─────────────────────────────────── -->
+  <div id="clientMyLoanModal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 overflow-y-auto bg-slate-950/90 backdrop-blur-md min-h-[100dvh] pt-[max(4.5rem,env(safe-area-inset-top,24px))] pb-8 modal-safe-container">
+    <div class="max-w-lg w-full glass-card p-5 sm:p-6 space-y-4 relative border-amber-500/40 shadow-2xl max-h-[92vh] flex flex-col my-2 sm:my-4">
+      <!-- Pinned Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800/80 shrink-0">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm border border-amber-500/30">
+            <i class="fas fa-coins"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h3 class="text-sm font-black text-white uppercase tracking-wider">My Loan</h3>
+              <span id="loansCountBadge" class="text-[10px] font-mono font-bold bg-white/5 text-slate-400 px-2 py-0.5 rounded border border-white/10">0 Record(s)</span>
+            </div>
+            <p class="text-[11px] text-slate-400">Complete Loan Ledger & repayment history</p>
+          </div>
+        </div>
+        <button type="button" id="closeMyLoanModalBtn" onclick="closeMyLoanModal()" class="w-10 h-10 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-full bg-slate-800/90 text-slate-300 hover:text-white border border-slate-700/80 active:scale-95 transition-all text-lg cursor-pointer" title="Close My Loan">
+          ✕
+        </button>
+      </div>
+
+      <!-- Loan Records Container inside Modal -->
+      <div id="loansContainer" class="space-y-3 overflow-y-auto pr-1 flex-1">
+        <div class="p-6 text-center text-slate-500 text-sm glass-card">
+          <i class="fas fa-spinner fa-spin text-2xl text-emerald-500 mb-2 block"></i>
+          Loading ledger records...
+        </div>
       </div>
     </div>
   </div>

@@ -15,7 +15,7 @@
       "approval_ceiling": 100000,
       "status": "ACTIVE",
       "created_at": "2026-09-18T10:00:00.000Z",
-      "last_login_at": "2026-09-25T14:34:48.315Z"
+      "last_login_at": "2026-09-25T15:48:24.010Z"
     },
     {
       "id": "stf_loanofficer_01",
@@ -41,7 +41,7 @@
       "approval_ceiling": 25000,
       "status": "ACTIVE",
       "created_at": "2026-09-18T10:30:00.000Z",
-      "last_login_at": "2026-09-25T14:34:48.471Z"
+      "last_login_at": "2026-09-25T15:48:24.177Z"
     },
     {
       "id": "stf_compliance_01",
@@ -702,6 +702,108 @@
       "approval_ceiling": 30000,
       "status": "ACTIVE",
       "created_at": "2026-09-25T14:34:48.494Z",
+      "last_login_at": null
+    },
+    {
+      "id": "stf_1790351107652_biq7",
+      "username": "test_officer_1790351107651",
+      "display_name": "Test Junior Officer",
+      "email": "test_officer_1790351107651@symloan.com",
+      "phone": "",
+      "role": "LOAN_OFFICER",
+      "password_hash": "f3a4b33201a063bc399ed353b3bd52a3d5b3aaafbbca32c9ea412c1a6d1b39b3",
+      "password_salt": "c520cee86d8f8dbef700e98010cf8289",
+      "permissions": [
+        "loans:read",
+        "loans:view",
+        "loans:review",
+        "loans:approve",
+        "loans:decline",
+        "loans:decision",
+        "loans:disburse",
+        "clients:read",
+        "credit:read",
+        "audit:read"
+      ],
+      "approval_ceiling": 5000,
+      "status": "SUSPENDED",
+      "created_at": "2026-09-25T15:45:07.652Z",
+      "last_login_at": null
+    },
+    {
+      "id": "stf_1790351107818_u4mm",
+      "username": "http_officer_1790351107813",
+      "display_name": "HTTP Provisioned Analyst",
+      "email": "http_officer_1790351107813@symloan.com",
+      "phone": "",
+      "role": "COMPLIANCE_OFFICER",
+      "password_hash": "ae0f008a27662a511428538e4942ab3062ca6d74c3dad4c946001f7839c20563",
+      "password_salt": "22930957f6185863ba25ec7f8850a148",
+      "permissions": [
+        "kyc:read",
+        "kyc:verify",
+        "kyc:reject",
+        "fraud:read",
+        "fraud:resolve",
+        "credit:read",
+        "credit:override",
+        "audit:read",
+        "audit:verify"
+      ],
+      "approval_ceiling": 30000,
+      "status": "ACTIVE",
+      "created_at": "2026-09-25T15:45:07.818Z",
+      "last_login_at": null
+    },
+    {
+      "id": "stf_1790351304058_7ul3",
+      "username": "test_officer_1790351304056",
+      "display_name": "Test Junior Officer",
+      "email": "test_officer_1790351304056@symloan.com",
+      "phone": "",
+      "role": "LOAN_OFFICER",
+      "password_hash": "19105d03dfdc36bf93f73d0ce0545cd08733a4c611e1d06470867a5301c9719f",
+      "password_salt": "56a23c59450d5e5414c4ecde7ad679a9",
+      "permissions": [
+        "loans:read",
+        "loans:view",
+        "loans:review",
+        "loans:approve",
+        "loans:decline",
+        "loans:decision",
+        "loans:disburse",
+        "clients:read",
+        "credit:read",
+        "audit:read"
+      ],
+      "approval_ceiling": 5000,
+      "status": "SUSPENDED",
+      "created_at": "2026-09-25T15:48:24.058Z",
+      "last_login_at": null
+    },
+    {
+      "id": "stf_1790351304199_0bc3",
+      "username": "http_officer_1790351304199",
+      "display_name": "HTTP Provisioned Analyst",
+      "email": "http_officer_1790351304199@symloan.com",
+      "phone": "",
+      "role": "COMPLIANCE_OFFICER",
+      "password_hash": "2cf130885ba7abb9359fb19758226da13de7570812c081d20fe8f4eef9ea20b6",
+      "password_salt": "c03d767c272933073a4132ae8cb5104c",
+      "permissions": [
+        "kyc:read",
+        "kyc:verify",
+        "kyc:reject",
+        "fraud:read",
+        "fraud:resolve",
+        "credit:read",
+        "credit:override",
+        "audit:read",
+        "audit:verify"
+      ],
+      "approval_ceiling": 30000,
+      "status": "ACTIVE",
+      "created_at": "2026-09-25T15:48:24.199Z",
       "last_login_at": null
     }
   ],

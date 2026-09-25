@@ -14,7 +14,43 @@
 > **Telegram Bot:** `@money_loan_bot` (Token: `[PROTECTED IN .ENV — Never commit plain tokens]`)  
 > **Technology Stack:** Node.js, Express, Supabase (PostgreSQL), Multer, jsPDF, node-telegram-bot-api, node-cron, CORS, Helmet, dotenv, HTML5, Tailwind CSS, FontAwesome 6, Cloudflare Tunnel  
 > **Live Local Server:** `http://localhost:5000` (Client: `/`, Admin: `/admin`)  
-> **Last Synchronized:** 2026-09-25 20:35 Local Time  
+> **Last Synchronized:** 2026-09-25 21:50 Local Time  
+
+### [Update-069] — Client Portal UI/UX Reorganization & Structural Streamlining (2026-09-25)
+**Type:** Client Portal UI/UX Reorganization, Top Navbar Streamlining, Profile Sub-Section Integration, Conditional KYC Oval Tab, Auto-Hiding Loan Processing Stepper, Real-Time Financial Calculator & Dedicated My Loan Modal  
+**Status:** ✅ COMPLETED, TESTED (16/16 REORGANIZATION TESTS PASSED, 24/24 CODEBASE AUDIT CHECKS PASSED, 12/12 MASTER TEST SUITES PASSED — 100%), PACKAGED HOSTINGER DEPLOY ZIP & DUAL-SYNCED ACROSS WORKPLACES  
+
+#### User Directives & Structural Transformation:
+1. **Top Navigation Bar Cleanliness (`public/index.html`):**
+   - Stripped out "SYM EMPIRE", "SYM LOAN", "s.e.p.", verified checkmark icon, and profile avatar from the sticky top navigation header bar.
+   - Retained strictly the Mobile Drawer Hamburger Icon (☰) and Brand Logo on the left, and Real-Time Notification Bell button on the right.
+   - Maintained hidden zero-width compatibility anchors (`#headerKycBtn`, `#logoutBtn`, `#clientLiveClockTicker`) to prevent any JS runtime reference breaks.
+2. **User Profile Summary & Credit Score Sub-Section (`public/index.html`):**
+   - Reorganized `#clientBadge` to embed Credit Score (`#clientCreditScoreNum`, `#clientCreditGradePill`) and VIP Tier (`#clientVipTierBadge`, `#clientVipTierIcon`, `#clientVipTierName`) inside a compact sub-section `#profileCreditSubSection`.
+   - Removed the bulky standalone `#clientCreditScoreCard` from the main dashboard flow for a cleaner and more compact interface.
+3. **Complete KYC Verification Now (Conditional Oval Tab):**
+   - Simplified `#kycRequiredBanner` to strictly feature a sleek, prominent full-width oval button `[ COMPLETE KYC VERIFICATION NOW ]`.
+   - Removed the bulky heading ("Identity Verification Required") and explanatory paragraph.
+   - Configured `renderKycStatus` in `public/js/app.js` to automatically hide `#kycRequiredBanner` once the user's KYC verification status is `VERIFIED`.
+4. **Loan Processing Stepper & Apply for Loan Features (`public/index.html` & `public/js/app.js`):**
+   - Renamed stepper title from "LOAN LIFECYCLE TRACKER" to "LOAN PROCESSING".
+   - Configured stepper to auto-hide (`hidden`) when no active or pending loan exists, showing dynamically only after loan submission.
+   - Added Feature 1: Real-time financial breakdown calculator (`#loanFinancialBreakdownCard`) showing Principal, Platform Fee with VIP discount, Total Repayable, and Daily Rate.
+   - Added Feature 4: Loan Purpose Category selector dropdown (`#loanPurposeCategorySelect`) with 6 distinct options, prepended into loan notes upon submission.
+5. **Loan Ledger & Telegram Verification Relocation:**
+   - Removed inline loan ledger from dashboard body; relocated into dedicated slide-down modal `#clientMyLoanModal` triggered by "My Loan" (`#drawerNavMyLoan`) in the navigation drawer.
+   - Relocated Telegram Verification link from dashboard body into the navigation drawer (`#drawerNavTelegram`).
+   - Retained Strict 3-Strike Policy and footer intact at the bottom of the page.
+6. **Automated Verification & Master Regression:**
+   - Authored `scripts/test_reorganization.js` (16/16 tests passing).
+   - Re-audited full codebase with `scripts/audit_codebase.js` (24/24 checks passing with 0 duplicate IDs and 100% DOM target resolution).
+   - Updated `scripts/test_part2_overhaul.js` (28/28 tests passing).
+   - Executed master test runner `scripts/run_all_tests.js` across all 12 test suites: **12 / 12 suites PASSED (100% pass rate)**.
+7. **Packaging & Workplace Synchronization:**
+   - Regenerated `dist/hostinger_deploy.zip` (1.62 MB).
+   - Dual-synchronized all codebase updates with Google Drive workplace at `G:\My Drive\ALL WEBSITE WORKPLACE\SYM LOAN WORKPLACE\`.
+
+---
 
 ### [Update-068] — Full Codebase & Architecture Health Audit, Fallback Hardening & Master Test Runner (2026-09-25)
 **Type:** Full Codebase & Structure Audit, DOM Target Resolution & Fallbacks, Admin APK Route Alignment, Windows IO Resilience & Master Test Runner Integration  

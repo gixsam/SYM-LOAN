@@ -27,12 +27,26 @@ const DOM = {
   drawerClientPhone: document.getElementById('drawerClientPhone'),
   drawerKycBadge: document.getElementById('drawerKycBadge'),
   drawerNavProfile: document.getElementById('drawerNavProfile'),
-  drawerNavLoans: document.getElementById('drawerNavLoans'),
+  drawerNavMyLoan: document.getElementById('drawerNavMyLoan'),
+  drawerNavLoans: document.getElementById('drawerNavLoans') || document.getElementById('drawerNavMyLoan'),
   drawerNavKyc: document.getElementById('drawerNavKyc'),
   drawerNavKycDot: document.getElementById('drawerNavKycDot'),
   drawerNavSettings: document.getElementById('drawerNavSettings'),
   drawerAdminContainer: document.getElementById('drawerAdminContainer'),
   drawerLogoutBtn: document.getElementById('drawerLogoutBtn'),
+
+  // Dedicated My Loan Modal Elements
+  clientMyLoanModal: document.getElementById('clientMyLoanModal'),
+  closeMyLoanModalBtn: document.getElementById('closeMyLoanModalBtn'),
+
+  // Loan Financial Calculator & Category Elements
+  loanPurposeCategorySelect: document.getElementById('loanPurposeCategorySelect'),
+  loanFinancialBreakdownCard: document.getElementById('loanFinancialBreakdownCard'),
+  calcPrincipalText: document.getElementById('calcPrincipalText'),
+  calcPlatformFeeText: document.getElementById('calcPlatformFeeText'),
+  calcTotalRepayableText: document.getElementById('calcTotalRepayableText'),
+  calcDailyRateText: document.getElementById('calcDailyRateText'),
+  calcVipDiscountBadge: document.getElementById('calcVipDiscountBadge'),
 
   // Executive Admin Banner & Switcher
   adminExecutiveBanner: document.getElementById('adminExecutiveBanner'),
@@ -884,6 +898,9 @@ function renderCreditScoreCard(profile) {
       DOM.maxAmountLabel.textContent = `৳${effectiveCeiling.toLocaleString()}`;
     }
   }
+
+  // Update loan calculation breakdown with updated VIP discount benefits
+  updateLoanCalculatorBreakdown();
 }
 
 // ─── Phase 11: Device Telemetry & Anti-Fraud Fingerprinting ──────────────────
@@ -939,10 +956,10 @@ async function fetchClientLoans(clientId) {
 
     renderLoans(STATE.loans);
 
-    // Module 7: Update Money Request Lifecycle Stepper
+    // Module 7: Update Loan Processing Stepper (only active requests)
     const activeLoan = (STATE.loans || []).find(l => l.status === 'PENDING') ||
                        (STATE.loans || []).find(l => l.status === 'ACCEPTED') ||
-                       (STATE.loans || [])[0] || null;
+                       null;
     renderLoanProgressStepper(activeLoan);
 
     fetchClientStanding(clientId);
@@ -1348,7 +1365,9 @@ function renderLoanProgressStepper(activeLoan) {
     }
   };
 
+  const stepperCard = document.getElementById('loanProgressStepper');
   if (!activeLoan) {
+    if (stepperCard) stepperCard.classList.add('hidden');
     for (let i = 1; i <= 5; i++) setStepState(i, 'inactive');
     if (actionContainer) actionContainer.innerHTML = '';
     if (detailMsg) {
@@ -1357,6 +1376,7 @@ function renderLoanProgressStepper(activeLoan) {
     }
     return;
   }
+  if (stepperCard) stepperCard.classList.remove('hidden');
 
   const amtStr = parseFloat(activeLoan.amount).toLocaleString();
   const editIconSvg = window.StitchIcons ? window.StitchIcons.get('edit', { size: 12, className: 'mr-1' }) : '<i class="fas fa-edit mr-1"></i>';
@@ -1601,6 +1621,83 @@ function closeClientSettingsModal() {
 }
 window.openClientSettingsModal = openClientSettingsModal;
 window.closeClientSettingsModal = closeClientSettingsModal;
+
+// ─── Module 5: Dedicated My Loan Modal ───────────────────────────────────────
+function openMyLoanModal() {
+  closeClientDrawer();
+  const modal = DOM.clientMyLoanModal || document.getElementById('clientMyLoanModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+}
+
+function closeMyLoanModal() {
+  const modal = DOM.clientMyLoanModal || document.getElementById('clientMyLoanModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+window.openMyLoanModal = openMyLoanModal;
+window.closeMyLoanModal = closeMyLoanModal;
+
+// ─── Feature 1: Real-time Loan Financial Breakdown & Calculator ──────────────
+function updateLoanCalculatorBreakdown() {
+  const amountInput = DOM.amountInput || document.getElementById('amountInput');
+  const deadlineInput = DOM.deadlineDate || document.getElementById('deadlineDate');
+  const calcPrincipalText = DOM.calcPrincipalText || document.getElementById('calcPrincipalText');
+  const calcPlatformFeeText = DOM.calcPlatformFeeText || document.getElementById('calcPlatformFeeText');
+  const calcTotalRepayableText = DOM.calcTotalRepayableText || document.getElementById('calcTotalRepayableText');
+  const calcDailyRateText = DOM.calcDailyRateText || document.getElementById('calcDailyRateText');
+  const calcVipDiscountBadge = DOM.calcVipDiscountBadge || document.getElementById('calcVipDiscountBadge');
+
+  if (!amountInput) return;
+  const principal = parseFloat(amountInput.value) || 0;
+
+  // Check VIP tier discount if available in STATE.creditProfile
+  const vipDiscount = STATE.creditProfile?.vip_tier?.fee_discount_percent || 0;
+  const standardFeeRate = 0.10; // 10%
+  const effectiveFeeRate = standardFeeRate * (1 - vipDiscount / 100);
+  const fee = Math.round(principal * effectiveFeeRate);
+  const totalRepayable = principal + fee;
+
+  if (calcPrincipalText) calcPrincipalText.textContent = `৳ ${principal.toLocaleString()}`;
+  if (calcPlatformFeeText) {
+    calcPlatformFeeText.textContent = `৳ ${fee.toLocaleString()} (${(effectiveFeeRate * 100).toFixed(0)}%)`;
+  }
+  if (calcTotalRepayableText) calcTotalRepayableText.textContent = `৳ ${totalRepayable.toLocaleString()}`;
+  if (calcVipDiscountBadge) {
+    if (vipDiscount > 0) {
+      calcVipDiscountBadge.textContent = `VIP ${vipDiscount}% DISCOUNT`;
+      calcVipDiscountBadge.className = 'text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+    } else {
+      calcVipDiscountBadge.textContent = 'STANDARD FEE (10%)';
+      calcVipDiscountBadge.className = 'text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 border border-slate-700';
+    }
+  }
+
+  // Calculate daily rate based on deadline date
+  if (calcDailyRateText) {
+    if (deadlineInput && deadlineInput.value) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const parts = deadlineInput.value.split('-');
+      if (parts.length === 3) {
+        const targetDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        const diffMs = targetDate.getTime() - today.getTime();
+        const diffDays = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)));
+        const dailyRate = Math.round(totalRepayable / diffDays);
+        calcDailyRateText.textContent = `৳ ${dailyRate.toLocaleString()} / day (${diffDays}d)`;
+      } else {
+        calcDailyRateText.textContent = '—';
+      }
+    } else {
+      calcDailyRateText.textContent = '—';
+    }
+  }
+}
+window.updateLoanCalculatorBreakdown = updateLoanCalculatorBreakdown;
 
 // ─── Module 9: KYC Informative Modal Handlers ────────────────────────────────
 function openKycInfoModal() {
@@ -2304,19 +2401,12 @@ function renderKycUI(kyc) {
   } else if (isPending || isLocked) {
     DOM.kycRequiredBanner?.classList.remove('hidden');
     DOM.kycRequiredBanner.innerHTML = `
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-2 font-black uppercase tracking-wide text-amber-400 text-sm">
-          <i class="fas fa-clock text-base"></i>
-          <span>KYC Under Executive Review</span>
-          <button type="button" id="kycInfoBtn" title="Why is KYC required?" class="w-5 h-5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 hover:text-white border border-amber-500/40 flex items-center justify-center text-[10px] font-black cursor-pointer transition">?</button>
-        </div>
-        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/30 text-amber-300 border border-amber-500/40">IN REVIEW</span>
-      </div>
-      <p class="text-[11px] text-slate-300 leading-relaxed">
-        Your identity documents and live photo have been submitted and are currently being reviewed by Admin. Loan requests will unlock once approved.
-      </p>
+      <button type="button" id="bannerGoToKycBtn" class="w-full py-3.5 px-5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-black uppercase tracking-wider flex items-center justify-center shadow-lg transition-transform active:scale-[0.98] cursor-pointer">
+        <i class="fas fa-clock mr-2 text-sm"></i>
+        <span>KYC VERIFICATION UNDER REVIEW</span>
+      </button>
     `;
-    document.getElementById('kycInfoBtn')?.addEventListener('click', openKycInfoModal);
+    document.getElementById('bannerGoToKycBtn')?.addEventListener('click', () => switchTab('kyc'));
     DOM.kycStatusMessage.textContent = '⏳ KYC Documents submitted. Executive compliance desk is currently reviewing and matching your NID with your live selfie.';
     DOM.kycImmutabilityNotice?.classList.remove('hidden');
     DOM.kycRejectionBox?.classList.add('hidden');
@@ -2324,22 +2414,11 @@ function renderKycUI(kyc) {
   } else if (isRejected) {
     DOM.kycRequiredBanner?.classList.remove('hidden');
     DOM.kycRequiredBanner.innerHTML = `
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-2 font-black uppercase tracking-wide text-rose-400 text-sm">
-          <i class="fas fa-exclamation-triangle text-base"></i>
-          <span>KYC Verification Rejected</span>
-          <button type="button" id="kycInfoBtn" title="Why is KYC required?" class="w-5 h-5 rounded-full bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 hover:text-white border border-rose-500/40 flex items-center justify-center text-[10px] font-black cursor-pointer transition">?</button>
-        </div>
-        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/30 text-rose-300 border border-rose-500/40">RESUBMIT REQUIRED</span>
-      </div>
-      <p class="text-[11px] text-slate-300 leading-relaxed">
-        ${kyc.rejection_reason || 'Document mismatch or unclear image. Please review admin feedback and resubmit.'}
-      </p>
-      <button type="button" id="bannerGoToKycBtn" class="btn-gold w-full py-2.5 px-4 rounded-xl font-black text-xs uppercase tracking-wide flex items-center justify-center shadow cursor-pointer">
-        <i class="fas fa-id-card mr-2"></i> Fix & Resubmit KYC Now
+      <button type="button" id="bannerGoToKycBtn" class="w-full py-3.5 px-5 rounded-full bg-rose-600 hover:bg-rose-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center shadow-lg transition-transform active:scale-[0.98] cursor-pointer border border-rose-400/50">
+        <i class="fas fa-exclamation-triangle mr-2 text-sm"></i>
+        <span>RESUBMIT KYC VERIFICATION NOW</span>
       </button>
     `;
-    document.getElementById('kycInfoBtn')?.addEventListener('click', openKycInfoModal);
     document.getElementById('bannerGoToKycBtn')?.addEventListener('click', () => switchTab('kyc'));
     DOM.kycStatusMessage.textContent = '❌ Your previous KYC submission was rejected. Please review admin feedback below and resubmit.';
     DOM.kycRejectionBox?.classList.remove('hidden');
@@ -2349,22 +2428,11 @@ function renderKycUI(kyc) {
   } else {
     DOM.kycRequiredBanner?.classList.remove('hidden');
     DOM.kycRequiredBanner.innerHTML = `
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-2 font-black uppercase tracking-wide text-amber-400 text-sm">
-          <i class="fas fa-shield-alt text-base"></i>
-          <span>COMPLETE KYC VERIFICATION NOW</span>
-          <button type="button" id="kycInfoBtn" title="Why is KYC required?" class="w-5 h-5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 hover:text-white border border-amber-500/40 flex items-center justify-center text-[10px] font-black cursor-pointer transition">?</button>
-        </div>
-        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/30 text-amber-300 border border-amber-500/40">PRE-LOAN GATE</span>
-      </div>
-      <p class="text-[11px] text-slate-300 leading-relaxed">
-        SYM EMPIRE PLATFORM (S.E.P.) requires mandatory KYC verification (NID Front/Back, Email OTP, and Live Photo) before any money requests can be submitted or approved.
-      </p>
-      <button type="button" id="bannerGoToKycBtn" class="btn-gold w-full py-2.5 px-4 rounded-xl font-black text-xs uppercase tracking-wide flex items-center justify-center shadow cursor-pointer">
-        <i class="fas fa-id-card mr-2"></i> Complete KYC Verification Now
+      <button type="button" id="bannerGoToKycBtn" class="btn-gold w-full py-3.5 px-5 rounded-full font-black text-xs uppercase tracking-wider flex items-center justify-center shadow-lg transition-transform active:scale-[0.98] cursor-pointer border border-amber-400/50">
+        <i class="fas fa-id-card mr-2 text-sm"></i>
+        <span>COMPLETE KYC VERIFICATION NOW</span>
       </button>
     `;
-    document.getElementById('kycInfoBtn')?.addEventListener('click', openKycInfoModal);
     document.getElementById('bannerGoToKycBtn')?.addEventListener('click', () => switchTab('kyc'));
     DOM.kycStatusMessage.textContent = 'Upload your National ID (Front & Back), confirm your email via OTP, and take a real-time live selfie to verify your identity.';
     DOM.kycImmutabilityNotice?.classList.add('hidden');
@@ -2910,16 +2978,21 @@ async function submitKycForm() {
 // ─── Setup Event Listeners ────────────────────────────────────────────────────
 function setupEventListeners() {
   // Sync slider and number input
-  DOM.amountSlider.addEventListener('input', (e) => {
+  DOM.amountSlider?.addEventListener('input', (e) => {
     DOM.amountInput.value = e.target.value;
+    updateLoanCalculatorBreakdown();
   });
 
-  DOM.amountInput.addEventListener('input', (e) => {
+  DOM.amountInput?.addEventListener('input', (e) => {
     DOM.amountSlider.value = e.target.value;
+    updateLoanCalculatorBreakdown();
   });
 
   // Date change
-  DOM.deadlineDate.addEventListener('change', updateCalculatedDuration);
+  DOM.deadlineDate?.addEventListener('change', () => {
+    updateCalculatedDuration();
+    updateLoanCalculatorBreakdown();
+  });
 
   // ─── Drawer Navigation & Tab Switcher Listeners ───
   DOM.clientDrawerBtn?.addEventListener('click', openClientDrawer);
@@ -2933,7 +3006,9 @@ function setupEventListeners() {
     closeClientDrawer();
     openUserProfileHub();
   });
-  DOM.drawerNavLoans?.addEventListener('click', () => switchTab('loans'));
+  DOM.drawerNavMyLoan?.addEventListener('click', openMyLoanModal);
+  DOM.drawerNavLoans?.addEventListener('click', openMyLoanModal);
+  DOM.closeMyLoanModalBtn?.addEventListener('click', closeMyLoanModal);
   DOM.drawerNavKyc?.addEventListener('click', () => switchTab('kyc'));
   DOM.drawerNavSettings?.addEventListener('click', () => {
     closeClientDrawer();
@@ -3416,7 +3491,9 @@ function setupEventListeners() {
     const executeLoanSubmission = async (extraHeaders = {}) => {
       const amount = parseFloat(DOM.amountInput.value);
       const deadline = DOM.deadlineDate.value;
-      const note = DOM.loanNote.value.trim();
+      const category = (DOM.loanPurposeCategorySelect || document.getElementById('loanPurposeCategorySelect'))?.value || '';
+      const userNote = (DOM.loanNote?.value || '').trim();
+      const note = [category, userNote].filter(Boolean).join(' - ');
 
       DOM.submitBtn.disabled = true;
       DOM.submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
@@ -3461,7 +3538,9 @@ function setupEventListeners() {
         `;
         DOM.formFeedback.classList.remove('hidden');
 
-        DOM.loanNote.value = '';
+        if (DOM.loanNote) DOM.loanNote.value = '';
+        const catSelect = DOM.loanPurposeCategorySelect || document.getElementById('loanPurposeCategorySelect');
+        if (catSelect) catSelect.selectedIndex = 3;
         await fetchClientLoans(STATE.client.id);
         await fetchClientCreditProfile(STATE.client.id);
 

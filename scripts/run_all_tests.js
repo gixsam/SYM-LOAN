@@ -11,6 +11,7 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 
 const SUITES = [
   { name: 'Full Codebase & Structure Audit', script: 'scripts/audit_codebase.js' },
+  { name: 'Client Portal UI/UX Reorganization', script: 'scripts/test_reorganization.js' },
   { name: 'UI/UX Patch Suite', script: 'scripts/test_ui_ux_patch.js' },
   { name: 'Client Portal & Biometrics Overhaul (Part 2)', script: 'scripts/test_part2_overhaul.js' },
   { name: 'Admin Overhaul & Governance (Part 1)', script: 'scripts/test_admin_overhaul.js' },
